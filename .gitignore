@@ -1,0 +1,10 @@
+*_local.py
+
+*.pyc
+
+.idea/
+corpus/
+events/
+.DS_Store
+demo/
+venv

@@ -1,0 +1,70 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <!--Import Google Icon Font-->
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
+
+        <link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css"/>
+        <link rel="stylesheet" type="text/css" href="static/css/main.css"/>
+        <style>
+            .cluster_img {
+                height: 100px;
+                width:auto;
+                max-width: 100%;
+            }
+        </style>
+          <!--Let browser know website is optimized for mobile-->
+          <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>MABED: Mention-anomaly-based Event Detection and Tracking in Twitter</title>
+    </head>
+    <body>
+
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container" id="mabed-nav">
+
+      <a class="navbar-brand" href="#">MABED</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainMABEDnavbar" aria-controls="mainMABEDnavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainMABEDnavbar">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active" id="nav-home">
+            <a class="nav-link" href="#">Home</a>
+          </li>
+
+        </ul>
+
+
+      </div>
+    </div>
+  </nav>
+
+
+
+    <div class="container">
+        <div class="row">
+            <div class="col-12 pix-margin-v-30">
+                <h5>Number of Clusters: {{ clusters_num }}</h5>
+            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Twitter images - 2015</span></h2>
+          </div>
+          <div class="col-12 col-xs-12">
+                {% for cluster in clusters %}
+                    <div class="media pix-padding-10 white-bg bs_box tweet_box" style="height:auto;">
+                    <div class="media-body">
+                        <div style="margin-bottom:0px !important;" class="">Cluster{{ loop.index }}</div>
+                        <img class="cluster_img" src="http://localhost/TwitterImages/twitter2015/{{cluster[0]}}">
+                    </div>
+                    </div>
+                    <br>
+              {% endfor %}
+          </div>
+        </div>
+    </div>
+
+      <script src="static/js/vendor/jquery-1.10.2.min.js"></script>
+    <script src="static/js/vendor/bootstrap.min.js"></script>
+    </body>
+    </html>

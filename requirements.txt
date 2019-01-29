@@ -1,0 +1,11 @@
+Flask==0.12.3
+elasticsearch==6.2.0
+nltk==3.3
+networkx==2.1
+Flask_Cors==3.0.4
+numpy==1.14.2
+gensim==3.4.0
+kneed==0.0.5
+scipy==1.0.1
+flask_htpasswd==0.3.1
+Frozen_Flask==0.15
