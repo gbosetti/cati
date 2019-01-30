@@ -23,10 +23,24 @@ Provided a set of tweets, MABED can (i) perform event detection and (ii) generat
 
 ### Import images clusters into Elasticsearch
 
-    python3 images.py -f twitter2015.json -i twitter2015
+    python images.py -f twitter2017.json -i twitterfdl2017
     
 -f The json file which contains images clusers  
 -i Elasticsearch Index
+
+This process adds a new field to the tweets in elasticsearch, called "imagesCluster", which is used by es_corpus.py to retrieve the tweet corpus with an extra feature integrated to the textual value:
+
+    tweet_text = tweet_text + cluster_str
+
+If you execute the images.py script more than one, the values are updated, not duplicated. You can delete the field from Kibana by executing:
+
+    POST twitterfdl2017/_update_by_query?conflicts=proceed
+    {
+        "script" : "ctx._source.remove('imagesCluster')",
+        "query" : {
+            "exists": { "field": "imagesCluster" }
+        }
+    }
 
 ### Start the web application
 

@@ -17,6 +17,7 @@ if __name__ == '__main__':
         data = json.load(f)
 
     print('Number of clusters: %d' % len(data['duplicates']))
+    print('Index', args.i)
 
     my_connector = Es_connector(index=args.i)
     # my_connector = Es_connector(index=args.i, host='http://206.189.211.142', user='', password='')
@@ -26,10 +27,10 @@ if __name__ == '__main__':
     for cluster in data['duplicates']:
         for img in cluster:
             imgs+=1
-            matchObj = re.match(r'(\d*)_(.*).(.*)', img, re.M | re.I)
+            target_tweet_id = re.match(r'(\d*)_(.*).(.*)', img, re.M | re.I)
             res = my_connector.search({
                 "query": {
-                        "term": {"id_str": matchObj.group(1)}
+                        "term": {"id_str": target_tweet_id.group(1)}
                     }})
             if res['hits']['total']>0:
                 id= res['hits']['hits'][0]['_id']
@@ -45,6 +46,7 @@ if __name__ == '__main__':
                         print(res['hits']['hits'][0]['_source']['imagesCluster'])
                 else:
                     update = my_connector.update_field(id, 'imagesCluster', [c_count])
+
                 count += res['hits']['total']
         c_count += 1
         print('-----------------------')
