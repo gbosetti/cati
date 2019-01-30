@@ -29,7 +29,26 @@ Provided a set of tweets, MABED can (i) perform event detection and (ii) generat
 -i Elasticsearch Index
 
 ### Start the web application
+
+Start the elasticsearchserver. If you are running the application for the first time, please create a “mabed_sessions” index using kibana. For the version 6.5.4 simply execute the following line in the Dev tools console:
+
+    PUT mabed_sessions
+
+Then:
+
     python3 server.py
+
+Visit localhost:5000.
+
+PS: right now, the indexes listed and used by the application are fixed. Please, add an alias if the name of your index is different. You can do it by running a query like the following one:
+
+    POST /_aliases
+    {
+        "actions" : [
+            { "add" : { "index" : "twitterfdl2017", "alias" : "twitter2017" } }
+        ]
+    }
+
 
 # MABED
 

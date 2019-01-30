@@ -49,7 +49,7 @@ app.views.tweets = Backbone.View.extend({
                 buttons: {
                     cancel: {
                         text: 'CLOSE',
-                        btnClass: 'btn-cancel',
+                        btnClass: 'btn-primary',
                     }
                 }
             });

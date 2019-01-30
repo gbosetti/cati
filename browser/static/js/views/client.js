@@ -14,7 +14,7 @@ app.views.client = Backbone.View.extend({
 	      this.render();
 	      var handler = _.bind(this.render, this);
 	      var self = this;
-	      $(document).on("click","body .tweet_state",function(e){
+	      $(document).on("click","body .tweet_state",function(e){ // Search tweets
 			self.tweet_state(e);
 		});
 	  },

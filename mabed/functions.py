@@ -736,7 +736,6 @@ class Functions:
                         }
                     }
                 }
-        print("*** query name", name)
         res = my_connector.search(query)
         return res
 

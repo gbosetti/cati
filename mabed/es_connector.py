@@ -50,6 +50,10 @@ class Es_connector:
     #     return res
 
     def search(self, query):
+        print("index", self.index)
+        print("body", query)
+        print("doc_type", self.doc_type)
+        print("size", self.size)
         res = self.es.search(
             index=self.index,
             doc_type=self.doc_type,

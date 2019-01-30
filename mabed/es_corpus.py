@@ -74,7 +74,7 @@ class Corpus:
             vocabulary = list(word_frequency.items())
             vocabulary.sort(key=lambda x: x[1], reverse=True)
             if save_voc:
-                with open('vocabulary.pickle', 'wb') as output_file:
+                with open('vocabulary.pickle', 'wb', encoding="utf-8") as output_file:
                     pickle.dump(vocabulary, output_file)
             self.vocabulary = {}
             vocabulary_size = 0
@@ -118,7 +118,7 @@ class Corpus:
 
         # create empty files
         for time_slice in range(self.time_slice_count):
-            dummy_file = open('corpus/' + str(time_slice), 'w')
+            dummy_file = open('corpus/' + str(time_slice), 'w',  encoding="utf-8")
             dummy_file.write('')
 
         # compute word frequency
@@ -156,7 +156,7 @@ class Corpus:
                     self.global_freq[word_id, time_slice] += 1
                     if mention:
                         self.mention_freq[word_id, time_slice] += 1
-            with open('corpus/' + str(time_slice), 'a') as time_slice_file:
+            with open('corpus/' + str(time_slice), 'a', encoding="utf-8") as time_slice_file:
                 time_slice_file.write(tweet_text+'\n')
         self.global_freq = self.global_freq.tocsr()
         self.mention_freq = self.mention_freq.tocsr()
@@ -176,7 +176,7 @@ class Corpus:
         main_word = event[2]
         word_frequency = {}
         for i in range(event[1][0], event[1][1] + 1):
-            with open('corpus/' + str(i), 'r') as input_file:
+            with open('corpus/' + str(i), 'r',  encoding="utf-8") as input_file:
                 for tweet_text in input_file.readlines():
                     words = self.tokenize(tweet_text)
                     if event[2] in words:
