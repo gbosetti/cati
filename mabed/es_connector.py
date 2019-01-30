@@ -2,7 +2,7 @@
 
 import time
 from elasticsearch import Elasticsearch
-
+import os
 import gensim
 import mabed.utils as utils
 import string
@@ -603,12 +603,11 @@ class Es_connector:
 
 
             model = gensim.models.Word2Vec(tweets, min_count=1, workers=1, negative=20)
-            model.save(filepath)
+            model.save(os.path.abspath(filepath))
 
         words = self.tokenize(words, stopwords)
         pwords=words
-        print("pwords")
-        print(pwords)
+        print("pwords", pwords)
         # context = model.most_similar(positive=['fête','lumières'], topn=10)
         context = model.most_similar(positive=pwords, topn=count)
         # context = model.most_similar(positive=['fête','lumières'], topn=count)

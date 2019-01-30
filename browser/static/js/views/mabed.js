@@ -30,7 +30,7 @@ app.views.mabed = Backbone.View.extend({
             });
           return false;
       }
-      console.log("Running MABED...");
+      console.log("Running MABED from mabed.js...");
       $('#mabed_loading').fadeIn('slow');
       var self = this;
       var data = $('#run_mabed').serializeArray();

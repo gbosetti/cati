@@ -12,6 +12,7 @@ app.collections.events = Backbone.Collection.extend({
 
         var s_ev = res.toJSON();
         $.post(app.appURL+'event_image', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
+            console.log("event image", response.result);
             if(response.result){
                 var ext = "jpg";
                 if(response.image.extended_entities.media[0].media_url.endsWith("png")){
@@ -54,6 +55,7 @@ app.collections.events = Backbone.Collection.extend({
       self.each(function(event){
         var sd = new Date(event.get('start_date'));
         var ed = new Date(event.get('end_date'));
+
         var image = event.get('image');
 
         var terms = '<div class="tl_btns">';
@@ -66,6 +68,8 @@ app.collections.events = Backbone.Collection.extend({
         terms+='<div class="timeline_options"><hr>';
         terms+='Mark event tweets as: <a href="#" data-cid="'+event.cid+'" data-status="negative" class="timeline_btn tl_options_btn options_btn_negative">negative</a> <a href="#" data-cid="'+event.cid+'" data-status="confirmed" class="timeline_btn tl_options_btn options_btn_valid">Confirmed</a>';
         terms+='</div>';
+        console.log("ev", event.attributes);
+        console.log("image", image);
           if(!image){
               image = "static/images/img.jpg";
           }

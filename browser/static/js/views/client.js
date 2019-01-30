@@ -29,7 +29,7 @@ app.views.client = Backbone.View.extend({
 	  },
 		load_timeline: function(){
 			var self = this;
-			console.log("Timeline");
+			console.log("Loading Timeline");
 			data = app.eventsCollection.get_timeline_events();
 			if($('#timeline-embed').length){
 				timeline = new TL.Timeline('timeline-embed',data,{
@@ -140,7 +140,7 @@ app.views.client = Backbone.View.extend({
 
 			$.post(app.appURL+'mark_event', data, function(response){
 				jc.close();
-						console.log(response);
+						//console.log(response);
 			}, 'json');
 			return false;
 		},
@@ -149,13 +149,13 @@ app.views.client = Backbone.View.extend({
 			var self = this;
 			var cid = $(e.currentTarget).data("cid");
 			var ev = app.eventsCollection.get({ cid: $(e.currentTarget).data("eid") }).toJSON();
-
-			$.confirm({
+            console.log("cluster_tweets")
+			$.confirm({ //Show tweets
 					theme: 'pix-cluster-modal',
 					title: 'Cluster'+cid+' Tweets',
 					columnClass: 'col-md-12',
 					useBootstrap: true,
-					backgroundDismiss: false,
+					backgroundDismiss: true,
 					// content: html,
 					content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
 					defaultButtons: false,
@@ -290,9 +290,9 @@ app.views.client = Backbone.View.extend({
 		var tid = $(e.currentTarget).data("tid");
 		var val = $(e.currentTarget).data("val");
 		var el = $(e.currentTarget).closest('.media-body').find('.t_state');
-		console.log(el);
+		//console.log(el);
 		$.post(app.appURL+'mark_tweet', {tid: tid, index: app.session.s_index, session: app.session.s_name, val: val}, function(response){
-			console.log(response);
+			//console.log(response);
 			var state = val;
 				if(state === "confirmed"){
 					state = '<span class="badge badge-success">'+state+'</span>';
