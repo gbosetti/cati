@@ -674,13 +674,13 @@ def get_results():
     # print(y2)
     # print("++++")
 
-    kn = KneeLocator(x, y2,direction="decreasing", invert=False)
+    kn = KneeLocator(x, y2,direction="decreasing", curve='convex')  # invert=False was replaced by curve='convex'
 
     # print("kn.knee")
     # print(kn.knee)
     elbow = kn.knee
     if not elbow:
-        elbow = KneeLocator(x, y2,direction="decreasing", invert=True).knee
+        elbow = KneeLocator(x, y2,direction="decreasing", curve='concave').knee
         # print("kn.knee2")
         # print(elbow)
 
