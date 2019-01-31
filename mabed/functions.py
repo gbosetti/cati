@@ -22,6 +22,17 @@ class Functions:
         self.sessions_doc_type = 'session'
         # print("Functions init")
 
+    def get_total_tweets(self, index):
+
+        my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
+        res = my_connector.search({
+            "query": {
+                "match_all": {}
+            }
+        })
+
+        return res['hits']['total']
+
     # ==================================================================
     # Event Detection
     # ==================================================================

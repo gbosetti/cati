@@ -1,4 +1,6 @@
 # coding: utf-8
+from preprocessing_and_stats.PreProcessor import PreProcessor
+from preprocessing_and_stats.StopWords import EnglishStopWords, FrenchStopWords
 
 import argparse
 import json
@@ -89,6 +91,26 @@ def event_descriptions():
 # ==================================================================
 # 2. MABED
 # ==================================================================
+
+
+# Returns teh analysis of the raw dataset
+@app.route('/produce_dataset_stats', methods=['POST'])
+# @cross_origin()
+def produce_dataset_stats():
+    data = request.form
+    # pre_processor = PreProcessor()
+    # raw_tweets = read_raw_tweets_from_elastic()
+    # pre_processor.pre_process(
+    #     raw_tweets,
+    #     generate_stats=True,
+    #     include_mentions=True,
+    #     include_hashtags=True
+    # )
+    # stats = pre_processor.get_stats()
+    # print(stats)
+    return jsonify({
+        "total_tweets": functions.get_total_tweets(index=data['index'])
+    })
 
 # Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])

@@ -62,7 +62,7 @@ var app = (function() {
             }
             return this.tweetsView;
         },
-				mabed: function() {
+				mabed: function() {  // "Detect events using MABED" tab
             if(!this.mabedView) {
                 this.mabedView = new api.views.mabed({
 									model: api.eventsCollection
@@ -147,7 +147,7 @@ var app = (function() {
                 .changeContent(view.$el);
             view.render();
         },
-				mabed: function() {
+				mabed: function() {  // "Detect events using MABED" tab
 			if(api.session_id){
 				var view = ViewsFactory.mabed();
 							$('#mabed-nav .nav-item').removeClass('active');

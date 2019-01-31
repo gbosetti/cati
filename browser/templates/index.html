@@ -11,6 +11,7 @@
   <link title="timeline-styles" rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
   <!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
   <link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
+    <link rel="stylesheet" href="static/plugins/spinner/spin.css">
 
   <link rel="stylesheet" type="text/css" href="static/css/main.css"/>
   <link rel="stylesheet" type="text/css" href="static/css/style.css" />
@@ -349,62 +350,65 @@
                   <!-- Left column -->
                   <div class="col-md-6 col-sm-6 h_field">
                     <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Total tweets <span class="badge badge-pill badge-info">23000</span>
+                        Total tweets <span id="total_tweets" class="badge badge-pill badge-info">...</span>
                     </li>
                     <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Mentions <span class="badge badge-pill badge-info">23000</span>
+                        Mentions <span class="badge badge-pill badge-info">...</span>
                     </li>
                     <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Hashtags <span class="badge badge-pill badge-info">23000</span>
+                        Hashtags <span class="badge badge-pill badge-info">...</span>
                     </li>
                     <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Emojis <span class="badge badge-pill badge-info">23000</span>
+                        Emojis <span class="badge badge-pill badge-info">...</span>
                     </li>
                     <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Emoticons <span class="badge badge-pill badge-info">23000</span>
+                        Emoticons <span class="badge badge-pill badge-info">...</span>
                     </li>
                     <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        URLs <span class="badge badge-pill badge-info">23000</span>
+                        URLs <span class="badge badge-pill badge-info">...</span>
+                    </li>
+                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+                        Images <span class="badge badge-pill badge-info">...</span>
                     </li>
                   </div>
                   <!-- Right column -->
                   <div class="col-md-6 col-sm-6 h_field">
                         <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                            Total languages <span class="badge badge-pill badge-info">23000</span>
+                            Total languages <span class="badge badge-pill badge-info">...</span>
                         </li>
                         <div class="row">
                             <div class="col-md-6 py-2 col-sm-6 h_field">
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    FR <span class="badge badge-pill badge-info">23000</span>
+                                    FR <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    FR <span class="badge badge-pill badge-info">23000</span>
+                                    FR <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    FR <span class="badge badge-pill badge-info">23000</span>
+                                    FR <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    FR <span class="badge badge-pill badge-info">23000</span>
+                                    FR <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    FR <span class="badge badge-pill badge-info">23000</span>
+                                    FR <span class="badge badge-pill badge-info">...</span>
                                 </li>
                             </div>
                             <div class="col-md-6 py-2 col-sm-6 h_field">
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    EN <span class="badge badge-pill badge-info">23000</span>
+                                    EN <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    EN <span class="badge badge-pill badge-info">23000</span>
+                                    EN <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    EN <span class="badge badge-pill badge-info">23000</span>
+                                    EN <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    EN <span class="badge badge-pill badge-info">23000</span>
+                                    EN <span class="badge badge-pill badge-info">...</span>
                                 </li>
                                 <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    EN <span class="badge badge-pill badge-info">23000</span>
+                                    EN <span class="badge badge-pill badge-info">...</span>
                                 </li>
                             </div>
                         </div>
@@ -863,10 +867,9 @@ for each n ∈ ℤ : n ∈ [1,20]
   <script src="static/js/vendor/backbone.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.js"></script>
   <script src="static/plugins/canvasjs/canvasjs.min.js"></script>
-
-
   <script src="static/plugins/d3/d3.min.js"></script>
   <script src="static/plugins/d3/nv.d3.min.js"></script>
+  <script src="static/plugins/spinner/spin.js"></script>
 
   <script src="static/js/App.js"></script>
   <script src="static/js/views/home.js"></script>

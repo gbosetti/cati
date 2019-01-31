@@ -1,12 +1,9 @@
-from Stats import Stats
+from preprocessing_and_stats.Stats import Stats
 import re
 import string
-import operator
-import json
 from collections import Counter
 import nltk
 from nltk import bigrams
-from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 nltk.download('stopwords')
 # from nltk.stem.snowball import FrenchStemmer

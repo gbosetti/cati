@@ -5,31 +5,84 @@ app.views.mabed = Backbone.View.extend({
     },
     initialize: function() {
         var handler = _.bind(this.render, this);
+        this.initSpinner();
+    },
+    initSpinner: function(){
+        /*var opts = {
+          lines: 9, // The number of lines to draw
+          length: 38, // The length of each line
+          width: 15, // The line thickness
+          radius: 32, // The radius of the inner circle
+          scale: 1, // Scales overall size of the spinner
+          corners: 1, // Corner roundness (0..1)
+          color: '#ffffff', // CSS color or array of colors
+          fadeColor: 'transparent', // CSS color or array of colors
+          speed: 1, // Rounds per second
+          rotate: 0, // The rotation offset
+          animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
+          direction: 1, // 1: clockwise, -1: counterclockwise
+          zIndex: 2e9, // The z-index (defaults to 2000000000)
+          className: 'spinner', // The CSS class to assign to the spinner
+          top: '50%', // Top position relative to parent
+          left: '50%', // Left position relative to parent
+          shadow: '0 0 1px transparent', // Box-shadow for the lines
+          position: 'absolute' // Element positioning
+        };
+
+        this.spinner = new Spinner(opts);*/
     },
     render: function(){
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+        console.log("Rendering the doc");
+        this.getDatasetInfo();
         return this;
     },
-    run_mabed: function(e){
-      e.preventDefault();
+    getDatasetInfo: function(){
         if(!app.session){
-          $.confirm({
-                title: 'Error',
-                boxWidth: '800px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "Error! please select a session from the settings page.",
-                buttons: {
-                    cancel: {
-                        text: 'CLOSE',
-                        btnClass: 'btn-cancel',
-                    }
+          return this.notifyNoSession()
+        }
+
+        //Enabling the spinner
+        //this.spinner.spin(document.getElementById('indexing_stats'));
+
+        var data = $('#run_mabed').serializeArray();
+        data.push({name: "index", value: app.session.s_index});
+
+        $.post( app.appURL+'produce_dataset_stats', data, function(response, status) {
+            console.log( "success" );
+            console.log("Data: ", response, "\nStatus: ", status);
+
+            //On request retrieval, load the new values and stop the spinner
+            document.querySelector('#total_tweets').textContent = response.total_tweets; //"20000";
+
+        }).fail(function(err) {
+            console.log(err)
+        });
+    },
+    notifyNoSession: function(){
+
+        $.confirm({
+            title: 'Error',
+            boxWidth: '800px',
+            theme: 'pix-danger-modal',
+            backgroundDismiss: true,
+            content: "Error! please select a session from the settings page.",
+            buttons: {
+                cancel: {
+                    text: 'CLOSE',
+                    btnClass: 'btn-cancel',
                 }
-            });
-          return false;
-      }
+            }
+        });
+        return false;
+    },
+    run_mabed: function(e){
+        e.preventDefault();
+        if(!app.session){
+          return this.notifyNoSession()
+        }
       console.log("Running MABED from mabed.js...");
       $('#mabed_loading').fadeIn('slow');
       var self = this;
