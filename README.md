@@ -63,6 +63,7 @@ PS: right now, the indexes listed and used by the application are fixed. Please,
         ]
     }
 
+When running MABED, the detect_events method is called. Look at the functions.py file
 
 # MABED
 

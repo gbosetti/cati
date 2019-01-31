@@ -52,6 +52,7 @@ app.views.mabed = Backbone.View.extend({
                 }
             }
         });
+      console.log(app.appURL+'detect_events', data);
       $.post(app.appURL+'detect_events', data, function(response){
           $('#mabed_loading').fadeOut();
           jc.close();

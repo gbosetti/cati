@@ -57,19 +57,25 @@ class Corpus:
                         for x in range(cluster):
                             cluster_str = cluster_str + cluster_temp
                         tweet_text = tweet_text + cluster_str
+
+                #   tokenization
                 words = self.tokenize(tweet_text)
+
+                # Updating start and ending dates
                 date = line['_source']['timestamp_ms']
                 if date > self.end_date:
                     self.end_date = date
                 elif date < self.start_date:
                     self.start_date = date
-                # update word frequency
+
+                # update word frequency for the vocabulary
                 for word in words:
                     if len(word) > 1:
                         frequency = word_frequency.get(word)
                         if frequency is None:
                             frequency = 0
                         word_frequency[word] = frequency + 1
+
             # sort words w.r.t frequency
             vocabulary = list(word_frequency.items())
             vocabulary.sort(key=lambda x: x[1], reverse=True)
@@ -160,7 +166,6 @@ class Corpus:
                 time_slice_file.write(tweet_text+'\n')
         self.global_freq = self.global_freq.tocsr()
         self.mention_freq = self.mention_freq.tocsr()
-
 
     def to_date(self, time_slice):
         a_date = self.start_date + timedelta(minutes=time_slice*self.time_slice_length)

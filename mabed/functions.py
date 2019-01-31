@@ -36,6 +36,10 @@ class Functions:
         print('   p: %d\n   theta: %f\n   sigma: %f' % (p, theta, sigma))
 
         print('Loading corpus...')
+
+
+
+
         start_time = timeit.default_timer()
         my_corpus = Corpus(sw, maf, mrf, sep, index=index)
         elapsed = timeit.default_timer() - start_time
