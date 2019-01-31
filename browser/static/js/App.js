@@ -50,19 +50,30 @@ var app = (function() {
             }
             return this.homeView;
         },
-				settings: function() {
+        classification: function() {
+
+            console.log("...", this);
+            if(!this.classificationView) {
+                console.log(api);
+
+                this.classificationView = new api.views.classification();
+            }
+            console.log("classification factory", this.classificationView)
+            return this.classificationView;
+        },
+		settings: function() {
             if(!this.settingsView) {
                 this.settingsView = new api.views.settings();
             }
             return this.settingsView;
         },
-				tweets: function() {
+		tweets: function() {
             if(!this.tweetsView) {
                 this.tweetsView = new api.views.tweets();
             }
             return this.tweetsView;
         },
-				mabed: function() {  // "Detect events using MABED" tab
+		mabed: function() {  // "Detect events using MABED" tab
             if(!this.mabedView) {
                 this.mabedView = new api.views.mabed({
 									model: api.eventsCollection
@@ -70,7 +81,7 @@ var app = (function() {
             }
             return this.mabedView;
         },
-			beta: function() {
+		beta: function() {
             if(!this.betaView) {
                 this.betaView = new api.views.beta({
 									model: api.eventsCollection
@@ -78,7 +89,7 @@ var app = (function() {
             }
             return this.betaView;
         },
-			beta2: function() {
+		beta2: function() {
             if(!this.beta2View) {
                 this.beta2View = new api.views.beta2({
 									model: api.eventsCollection
@@ -112,6 +123,7 @@ var app = (function() {
 			"results": "results",
 			"settings": "settings",
 			"tweets": "tweets",
+			"classification": "classification",
 			"mabed": "mabed",
 			"events": "events",
 			"beta": "beta",
@@ -129,7 +141,21 @@ var app = (function() {
 						$('html,body').animate({scrollTop: 0}, 300);
 
         },
-				settings: function() {
+        classification: function() {
+
+            console.log("classification router...")
+            var view = ViewsFactory.classification();
+            console.log("classification router", view)
+            $('#mabed-nav .nav-item').removeClass('active');
+            $('#nav-classification').addClass('active');
+
+            api
+                .title("Classification")
+                .changeContent(view.$el);
+            view.render();
+
+        },
+		settings: function() {
             var view = ViewsFactory.settings();
 						$('#mabed-nav .nav-item').removeClass('active');
 						$('#nav-settings').addClass('active');

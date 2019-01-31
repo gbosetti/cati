@@ -56,6 +56,11 @@ app.views.events = Backbone.View.extend({
 				});
 			});
 	},
+	/*classify_tweets: function(){
+	    var html = $("#tpl-classify-tweets").html()
+	    console.log(html)
+        return html
+	},*/
 	get_tweets_html: function(response, classes, cid){
         var html = "";
         var template = _.template($("#tpl-item-tweet").html());
