@@ -5,10 +5,14 @@ app.views.classification = Backbone.View.extend({
     },
     render: function(){
 
-        console.log("Rendering view")
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+
+        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', function () {
+            $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
+            $( this ).parent( 'li' ).addClass( 'active' );
+        });
 
         return this;
     }

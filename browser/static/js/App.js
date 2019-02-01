@@ -52,13 +52,9 @@ var app = (function() {
         },
         classification: function() {
 
-            console.log("...", this);
             if(!this.classificationView) {
-                console.log(api);
-
                 this.classificationView = new api.views.classification();
             }
-            console.log("classification factory", this.classificationView)
             return this.classificationView;
         },
 		settings: function() {
@@ -143,17 +139,12 @@ var app = (function() {
         },
         classification: function() {
 
-            console.log("classification router...")
             var view = ViewsFactory.classification();
-            console.log("classification router", view)
             $('#mabed-nav .nav-item').removeClass('active');
             $('#nav-classification').addClass('active');
 
-            api
-                .title("Classification")
-                .changeContent(view.$el);
+            api.title("Classification").changeContent(view.$el);
             view.render();
-
         },
 		settings: function() {
             var view = ViewsFactory.settings();
