@@ -52,10 +52,14 @@ The classifier can also be changed to any other classifier in scikit-learn.
 
 
 @author: afshin rahimi
+https://github.com/afshinrahimi/activelearning
 
 '''
 import matplotlib
 # matplotlib.use('Agg')
+import json
+import shutil
+
 import os
 from time import time
 import numpy as np
@@ -72,32 +76,148 @@ from sklearn.neighbors import NearestCentroid
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.extmath import density
 from sklearn import metrics
-from sklearn import cross_validation
+from sklearn.model_selection import cross_validate  #by Gabi
 import itertools
 import shutil
 
 from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+from elasticsearch import Elasticsearch
+import elasticsearch.helpers
+
 NUM_QUESTIONS = 3
-PLOT_RESULTS = False
-ACTIVE = True
-DATA_FOLDER = "/home/af/Downloads/movie_review_kfold/review_polarity/activelearning"
+ACTIVE = False
+DATA_FOLDER = "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
 TEST_FOLDER = os.path.join(DATA_FOLDER, "test")
 UNLABELED_FOLDER = os.path.join(DATA_FOLDER, "unlabeled")
-ENCODING = 'latin1'
-while True:
+ENCODING = 'latin1'  #latin1
+
+
+def read_raw_tweets_from_elastic(**kwargs):
+    elastic = Elasticsearch([{'host': kwargs["host"], 'port': kwargs["port"]}])
+
+    raw_tweets = elastic.search(
+        index=kwargs["index"],
+        doc_type="tweet",
+        size=kwargs["size"],
+        body=kwargs["query"],
+        _source=kwargs["_source"],
+    )
+
+    return raw_tweets['hits']['hits']
+
+
+def delete_folder_contents(folder):
+    for the_file in os.listdir(folder):
+        file_path = os.path.join(folder, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            # elif os.path.isdir(file_path): shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
+
+
+def writeFile(fullpath, content):
+    file = open(fullpath, "w", encoding='utf-8')
+    file.write(content)
+    file.close()
+
+    # Delete all the existing content in the folders
+
+
+print("Cleaning directories")
+delete_folder_contents(os.path.join(TRAIN_FOLDER, "pos"))
+delete_folder_contents(os.path.join(TRAIN_FOLDER, "neg"))
+delete_folder_contents(os.path.join(TEST_FOLDER, "pos"))
+delete_folder_contents(os.path.join(TEST_FOLDER, "neg"))
+delete_folder_contents(os.path.join(UNLABELED_FOLDER, "unlabeled"))
+
+target_source = ["id_str", "text", "imagesCluster", "session_twitterfdl2017"]
+
+# Getting a sample from elasticsearch to classify
+confirmed_data = read_raw_tweets_from_elastic(
+    index="twitterfdl2017",
+    doc_type="tweet",
+    host="localhost",
+    port="9200",
+    size=10000,
+    query={"query": {
+        "match": {
+            "session_twitterfdl2017": "confirmed"
+        }
+    }},
+    _source=target_source,
+)
+negative_data = read_raw_tweets_from_elastic(
+    index="twitterfdl2017",
+    doc_type="tweet",
+    host="localhost",
+    port="9200",
+    size=10000,
+    query={"query": {
+        "match": {
+            "session_twitterfdl2017": "negative"
+        }
+    }},
+    _source=target_source,
+)
+proposed_data = read_raw_tweets_from_elastic(
+    index="twitterfdl2017",
+    doc_type="tweet",
+    host="localhost",
+    port="9200",
+    size=5000,
+    query={"query": {
+        "match": {
+            "session_twitterfdl2017": "proposed"
+        }
+    }},
+    _source=target_source,
+)
+
+# Slice the classified data to fill the test and train datasts
+index = int(len(negative_data) / 2)
+negative_data_test = negative_data[index:]
+negative_data_train = negative_data[:index]
+index = int(len(confirmed_data) / 2)
+confirmed_data_test = confirmed_data[index:]
+confirmed_data_train = confirmed_data[:index]
+# print(json.dumps(negative_data[2:], indent=4, sort_keys=True))
+
+
+# Writing the retrieved files into the folders
+for tweet in negative_data_test:
+    writeFile(os.path.join(TEST_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+for tweet in confirmed_data_test:
+    writeFile(os.path.join(TEST_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+for tweet in negative_data_train:
+    writeFile(os.path.join(TRAIN_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+for tweet in confirmed_data_train:
+    writeFile(os.path.join(TRAIN_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+for tweet in proposed_data:
+    writeFile(os.path.join(UNLABELED_FOLDER, "unlabeled", tweet['_source']['id_str'] + ".txt"),
+              tweet['_source']['text'])
+
+
+while True:    # <-- BE CAREFUL WITH THIS
+
+    print("RESTARTING THE PROCESS")
+
+    # Loading the datasets
     data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)
     data_test = load_files(TEST_FOLDER, encoding=ENCODING)
     data_unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
-
     categories = data_train.target_names
-
 
     def size_mb(docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
-
 
     data_train_size_mb = size_mb(data_train.data)
     data_test_size_mb = size_mb(data_test.data)
@@ -110,7 +230,6 @@ while True:
     print("%d documents - %0.3fMB (unlabeled set)" % (
         len(data_unlabeled.data), data_unlabeled_size_mb))
     print("%d categories" % len(categories))
-    print()
 
     # split a training set and a test set
     y_train = data_train.target
@@ -132,18 +251,21 @@ while True:
     t0 = time()
     X_test = vectorizer.transform(data_test.data)
     duration = time() - t0
+    if(duration == 0):  # Gabi
+        duration = 1    # Gabi
     print("done in %fs at %0.3fMB/s" % (duration, data_test_size_mb / duration))
     print("n_samples: %d, n_features: %d" % X_test.shape)
-    print()
+
+    print("X_test shape 0", X_test.shape[0])
 
     print("Extracting features from the unlabled dataset using the same vectorizer")
     t0 = time()
+    # print("data", data_unlabeled)  # .filenames .data .
+
     X_unlabeled = vectorizer.transform(data_unlabeled.data)
     duration = time() - t0
     print("done in %fs at %0.3fMB/s" % (duration, data_unlabeled_size_mb / duration))
-    print("n_samples: %d, n_features: %d" % X_unlabeled.shape)
-    print()
-
+    print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
     def trim(s):
         """Trim string to fit on terminal (assuming 80-column display)"""
@@ -189,9 +311,11 @@ while True:
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
         if (len(categories) > 2):
             confidences = np.average(confidences, axix=1)
+            print("when categories are more than 2")
 
-        print
-        confidences
+        # print("***X_unlabeled", X_unlabeled) # , len(X_unlabeled))
+        # print("***confidences", confidences) # , len(confidences))
+
         sorted_confidences = np.argsort(confidences)
         question_samples = []
         # select top k low confidence unlabeled samples
@@ -199,65 +323,58 @@ while True:
         # select top k high confidence unlabeled samples
         high_confidence_samples = sorted_confidences[-NUM_QUESTIONS:]
 
+        # print("high_confidence_samples", high_confidence_samples)
+        # print("low_confidence_samples", low_confidence_samples.tolist())
+
         question_samples.extend(low_confidence_samples.tolist())
         question_samples.extend(high_confidence_samples.tolist())
 
-        print()
         clf_descr = str(clf).split('(')[0]
-        return clf_descr, score, train_time, test_time, question_samples
+        return clf_descr, score, train_time, test_time, question_samples, sorted_confidences  # sorted_confidences added by Gabi
 
 
     results = []
-    results.append(benchmark(LinearSVC(loss='l2', penalty='l2',
-                                       dual=False, tol=1e-3, class_weight='auto')))
+    results.append(benchmark(LinearSVC(loss='squared_hinge', penalty='l2',
+                                       dual=False, tol=1e-3, class_weight='balanced')))  # auto > balanced   .  loss='12' > loss='squared_hinge'
 
     # make some plots
-
     indices = np.arange(len(results))
 
-    results = [[x[i] for x in results] for i in range(5)]
+    results = [[x[i] for x in results] for i in range(6)]
 
-    clf_names, score, training_time, test_time, question_samples = results
+    clf_names, score, training_time, test_time, question_samples, sorted_confidences = results
     training_time = np.array(training_time) / np.max(training_time)
-    test_time = np.array(test_time) / np.max(test_time)
-    if PLOT_RESULTS:
-        pl.figure(figsize=(12, 8))
-        pl.title("Score")
-        pl.barh(indices, score, .2, label="score", color='r')
-        pl.barh(indices + .3, training_time, .2, label="training time", color='g')
-        pl.barh(indices + .6, test_time, .2, label="test time", color='b')
-        pl.yticks(())
-        pl.legend(loc='best')
-        pl.subplots_adjust(left=.25)
-        pl.subplots_adjust(top=.95)
-        pl.subplots_adjust(bottom=.05)
+    if(test_time == [0.0]):
+        test_time = 0.1
+    print(test_time)
 
-        for i, c in zip(indices, clf_names):
-            pl.text(-.3, i, c)
-        pl.savefig('ngramoptimize.png')
-        pl.show()
+    test_time = np.array(test_time) / np.max(test_time)
+    if ACTIVE == False:
+
+        top_confidence_tweets = sorted_confidences[0][:20]
+        for i in top_confidence_tweets:
+            print("i:", i)
+            print("filename", data_unlabeled.data[i])
+            print("filename", data_unlabeled.filenames[i])
 
     if ACTIVE:
         for i in question_samples[0]:
             filename = data_unlabeled.filenames[i]
-            print
-            filename
-            print
-            '**************************content***************************'
-            print
-            data_unlabeled.data[i]
-            print
-            '**************************content end***********************'
-            print
-            "Annotate this text (select one label):"
+            print(filename)
+            print('**************************content***************************')
+            print(data_unlabeled.data[i])
+            print('**************************content end***********************')
+            print("Annotate this text (select one label):")
             for i in range(0, len(categories)):
                 print("%d = %s" % (i + 1, categories[i]))
-            labelNumber = raw_input("Enter the correct label number:")
+            labelNumber = input("Enter the correct label number:")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
             while labelNumber.isdigit() == False:
-                labelNumber = raw_input("Enter the correct label number (a number please):")
+                labelNumber = input("Enter the correct label number (a number please):")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
             labelNumber = int(labelNumber)
             category = categories[labelNumber - 1]
             dstDir = os.path.join(TRAIN_FOLDER, category)
             shutil.move(filename, dstDir)
     else:
         break
+
+
