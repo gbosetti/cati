@@ -16,7 +16,7 @@ You can install all the required libraries (listed in the file `requirements.txt
 
 	pip install -r requirements.txt
 
-If PyCharm is not detecting the dependencies, then install them by using the UI ( File > Settings > Project > Project Interpreter > + )
+If something fails and PyCharm is not detecting the dependencies, then install them by using the UI ( File > Settings > Project > Project Interpreter > + )
 
 
 ## Usage
@@ -72,6 +72,13 @@ PS: right now, the indexes listed and used by the application are fixed. Please,
     }
 
 When running MABED, the detect_events method is called. Look at the functions.py file
+
+
+### Updating the dependencies
+
+If you edit the code and install new dependencies, you can update the list by executing:
+    python -m pip freeze --local > requirements.txt
+
 
 # MABED
 
