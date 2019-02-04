@@ -16,10 +16,18 @@ You can install all the required libraries (listed in the file `requirements.txt
 
 	pip install -r requirements.txt
 
+If PyCharm is not detecting the dependencies, then install them by using the UI ( File > Settings > Project > Project Interpreter > + )
+
 
 ## Usage
 
 Provided a set of tweets, MABED can (i) perform event detection and (ii) generate a visualization of the detected events.
+
+### Import tweets into Elasticsearch
+
+Edit the logstash_tweets_importer.conf file with the path to the json file containing the tweets in your device. Then, run the following command:
+logstash -f logstash_tweets_importer.conf
+
 
 ### Import images clusters into Elasticsearch
 
