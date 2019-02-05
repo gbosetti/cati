@@ -86,196 +86,56 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from elasticsearch import Elasticsearch
 import elasticsearch.helpers
 
+
 NUM_QUESTIONS = 3
 ACTIVE = False
-DATA_FOLDER = "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
+DATA_FOLDER = os.getcwd() # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
 TEST_FOLDER = os.path.join(DATA_FOLDER, "test")
 UNLABELED_FOLDER = os.path.join(DATA_FOLDER, "unlabeled")
 ENCODING = 'latin1'  #latin1
 
+class ActiveLearning:
 
-def read_raw_tweets_from_elastic(**kwargs):
-    elastic = Elasticsearch([{'host': kwargs["host"], 'port': kwargs["port"]}])
+    def read_raw_tweets_from_elastic(self, **kwargs):
+        elastic = Elasticsearch([{'host': kwargs["host"], 'port': kwargs["port"]}])
 
-    raw_tweets = elastic.search(
-        index=kwargs["index"],
-        doc_type="tweet",
-        size=kwargs["size"],
-        body=kwargs["query"],
-        _source=kwargs["_source"],
-    )
+        raw_tweets = elastic.search(
+            index=kwargs["index"],
+            doc_type="tweet",
+            size=kwargs["size"],
+            body=kwargs["query"],
+            _source=kwargs["_source"],
+            request_timeout=kwargs["request_timeout"]
+        )
 
-    return raw_tweets['hits']['hits']
-
-
-def delete_folder_contents(folder):
-    for the_file in os.listdir(folder):
-        file_path = os.path.join(folder, the_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-            # elif os.path.isdir(file_path): shutil.rmtree(file_path)
-        except Exception as e:
-            print(e)
+        return raw_tweets['hits']['hits']
 
 
-def writeFile(fullpath, content):
-    file = open(fullpath, "w", encoding='utf-8')
-    file.write(content)
-    file.close()
+    def delete_folder_contents(self, folder):
 
-    # Delete all the existing content in the folders
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
-
-print("Cleaning directories")
-delete_folder_contents(os.path.join(TRAIN_FOLDER, "pos"))
-delete_folder_contents(os.path.join(TRAIN_FOLDER, "neg"))
-delete_folder_contents(os.path.join(TEST_FOLDER, "pos"))
-delete_folder_contents(os.path.join(TEST_FOLDER, "neg"))
-delete_folder_contents(os.path.join(UNLABELED_FOLDER, "unlabeled"))
-
-target_source = ["id_str", "text", "imagesCluster", "session_twitterfdl2017"]
-
-# Getting a sample from elasticsearch to classify
-confirmed_data = read_raw_tweets_from_elastic(
-    index="twitterfdl2017",
-    doc_type="tweet",
-    host="localhost",
-    port="9200",
-    size=10000,
-    query={"query": {
-        "match": {
-            "session_twitterfdl2017": "confirmed"
-        }
-    }},
-    _source=target_source,
-)
-negative_data = read_raw_tweets_from_elastic(
-    index="twitterfdl2017",
-    doc_type="tweet",
-    host="localhost",
-    port="9200",
-    size=10000,
-    query={"query": {
-        "match": {
-            "session_twitterfdl2017": "negative"
-        }
-    }},
-    _source=target_source,
-)
-proposed_data = read_raw_tweets_from_elastic(
-    index="twitterfdl2017",
-    doc_type="tweet",
-    host="localhost",
-    port="9200",
-    size=5000,
-    query={"query": {
-        "match": {
-            "session_twitterfdl2017": "proposed"
-        }
-    }},
-    _source=target_source,
-)
-
-# Slice the classified data to fill the test and train datasts
-index = int(len(negative_data) / 2)
-negative_data_test = negative_data[index:]
-negative_data_train = negative_data[:index]
-index = int(len(confirmed_data) / 2)
-confirmed_data_test = confirmed_data[index:]
-confirmed_data_train = confirmed_data[:index]
-# print(json.dumps(negative_data[2:], indent=4, sort_keys=True))
+        for the_file in os.listdir(folder):
+            file_path = os.path.join(folder, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                # elif os.path.isdir(file_path): shutil.rmtree(file_path)
+            except Exception as e:
+                print(e)
 
 
-# Writing the retrieved files into the folders
-for tweet in negative_data_test:
-    writeFile(os.path.join(TEST_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
-
-for tweet in confirmed_data_test:
-    writeFile(os.path.join(TEST_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
-
-for tweet in negative_data_train:
-    writeFile(os.path.join(TRAIN_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
-
-for tweet in confirmed_data_train:
-    writeFile(os.path.join(TRAIN_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
-
-for tweet in proposed_data:
-    writeFile(os.path.join(UNLABELED_FOLDER, "unlabeled", tweet['_source']['id_str'] + ".txt"),
-              tweet['_source']['text'])
-
-
-while True:    # <-- BE CAREFUL WITH THIS
-
-    print("RESTARTING THE PROCESS")
-
-    # Loading the datasets
-    data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)
-    data_test = load_files(TEST_FOLDER, encoding=ENCODING)
-    data_unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
-    categories = data_train.target_names
-
-    def size_mb(docs):
-        return sum(len(s.encode('utf-8')) for s in docs) / 1e6
-
-    data_train_size_mb = size_mb(data_train.data)
-    data_test_size_mb = size_mb(data_test.data)
-    data_unlabeled_size_mb = size_mb(data_unlabeled.data)
-
-    print("%d documents - %0.3fMB (training set)" % (
-        len(data_train.data), data_train_size_mb))
-    print("%d documents - %0.3fMB (test set)" % (
-        len(data_test.data), data_test_size_mb))
-    print("%d documents - %0.3fMB (unlabeled set)" % (
-        len(data_unlabeled.data), data_unlabeled_size_mb))
-    print("%d categories" % len(categories))
-
-    # split a training set and a test set
-    y_train = data_train.target
-    y_test = data_test.target
-
-    print("Extracting features from the training dataset using a sparse vectorizer")
-    t0 = time()
-    vectorizer = TfidfVectorizer(encoding=ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                 min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=None)
-
-    # the output of the fit_transform (x_train) is a sparse csc matrix.
-    X_train = vectorizer.fit_transform(data_train.data)
-    duration = time() - t0
-    print("done in %fs at %0.3fMB/s" % (duration, data_train_size_mb / duration))
-    print("n_samples: %d, n_features: %d" % X_train.shape)
-    print()
-
-    print("Extracting features from the test dataset using the same vectorizer")
-    t0 = time()
-    X_test = vectorizer.transform(data_test.data)
-    duration = time() - t0
-    if(duration == 0):  # Gabi
-        duration = 1    # Gabi
-    print("done in %fs at %0.3fMB/s" % (duration, data_test_size_mb / duration))
-    print("n_samples: %d, n_features: %d" % X_test.shape)
-
-    print("X_test shape 0", X_test.shape[0])
-
-    print("Extracting features from the unlabled dataset using the same vectorizer")
-    t0 = time()
-    # print("data", data_unlabeled)  # .filenames .data .
-
-    X_unlabeled = vectorizer.transform(data_unlabeled.data)
-    duration = time() - t0
-    print("done in %fs at %0.3fMB/s" % (duration, data_unlabeled_size_mb / duration))
-    print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
-
-    def trim(s):
-        """Trim string to fit on terminal (assuming 80-column display)"""
-        return s if len(s) <= 80 else s[:77] + "..."
-
+    def writeFile(self, fullpath, content):
+        file = open(fullpath, "w", encoding='utf-8')
+        file.write(content)
+        file.close()
 
     ###############################################################################
     # Benchmark classifiers
-    def benchmark(clf):
-        print('_' * 80)
+    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories):
+
         print("Training: ")
         print(clf)
         t0 = time()
@@ -332,32 +192,169 @@ while True:    # <-- BE CAREFUL WITH THIS
         clf_descr = str(clf).split('(')[0]
         return clf_descr, score, train_time, test_time, question_samples, sorted_confidences  # sorted_confidences added by Gabi
 
+    def get_tweets_with_high_confidence(self):
 
-    results = []
-    results.append(benchmark(LinearSVC(loss='squared_hinge', penalty='l2',
-                                       dual=False, tol=1e-3, class_weight='balanced')))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-
-    # make some plots
-    indices = np.arange(len(results))
-
-    results = [[x[i] for x in results] for i in range(6)]
-
-    clf_names, score, training_time, test_time, question_samples, sorted_confidences = results
-    training_time = np.array(training_time) / np.max(training_time)
-    if(test_time == [0.0]):
-        test_time = 0.1
-    print(test_time)
-
-    test_time = np.array(test_time) / np.max(test_time)
-    if ACTIVE == False:
-
-        top_confidence_tweets = sorted_confidences[0][:20]
+        top_confidence_tweets = self.sorted_confidences[0][:20]
         for i in top_confidence_tweets:
             print("i:", i)
-            print("filename", data_unlabeled.data[i])
-            print("filename", data_unlabeled.filenames[i])
+            print("filename", self.data_unlabeled.data[i])
+            print("filename", self.data_unlabeled.filenames[i])
 
-    if ACTIVE:
+    def clean_directories(self):
+        print("Cleaning directories")
+        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, "pos"))
+        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, "neg"))
+        self.delete_folder_contents(os.path.join(TEST_FOLDER, "pos"))
+        self.delete_folder_contents(os.path.join(TEST_FOLDER, "neg"))
+        self.delete_folder_contents(os.path.join(UNLABELED_FOLDER, "unlabeled"))
+
+    def read_data_from_dataset(self):
+
+        target_source = ["id_str", "text", "imagesCluster", "session_twitterfdl2017"]
+
+        # Getting a sample from elasticsearch to classify
+        confirmed_data = self.read_raw_tweets_from_elastic(
+            index="twitterfdl2017",
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            size=10000,
+            query={"query": {
+                "match": {
+                    "session_twitterfdl2017": "confirmed"
+                }
+            }},
+            _source=target_source,
+            request_timeout=30
+        )
+        negative_data = self.read_raw_tweets_from_elastic(
+            index="twitterfdl2017",
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            size=10000,
+            query={"query": {
+                "match": {
+                    "session_twitterfdl2017": "negative"
+                }
+            }},
+            _source=target_source,
+            request_timeout=30
+        )
+        proposed_data = self.read_raw_tweets_from_elastic(
+            index="twitterfdl2017",
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            size=5000,
+            query={"query": {
+                "match": {
+                    "session_twitterfdl2017": "proposed"
+                }
+            }},
+            _source=target_source,
+            request_timeout=30
+        )
+
+        return confirmed_data, negative_data, proposed_data
+
+    def write_data_in_folders(self, negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data):
+
+        for tweet in negative_data_test:
+            self.writeFile(os.path.join(TEST_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+        for tweet in confirmed_data_test:
+            self.writeFile(os.path.join(TEST_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+        for tweet in negative_data_train:
+            self.writeFile(os.path.join(TRAIN_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+        for tweet in confirmed_data_train:
+            self.writeFile(os.path.join(TRAIN_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+
+        for tweet in proposed_data:
+            self.writeFile(os.path.join(UNLABELED_FOLDER, "unlabeled", tweet['_source']['id_str'] + ".txt"),
+                      tweet['_source']['text'])
+
+    def loading_tweets_from_files(self):
+
+        # Loading the datasets
+        data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)
+        data_test = load_files(TEST_FOLDER, encoding=ENCODING)
+        data_unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
+        categories = data_train.target_names
+
+        def size_mb(docs):
+            return sum(len(s.encode('utf-8')) for s in docs) / 1e6
+
+        data_train_size_mb = size_mb(data_train.data)
+        data_test_size_mb = size_mb(data_test.data)
+        data_unlabeled_size_mb = size_mb(data_unlabeled.data)
+
+        print("%d documents - %0.3fMB (training set)" % (
+            len(data_train.data), data_train_size_mb))
+        print("%d documents - %0.3fMB (test set)" % (
+            len(data_test.data), data_test_size_mb))
+        print("%d documents - %0.3fMB (unlabeled set)" % (
+            len(data_unlabeled.data), data_unlabeled_size_mb))
+        print("%d categories" % len(categories))
+
+        return data_train, data_test, data_unlabeled, categories
+
+    def learn(self):
+
+        self.clean_directories()
+        # Getting a sample from elasticsearch to classify
+        print("Getting data from elastic")
+        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset()
+
+        # Slice the classified data to fill the test and train datasts
+        index = int(len(negative_data) / 2)
+        negative_data_test = negative_data[index:]
+        negative_data_train = negative_data[:index]
+        index = int(len(confirmed_data) / 2)
+        confirmed_data_test = confirmed_data[index:]
+        confirmed_data_train = confirmed_data[:index]
+
+        # Writing the retrieved files into the folders
+        print("Writting data from elastic into folders")
+        self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
+
+        # Starting the process
+        data_train, data_test, data_unlabeled, categories = self.loading_tweets_from_files()
+
+        # split a training set and a test set
+        y_train = data_train.target
+        y_test = data_test.target
+
+        # Extracting features from the training dataset using a sparse vectorizer
+        print("Extracting features")
+        vectorizer = TfidfVectorizer(encoding=ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
+                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=None)
+
+        # Getting a sparse csc matrix.
+        X_train = vectorizer.fit_transform(data_train.data)
+
+        # Extracting features from the test dataset using the same vectorizer
+        X_test = vectorizer.transform(data_test.data)
+
+        print("n_samples: %d, n_features: %d" % X_test.shape)
+
+        # Extracting features from the unlabled dataset using the same vectorizer
+        X_unlabeled = vectorizer.transform(data_unlabeled.data)
+        print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
+
+        # Benchmarking
+        results = []
+        results.append(self.benchmark(
+            LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
+            X_train, X_test, y_train, y_test, X_unlabeled, categories
+        ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
+        #results = [[x[i] for x in results] for i in range(6)]
+        #clf_names, score, training_time, test_time, question_samples, sorted_confidences = results
+        clf_names, score, training_time, test_time, question_samples, sorted_confidences = [[x[i] for x in results] for i in range(6)]
+
+        # AT THIS POINT IT LEARNS OR IT USES THE DATA
         for i in question_samples[0]:
             filename = data_unlabeled.filenames[i]
             print(filename)
@@ -374,7 +371,8 @@ while True:    # <-- BE CAREFUL WITH THIS
             category = categories[labelNumber - 1]
             dstDir = os.path.join(TRAIN_FOLDER, category)
             shutil.move(filename, dstDir)
-    else:
-        break
 
 
+classifier = ActiveLearning()
+classifier.learn()
+# classifier.get_tweets_with_high_confidence();
