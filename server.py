@@ -190,10 +190,12 @@ def tweets_scroll():
 
 
 @app.route('/get_question_tweets_for_active_learning', methods=['GET'])
-
+# @cross_origin()
 def get_question_tweets_for_active_learning():
+    print("get_question_tweets_for_active_learning")
     classifier = ActiveLearning()
-    return classifier.start_learning()
+    return jsonify(classifier.start_learning())
+
 
 # Get Event related tweets
 @app.route('/event_tweets', methods=['POST'])

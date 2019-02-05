@@ -14,7 +14,9 @@ app.views.classification = Backbone.View.extend({
             $( this ).parent( 'li' ).addClass( 'active' );
         });
 
-        this.loadTweetsForLearningStage();
+        document.querySelector("#start-automatic-learning").addEventListener("click", () => {
+            this.loadTweetsForLearningStage();
+        });
 
         return this;
     },
@@ -22,12 +24,28 @@ app.views.classification = Backbone.View.extend({
 
         $.get(app.appURL+'get_question_tweets_for_active_learning', function(response){
 
-            console.log("RESPONSE", response)
-            var tweetsHtml = 'Hola!'
+            $("#tweet-questions").html('');
+            var tweetsHtml = '', ids;
+            response.forEach(question => {
+                console.log(question.confidence);
+                tweetsHtml = tweetsHtml + ' <div class="card p-3 "> ' +
+                                                '<div class="card-body"> ' +
+                                                    '<p class="card-text">' + question.text + '</p> ' +
+                                                   ' <p class="card-text"><i>Confidence</i>: ' + (question.confidence).toFixed(2) + '</p> ' +
+                                                    '<div class=""> ' +
+                                                        '<input type="checkbox" checked="false" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
+                                                    '</div> ' +
+                                                '</div> ' +
+                                            '</div>';
+            })
 
-            $("#tweets-to-mark-for-learning").html(tweetsHtml)
+            $("#tweet-questions").html(tweetsHtml);
+
+            $(".card .card-body input").each(function() {
+                $(this).bootstrapToggle();
+                this.style.padding = "right";
+            });
+
         }, 'json');
-
-
     }
 });

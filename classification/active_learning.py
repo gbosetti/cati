@@ -173,9 +173,12 @@ class ActiveLearning:
             print("when categories are more than 2")
 
         # print("***X_unlabeled", X_unlabeled) # , len(X_unlabeled))
+        # X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         # print("***confidences", confidences) # , len(confidences))
 
-        sorted_confidences = np.argsort(confidences)
+        sorted_confidences = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        print("***confidences", sorted_confidences)  # , len(confidences))
+
         question_samples = []
         # select top k low confidence unlabeled samples
         low_confidence_samples = sorted_confidences[0:NUM_QUESTIONS]
@@ -189,7 +192,7 @@ class ActiveLearning:
         question_samples.extend(high_confidence_samples.tolist())
 
         clf_descr = str(clf).split('(')[0]
-        return clf_descr, score, train_time, test_time, question_samples, sorted_confidences  # sorted_confidences added by Gabi
+        return clf_descr, score, train_time, test_time, question_samples, confidences  # sorted_confidences added by Gabi
 
     def get_tweets_with_high_confidence(self):
 
@@ -302,6 +305,7 @@ class ActiveLearning:
 
     def start_learning(self):
 
+        print("Starting...")
         self.clean_directories()
         # Getting a sample from elasticsearch to classify
         print("Getting data from elastic")
@@ -349,15 +353,18 @@ class ActiveLearning:
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
             X_train, X_test, y_train, y_test, X_unlabeled, categories
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        clf_names, score, training_time, test_time, question_samples, sorted_confidences = [[x[i] for x in results] for i in range(6)]
+        clf_names, score, training_time, test_time, question_samples, confidences = [[x[i] for x in results] for i in range(6)]
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
-        for i in question_samples[0]:
+        for index in question_samples[0]:
+
             complete_question_samples.append({
-                "filename": data_unlabeled.filenames[i],
-                "text": data_unlabeled.data[i],
-                "label": "unlabeled"
+                "filename": data_unlabeled.filenames[index],
+                "text": data_unlabeled.data[index],
+                "label": "unlabeled",
+                "data_unlabeled_index": index,
+                "confidence": confidences[0][index],
             })
         # for i in question_samples[0]:
         #     filename = data_unlabeled.filenames[i]
@@ -380,4 +387,5 @@ class ActiveLearning:
 
 # classifier = ActiveLearning()
 # classifier.start_learning()
+# classifier.clean_directories();
 # classifier.get_tweets_with_high_confidence();
