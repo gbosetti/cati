@@ -14,6 +14,20 @@ app.views.classification = Backbone.View.extend({
             $( this ).parent( 'li' ).addClass( 'active' );
         });
 
+        this.loadTweetsForLearningStage();
+
         return this;
+    },
+    loadTweetsForLearningStage: function(){
+
+        $.get(app.appURL+'get_question_tweets_for_active_learning', function(response){
+
+            console.log("RESPONSE", response)
+            var tweetsHtml = 'Hola!'
+
+            $("#tweets-to-mark-for-learning").html(tweetsHtml)
+        }, 'json');
+
+
     }
 });

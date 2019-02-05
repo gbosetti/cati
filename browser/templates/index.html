@@ -277,24 +277,64 @@
                     <div class="tab-content container clearfix">
                         <div class="tab-pane active" id="1b">
 
-                            <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="width: 50%; margin: 0 auto; padding: 2em">
-                                Mark the tweets below as:
-                                <a href="#" data-cid="" data-state="negative" class="timeline_btn all_tweets_state options_btn_negative">negative</a>
-                                <a href="#" data-state="confirmed" class="timeline_btn all_tweets_state options_btn_valid">Confirmed</a>
+                            <div class="container" style="padding: 2em 0em;">
+                                <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
+
+                                    <ol class="carousel-indicators">
+                                        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+                                        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+                                    </ol>
+
+                                    <div class="carousel-inner">
+                                        <div class="carousel-item active">
+                                            <h3>Learning stage</h3>
+                                            <p>Please, mark the tweets below as «positive» or «negative», according to your classification criteria. Our algorithm will try to learn from your choices.</p>
+
+                                            <div id="tweets-to-mark-for-learning" class="card-columns"></div>
+                                        </div>
+                                        <div class="carousel-item">
+                                            <h3>Validation stage</h3>
+                                            <p>...</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Active learning carousel -->
+                                    <nav aria-label="..." style="padding-top: 3em;">
+                                        <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+                                            <li class="disabled">
+                                                <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+                                            </li>
+                                            <li class="">
+                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+                                            </li>
+                                            <li class="">
+                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
                             </div>
 
-                            <div class="card-columns">
-                                <div class="card p-3 ">
-                                    <div class="card-body">
-                                        <p class="card-text">asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad </p>
-                                        <p class="card-text">Confidence: 1</p>
-                                        <div class="">
-                                            <a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="7"><strong>Confirmed</strong></a>
-                                            <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="7"><strong>Negative</strong></a>
+                            <!--
+                                <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="width: 50%; margin: 0 auto; padding: 2em">
+                                    Mark the tweets below as:
+                                    <a href="#" data-cid="" data-state="negative" class="timeline_btn all_tweets_state options_btn_negative">negative</a>
+                                    <a href="#" data-state="confirmed" class="timeline_btn all_tweets_state options_btn_valid">Confirmed</a>
+                                </div>
+
+                                <div class="card-columns">
+                                    <div class="card p-3 ">
+                                        <div class="card-body">
+                                            <p class="card-text">asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad asd asd as d sad as dsa d asd ad </p>
+                                            <p class="card-text">Confidence: 1</p>
+                                            <div class="">
+                                                <a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="7"><strong>Confirmed</strong></a>
+                                                <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="7"><strong>Negative</strong></a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            -->
                         </div>
                         <div class="tab-pane" id="2b">
                             <h3>Strategy 2</h3>

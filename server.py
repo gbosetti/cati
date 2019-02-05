@@ -14,9 +14,8 @@ from flask_cors import CORS, cross_origin
 from flask_frozen import Freezer
 from flask import Response
 from flask_htpasswd import HtPasswdAuth
-
 from kneed import KneeLocator
-
+from classification.active_learning import ActiveLearning
 
 
 # mabed
@@ -189,6 +188,12 @@ def tweets_scroll():
     tweets= functions.get_tweets_scroll(index=data['index'], sid=data['sid'], scroll_size=int(data['scroll_size']))
     return jsonify({"tweets": tweets})
 
+
+@app.route('/get_question_tweets_for_active_learning', methods=['GET'])
+
+def get_question_tweets_for_active_learning():
+    classifier = ActiveLearning()
+    return classifier.start_learning()
 
 # Get Event related tweets
 @app.route('/event_tweets', methods=['POST'])

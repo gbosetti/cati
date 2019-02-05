@@ -111,7 +111,6 @@ class ActiveLearning:
 
         return raw_tweets['hits']['hits']
 
-
     def delete_folder_contents(self, folder):
 
         if not os.path.exists(folder):
@@ -301,7 +300,7 @@ class ActiveLearning:
 
         return data_train, data_test, data_unlabeled, categories
 
-    def learn(self):
+    def start_learning(self):
 
         self.clean_directories()
         # Getting a sample from elasticsearch to classify
@@ -350,29 +349,35 @@ class ActiveLearning:
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
             X_train, X_test, y_train, y_test, X_unlabeled, categories
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        #results = [[x[i] for x in results] for i in range(6)]
-        #clf_names, score, training_time, test_time, question_samples, sorted_confidences = results
         clf_names, score, training_time, test_time, question_samples, sorted_confidences = [[x[i] for x in results] for i in range(6)]
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
+        complete_question_samples = []
         for i in question_samples[0]:
-            filename = data_unlabeled.filenames[i]
-            print(filename)
-            print('**************************content***************************')
-            print(data_unlabeled.data[i])
-            print('**************************content end***********************')
-            print("Annotate this text (select one label):")
-            for i in range(0, len(categories)):
-                print("%d = %s" % (i + 1, categories[i]))
-            labelNumber = input("Enter the correct label number:")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
-            while labelNumber.isdigit() == False:
-                labelNumber = input("Enter the correct label number (a number please):")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
-            labelNumber = int(labelNumber)
-            category = categories[labelNumber - 1]
-            dstDir = os.path.join(TRAIN_FOLDER, category)
-            shutil.move(filename, dstDir)
+            complete_question_samples.append({
+                "filename": data_unlabeled.filenames[i],
+                "text": data_unlabeled.data[i],
+                "label": "unlabeled"
+            })
+        # for i in question_samples[0]:
+        #     filename = data_unlabeled.filenames[i]
+        #     print(filename)
+        #     print('**************************content***************************')
+        #     print(data_unlabeled.data[i])
+        #     print('**************************content end***********************')
+        #     print("Annotate this text (select one label):")
+        #     for i in range(0, len(categories)):
+        #         print("%d = %s" % (i + 1, categories[i]))
+        #     labelNumber = input("Enter the correct label number:")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
+        #     while labelNumber.isdigit() == False:
+        #         labelNumber = input("Enter the correct label number (a number please):")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
+        #     labelNumber = int(labelNumber)
+        #     category = categories[labelNumber - 1]
+        #     dstDir = os.path.join(TRAIN_FOLDER, category)
+        #     shutil.move(filename, dstDir)
 
+        return complete_question_samples
 
-classifier = ActiveLearning()
-classifier.learn()
+# classifier = ActiveLearning()
+# classifier.start_learning()
 # classifier.get_tweets_with_high_confidence();

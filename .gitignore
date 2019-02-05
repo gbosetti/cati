@@ -8,7 +8,9 @@ events/
 .DS_Store
 demo/
 venv
-
-/classification/test/*
-/classification/train/*
-/classification/unlabeled/*
+classification/test/
+classification/train/
+classification/unlabeled/
+classification/test/*
+classification/train/*
+classification/unlabeled/*
