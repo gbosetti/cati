@@ -108,7 +108,8 @@ def produce_dataset_stats():
     # stats = pre_processor.get_stats()
     # print(stats)
     return jsonify({
-        "total_tweets": functions.get_total_tweets(index=data['index'])
+        "total_tweets": functions.get_total_tweets(index=data['index']),
+        "total_hashtags": functions.get_total_hashtags(index=data['index'])
     })
 
 # Run MABED
