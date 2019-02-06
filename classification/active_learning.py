@@ -222,7 +222,7 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=10000,
+            size=5000,
             query={"query": {
                 "match": {
                     "session_twitterfdl2017": "confirmed"
@@ -236,7 +236,7 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=10000,
+            size=5000,
             query={"query": {
                 "match": {
                     "session_twitterfdl2017": "negative"
@@ -250,7 +250,7 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=5000,
+            size=2500,
             query={"query": {
                 "match": {
                     "session_twitterfdl2017": "proposed"
@@ -326,7 +326,7 @@ class ActiveLearning:
         self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
 
         # Starting the process
-        data_train, data_test, data_unlabeled, categories = self.loading_tweets_from_files()
+        data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
 
         # split a training set and a test set
         y_train = data_train.target
@@ -346,14 +346,14 @@ class ActiveLearning:
         print("n_samples: %d, n_features: %d" % X_test.shape)
 
         # Extracting features from the unlabled dataset using the same vectorizer
-        X_unlabeled = vectorizer.transform(data_unlabeled.data)
+        X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
         print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
         # Benchmarking
         results = []
         results.append(self.benchmark(
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
-            X_train, X_test, y_train, y_test, X_unlabeled, categories
+            X_train, X_test, y_train, y_test, X_unlabeled, self.categories
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
         clf_names, score, training_time, test_time, question_samples, confidences = [[x[i] for x in results] for i in range(6)]
 
@@ -362,8 +362,8 @@ class ActiveLearning:
         for index in question_samples[0]:
 
             complete_question_samples.append({
-                "filename": data_unlabeled.filenames[index],
-                "text": data_unlabeled.data[index],
+                "filename": self.data_unlabeled.filenames[index],
+                "text": self.data_unlabeled.data[index],
                 "label": "unlabeled",
                 "data_unlabeled_index": index,
                 "confidence": confidences[0][index],
@@ -386,6 +386,13 @@ class ActiveLearning:
         #     shutil.move(filename, dstDir)
 
         return complete_question_samples
+
+    def suggest_classification(self, question_samples):
+        for question in question_samples:
+            print(question)
+            # filename = self.data_unlabeled.filenames[question.index]
+            # dstDir = os.path.join(TRAIN_FOLDER, question_samples.label)
+    # shutil.move(filename, dstDir)
 
 # classifier = ActiveLearning()
 # classifier.start_learning()

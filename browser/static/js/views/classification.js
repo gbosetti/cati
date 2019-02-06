@@ -9,16 +9,34 @@ app.views.classification = Backbone.View.extend({
         this.$el.html(html);
         this.delegateEvents();
 
+        this.initializeSpinner();
+
         $( '#classification-strategies-tabs .nav-item a' ).on( 'click', function () {
             $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
             $( this ).parent( 'li' ).addClass( 'active' );
         });
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
+            document.querySelector("#tweet-questions").appendChild(this.spinner);
             this.loadTweetsForLearningStage();
         });
 
+        document.querySelector("#to-learning-stage").addEventListener("click", () => {
+            document.querySelector("#tweet-questions").appendChild(this.spinner);
+        });
+
+        document.querySelector("#to-al-validation-stage").addEventListener("click", () => {
+
+            this.suggestClassification();
+        });
+
         return this;
+    },
+    initializeSpinner: function(){
+
+        this.spinner = document.createElement("div");
+        this.spinner.className = "loader"; //new Spinner();
+        this.spinner.style.float = "right";
     },
     loadTweetsForLearningStage: function(){
 
@@ -27,8 +45,9 @@ app.views.classification = Backbone.View.extend({
             $("#tweet-questions").html('');
             var tweetsHtml = '', ids;
             response.forEach(question => {
-                console.log(question.confidence);
-                tweetsHtml = tweetsHtml + ' <div class="card p-3 "> ' +
+                // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
+                // console.log(question);
+                tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '"> ' +
                                                 '<div class="card-body"> ' +
                                                     '<p class="card-text">' + question.text + '</p> ' +
                                                    ' <p class="card-text"><i>Confidence</i>: ' + (question.confidence).toFixed(2) + '</p> ' +
@@ -45,6 +64,20 @@ app.views.classification = Backbone.View.extend({
                 $(this).bootstrapToggle();
                 this.style.padding = "right";
             });
+
+        }, 'json');
+    },
+    suggestClassification: function(){
+
+        var questions = [];
+        document.querySelectorAll(".card").forEach(question => {
+            questions.push(question.id)
+        });
+        console.log(questions);
+
+        $.post(app.appURL+'suggest_classification', {"form": questions} , function(response){
+
+            console.log(response)
 
         }, 'json');
     }

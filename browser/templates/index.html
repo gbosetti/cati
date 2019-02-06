@@ -10,12 +10,12 @@
     <link title="timeline-styles" rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
     <!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
     <link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
-    <link rel="stylesheet" href="static/plugins/spinner/spin.css">
     <link rel="stylesheet" type="text/css" href="static/css/main.css"/>
     <link rel="stylesheet" type="text/css" href="static/css/style.css" />
     <link rel="stylesheet" type="text/css" href="static/css/jquery-confirm.css" />
     <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="static/css/bootstrap4-toggle.min.css">
+    <link rel="stylesheet" type="text/css" href="static/css/spin.css">
 
 </head>
 
@@ -290,8 +290,11 @@
                                             <!-- Carousel navigation -->
                                             <nav aria-label="..." style="padding-top: 3em;">
                                                 <ul class="pagination justify-content-center"> <!-- justify-content-center -->
-                                                    <li class="">
+                                                    <li class="btn">
                                                         <a id="start-automatic-learning" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Start</a>
+                                                    </li>
+                                                    <li class="btn disabled">
+                                                        <a id="to-learning-stage" class="page-link disabled" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
                                                     </li>
                                                 </ul>
                                             </nav>
@@ -301,7 +304,7 @@
                                             <p>Please, mark the tweets below as «positive» or «negative», according to your classification criteria:</p>
 
                                             <div class="col-12 pix-margin-top-10">
-                                                <div class="card-columns" id="tweet-questions">
+                                                <div class="card-columns" id="tweet-questions" style="width:100%; min-height: 200px;">
                                                     <!-- This is filled in the classification.js file -->
                                                 </div>
                                             </div>
@@ -316,7 +319,7 @@
                                                         <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
                                                     </li>
                                                     <li class="">
-                                                        <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+                                                        <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
                                                     </li>
                                                 </ul>
                                             </nav>
@@ -324,6 +327,21 @@
                                         <div class="carousel-item">
                                             <h3>Validation stage</h3>
                                             <p>...</p>
+
+                                            <!-- Carousel navigation -->
+                                            <nav aria-label="..." style="padding-top: 3em;">
+                                                <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+                                                    <li class="">
+                                                        <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+                                                    </li>
+                                                    <li class="">
+                                                        <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+                                                    </li>
+                                                    <li class="">
+                                                        <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
+                                                    </li>
+                                                </ul>
+                                            </nav>
                                         </div>
                                     </div>
 
@@ -982,8 +1000,6 @@ for each n ∈ ℤ : n ∈ [1,20]
   <script src="static/plugins/canvasjs/canvasjs.min.js"></script>
   <script src="static/plugins/d3/d3.min.js"></script>
   <script src="static/plugins/d3/nv.d3.min.js"></script>
-  <script src="static/plugins/spinner/spin.js"></script>
-
   <script src="static/js/App.js"></script>
   <script src="static/js/views/home.js"></script>
   <script src="static/js/views/client.js"></script>
@@ -1000,13 +1016,13 @@ for each n ∈ ℤ : n ∈ [1,20]
   <script src="static/js/vendor/jarallax.min.js"></script>
   <script src="static/js/vendor/jarallax-element.min.js"></script>
   <script src="static/js/vendor/jarallax-video.min.js"></script>
-    <script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
+  <script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
 
   <script>
-  window.onload = function() {
-    app.init();
-  }
-</script>
+      window.onload = function() {
+        app.init();
+      }
+    </script>
 </body>
 
 </html>

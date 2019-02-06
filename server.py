@@ -189,13 +189,22 @@ def tweets_scroll():
     return jsonify({"tweets": tweets})
 
 
+classifier = ActiveLearning()
+
 @app.route('/get_question_tweets_for_active_learning', methods=['GET'])
 # @cross_origin()
 def get_question_tweets_for_active_learning():
     print("get_question_tweets_for_active_learning")
-    classifier = ActiveLearning()
     return jsonify(classifier.start_learning())
 
+
+@app.route('/suggest_classification', methods=['POST'])
+def suggest_classification():
+    data = request.form
+    print("data", data)  # data ImmutableMultiDict([('form[]', '2004'), ('form[]', '1832'), ('form[]', '1038'), ('form[]', '1656'), ('form[]', '1132'), ('form[]', '329')])
+    classifier.suggest_classification()
+
+    return
 
 # Get Event related tweets
 @app.route('/event_tweets', methods=['POST'])
