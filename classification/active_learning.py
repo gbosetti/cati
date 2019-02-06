@@ -137,8 +137,7 @@ class ActiveLearning:
     # Benchmark classifiers
     def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories):
 
-        print("Training: ")
-        print(clf)
+        print("Training. Classifier: ", clf)
         t0 = time()
         clf.fit(X_train, y_train)
         train_time = time() - t0
@@ -155,16 +154,15 @@ class ActiveLearning:
         print('accuracy score:     %0.3f' % accscore)
         print("f1-score:   %0.3f" % score)
 
-        if hasattr(clf, 'coef_'):
-            print("dimensionality: %d" % clf.coef_.shape[1])
-            print("density: %f" % density(clf.coef_))
-
-        print("classification report:")
-        print(metrics.classification_report(y_test, pred,
-                                            target_names=categories))
-
-        print("confusion matrix:")
-        print(metrics.confusion_matrix(y_test, pred))
+        # if hasattr(clf, 'coef_'):
+        #     print("dimensionality: %d" % clf.coef_.shape[1])
+        #     print("density: %f" % density(clf.coef_))
+        #
+        # print("classification report:")
+        # print(metrics.classification_report(y_test, pred, target_names=categories))
+        #
+        # print("confusion matrix:")
+        # print(metrics.confusion_matrix(y_test, pred))
 
         print("confidence for unlabeled data:")
         # compute absolute confidence for each unlabeled sample in each class
@@ -330,7 +328,7 @@ class ActiveLearning:
 
         # split a training set and a test set
         y_train = data_train.target
-        y_test = data_test.target
+        y_test = data_test.target  # 'target': array([1, 1, 1, ..., 1, 1, 1]) according to the labels (pos, neg)
 
         # Extracting features from the training dataset using a sparse vectorizer
         print("Extracting features")
@@ -385,6 +383,8 @@ class ActiveLearning:
         #     dstDir = os.path.join(TRAIN_FOLDER, category)
         #     shutil.move(filename, dstDir)
 
+        self.confidences = confidences
+
         return complete_question_samples
 
     def suggest_classification(self, labeled_questions):
@@ -393,12 +393,13 @@ class ActiveLearning:
             # index = int(question["id"])
             # self.data_unlabeled.filenames[index]
             dstDir = os.path.join(TRAIN_FOLDER, question["label"])
-            print("Moving", question["filename"])
+            print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 
-        classified_sample = [1,2,3]
+        classified_sample = self.confidences
+        print(classified_sample[0])
 
-        return classified_sample
+        return classified_sample[0]
 
 # classifier = ActiveLearning()
 # classifier.start_learning()

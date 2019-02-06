@@ -203,7 +203,7 @@ def suggest_classification():
     questions = json.loads(data['questions'])
     classified_sample = classifier.suggest_classification(questions)
 
-    return jsonify(classified_sample)
+    return jsonify(classified_sample.tolist())
 
 
 # Get Event related tweets
