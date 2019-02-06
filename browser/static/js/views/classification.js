@@ -57,11 +57,13 @@ app.views.classification = Backbone.View.extend({
             var tweetsHtml = '', ids;
             response.forEach(question => {
                 // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
-                // console.log(question);
                 tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
                                                 '<div class="card-body"> ' +
                                                     '<p class="card-text">' + question.text + '</p> ' +
-                                                   ' <p class="card-text"><i>Confidence</i>: ' + (question.confidence).toFixed(2) + '</p> ' +
+                                                    '<p class="card-text"> ' +
+                                                        '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
+                                                        '<i>Predicted</i>: ' + question.pred_label +
+                                                    '</p> ' +
                                                     '<div class=""> ' +
                                                         '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
                                                     '</div> ' +

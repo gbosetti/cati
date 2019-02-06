@@ -139,20 +139,17 @@ class ActiveLearning:
 
         print("Training. Classifier: ", clf)
         t0 = time()
-        clf.fit(X_train, y_train)
-        train_time = time() - t0
-        print("train time: %0.3fs" % train_time)
+        clf.fit(X_train, y_train) # matches the matrix with the array of matching cases. Case 1-> label a ... ( [[1],[2],[3]], ["a","b","a"] )
 
-        t0 = time()
+        # t0 = time()
         pred = clf.predict(X_test)
-        test_time = time() - t0
-        print("test time:  %0.3fs" % test_time)
-
         score = metrics.f1_score(y_test, pred)
         accscore = metrics.accuracy_score(y_test, pred)
+        print("------------------------------------------")
         print("pred count is %d" % len(pred))
         print('accuracy score:     %0.3f' % accscore)
         print("f1-score:   %0.3f" % score)
+        print("------------------------------------------")
 
         # if hasattr(clf, 'coef_'):
         #     print("dimensionality: %d" % clf.coef_.shape[1])
@@ -166,33 +163,27 @@ class ActiveLearning:
 
         print("confidence for unlabeled data:")
         # compute absolute confidence for each unlabeled sample in each class
-        confidences = np.abs(clf.decision_function(X_unlabeled))
+        decision = clf.decision_function(X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        confidences = np.abs(decision)  # Calculates the absolute value element-wise
+        predictions = clf.predict(X_unlabeled)
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
         if (len(categories) > 2):
             confidences = np.average(confidences, axix=1)
             print("when categories are more than 2")
 
-        # print("***X_unlabeled", X_unlabeled) # , len(X_unlabeled))
-        # X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        # print("***confidences", confidences) # , len(confidences))
-
         sorted_confidences = np.argsort(confidences)  # argsort returns the indices that would sort the array
-        # print("***confidences", sorted_confidences)  # , len(confidences))
 
         question_samples = []
         # select top k low confidence unlabeled samples
         low_confidence_samples = sorted_confidences[0:NUM_QUESTIONS]
         # select top k high confidence unlabeled samples
         high_confidence_samples = sorted_confidences[-NUM_QUESTIONS:]
-
-        # print("high_confidence_samples", high_confidence_samples)
-        # print("low_confidence_samples", low_confidence_samples.tolist())
-
         question_samples.extend(low_confidence_samples.tolist())
         question_samples.extend(high_confidence_samples.tolist())
 
         clf_descr = str(clf).split('(')[0]
-        return clf_descr, score, train_time, test_time, question_samples, confidences  # sorted_confidences added by Gabi
+
+        return clf_descr, question_samples, confidences, predictions  # sorted_confidences added by Gabi
 
     def get_tweets_with_high_confidence(self):
 
@@ -354,7 +345,7 @@ class ActiveLearning:
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
             X_train, X_test, y_train, y_test, X_unlabeled, self.categories
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        clf_names, score, training_time, test_time, question_samples, confidences = [[x[i] for x in results] for i in range(6)]
+        clf_names, question_samples, confidences, predictions = [[x[i] for x in results] for i in range(4)]
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
@@ -362,7 +353,7 @@ class ActiveLearning:
             complete_question_samples.append({
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
-                "label": "unlabeled",
+                "pred_label":  int(predictions[0][index]),
                 "data_unlabeled_index": index,
                 "confidence": confidences[0][index],
             })
