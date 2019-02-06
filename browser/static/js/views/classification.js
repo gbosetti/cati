@@ -33,7 +33,7 @@ app.views.classification = Backbone.View.extend({
                                                     '<p class="card-text">' + question.text + '</p> ' +
                                                    ' <p class="card-text"><i>Confidence</i>: ' + (question.confidence).toFixed(2) + '</p> ' +
                                                     '<div class=""> ' +
-                                                        '<input type="checkbox" checked="false" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
+                                                        '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
                                                     '</div> ' +
                                                 '</div> ' +
                                             '</div>';

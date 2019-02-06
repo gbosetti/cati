@@ -89,11 +89,13 @@ import elasticsearch.helpers
 
 NUM_QUESTIONS = 3
 ACTIVE = False
-DATA_FOLDER = os.getcwd() # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
+DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
 TEST_FOLDER = os.path.join(DATA_FOLDER, "test")
 UNLABELED_FOLDER = os.path.join(DATA_FOLDER, "unlabeled")
 ENCODING = 'latin1'  #latin1
+
+print("DATA_FOLDER", DATA_FOLDER)
 
 class ActiveLearning:
 

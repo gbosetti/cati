@@ -14,3 +14,8 @@ classification/unlabeled/
 classification/test/*
 classification/train/*
 classification/unlabeled/*
+
+*
+
+# But not these files...
+!.gitignore
