@@ -17,16 +17,15 @@ app.views.classification = Backbone.View.extend({
         });
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
-            document.querySelector("#tweet-questions").appendChild(this.spinner);
+            document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
             this.loadTweetsForLearningStage();
         });
 
-        document.querySelector("#to-learning-stage").addEventListener("click", () => {
-            document.querySelector("#tweet-questions").appendChild(this.spinner);
-        });
+        /*document.querySelector("#to-learning-stage").addEventListener("click", () => {
+            document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
+        });*/
 
         document.querySelector("#to-al-validation-stage").addEventListener("click", () => {
-
             this.suggestClassification();
         });
 
@@ -34,20 +33,32 @@ app.views.classification = Backbone.View.extend({
     },
     initializeSpinner: function(){
 
-        this.spinner = document.createElement("div");
-        this.spinner.className = "loader"; //new Spinner();
-        this.spinner.style.float = "right";
+        // <div class="card-columns" id="tweet-questions" style="width: 120px; margin: 0 auto; min-height: 200px; padding-top: 3em;">
+        var container = document.createElement("div");
+            container.className = "card-columns";
+            container.style.width = "120px";
+            container.style.margin = "0 auto";
+            container.style["min-height"] = "200px";
+            container.style["padding-top"] = "3em";
+
+        var spinner = document.createElement("div");
+            spinner.className = "loader"; //new Spinner();
+            //spinner.style.float = "right";
+
+        container.appendChild(spinner);
+        this.spinner = container;
     },
     loadTweetsForLearningStage: function(){
 
-        $.get(app.appURL+'get_question_tweets_for_active_learning', function(response){
+        $.get(app.appURL+'get_question_tweets_for_active_learning', response => {
 
             $("#tweet-questions").html('');
+            this.spinner.remove();
             var tweetsHtml = '', ids;
             response.forEach(question => {
                 // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
                 // console.log(question);
-                tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '"> ' +
+                tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
                                                 '<div class="card-body"> ' +
                                                     '<p class="card-text">' + question.text + '</p> ' +
                                                    ' <p class="card-text"><i>Confidence</i>: ' + (question.confidence).toFixed(2) + '</p> ' +
@@ -71,13 +82,19 @@ app.views.classification = Backbone.View.extend({
 
         var questions = [];
         document.querySelectorAll(".card").forEach(question => {
-            questions.push(question.id)
+            //var label = question.querySelector("input").checked;
+            var label = (question.querySelector("input").checked)? "pos" : "neg"; //The labels in the folders used by the active_learning.py algorythm
+            var labeled_question = {};
+                labeled_question["id"] = question.id;
+                labeled_question["label"] = label;
+                labeled_question["filename"] = question.getAttribute("data-fullpath");
+            questions.push(labeled_question);
         });
-        console.log(questions);
+        data = [{name: "questions", value: JSON.stringify(questions) }]
 
-        $.post(app.appURL+'suggest_classification', {"form": questions} , function(response){
+        $.post(app.appURL+'suggest_classification', data, function(response){
 
-            console.log(response)
+            console.log("RESPONSE", response)
 
         }, 'json');
     }

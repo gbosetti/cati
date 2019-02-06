@@ -87,7 +87,7 @@ from elasticsearch import Elasticsearch
 import elasticsearch.helpers
 
 
-NUM_QUESTIONS = 3
+NUM_QUESTIONS = 5
 ACTIVE = False
 DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
@@ -179,7 +179,7 @@ class ActiveLearning:
         # print("***confidences", confidences) # , len(confidences))
 
         sorted_confidences = np.argsort(confidences)  # argsort returns the indices that would sort the array
-        print("***confidences", sorted_confidences)  # , len(confidences))
+        # print("***confidences", sorted_confidences)  # , len(confidences))
 
         question_samples = []
         # select top k low confidence unlabeled samples
@@ -285,7 +285,7 @@ class ActiveLearning:
         # Loading the datasets
         data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)
         data_test = load_files(TEST_FOLDER, encoding=ENCODING)
-        data_unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
+        unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
         categories = data_train.target_names
 
         def size_mb(docs):
@@ -293,17 +293,17 @@ class ActiveLearning:
 
         data_train_size_mb = size_mb(data_train.data)
         data_test_size_mb = size_mb(data_test.data)
-        data_unlabeled_size_mb = size_mb(data_unlabeled.data)
+        unlabeled_size_mb = size_mb(unlabeled.data)
 
         print("%d documents - %0.3fMB (training set)" % (
             len(data_train.data), data_train_size_mb))
         print("%d documents - %0.3fMB (test set)" % (
             len(data_test.data), data_test_size_mb))
         print("%d documents - %0.3fMB (unlabeled set)" % (
-            len(data_unlabeled.data), data_unlabeled_size_mb))
+            len(unlabeled.data), unlabeled_size_mb))
         print("%d categories" % len(categories))
 
-        return data_train, data_test, data_unlabeled, categories
+        return data_train, data_test, unlabeled, categories
 
     def start_learning(self):
 
@@ -350,6 +350,7 @@ class ActiveLearning:
         print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
         # Benchmarking
+        print("Benchmarking")
         results = []
         results.append(self.benchmark(
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
@@ -360,7 +361,6 @@ class ActiveLearning:
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
         for index in question_samples[0]:
-
             complete_question_samples.append({
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
@@ -387,12 +387,18 @@ class ActiveLearning:
 
         return complete_question_samples
 
-    def suggest_classification(self, question_samples):
-        for question in question_samples:
-            print(question)
-            # filename = self.data_unlabeled.filenames[question.index]
-            # dstDir = os.path.join(TRAIN_FOLDER, question_samples.label)
-    # shutil.move(filename, dstDir)
+    def suggest_classification(self, labeled_questions):
+
+        for question in labeled_questions:
+            # index = int(question["id"])
+            # self.data_unlabeled.filenames[index]
+            dstDir = os.path.join(TRAIN_FOLDER, question["label"])
+            print("Moving", question["filename"])
+            shutil.move(question["filename"], dstDir)
+
+        classified_sample = [1,2,3]
+
+        return classified_sample
 
 # classifier = ActiveLearning()
 # classifier.start_learning()
