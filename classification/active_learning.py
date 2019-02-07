@@ -79,12 +79,18 @@ from sklearn import metrics
 from sklearn.model_selection import cross_validate  #by Gabi
 import itertools
 import shutil
+from sklearn.feature_extraction import text
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
 
 from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from elasticsearch import Elasticsearch
 import elasticsearch.helpers
+from elasticsearch_dsl import Search
+from elasticsearch_dsl.connections import connections
 
 ACTIVE = False
 DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
@@ -110,6 +116,50 @@ class ActiveLearning:
         )
 
         return raw_tweets['hits']['hits']
+
+    def get_langs_from_unlabeled_tweets(self, **kwargs):
+
+        # TODO: we need to execute this in case the user doesn't have it enabled. I can't find the
+        # PUT / twitterfdl2017 / _mapping / tweet
+        # {
+        #     "properties": {
+        #         "lang": {
+        #             "type": "text",
+        #             "fielddata": true
+        #         }
+        #     }
+        # }
+
+        the_host = "http://" + kwargs["host"] + ":" + kwargs["port"]
+        client = connections.create_connection(hosts=[the_host])
+        s = Search(using=client, index=kwargs["index"], doc_type="tweet")
+
+        body = {
+            "size": 0,
+            "aggs": {
+                "distinct_lang": {
+                    "terms": {
+                        "field": "lang",
+                        "size": 1000
+                    }
+                }
+            }
+        }
+
+        s = Search.from_dict(body)
+        s = s.index(kwargs["index"])
+        s = s.doc_type("tweet")
+        body = s.to_dict()
+
+        t = s.execute()
+
+        distinct_langs = []
+        for item in t.aggregations.distinct_lang:
+            # print(item.key, item.doc_count)
+            distinct_langs.append(item.key)
+
+
+        return distinct_langs
 
     def delete_folder_contents(self, folder):
 
@@ -294,7 +344,61 @@ class ActiveLearning:
 
         return data_train, data_test, unlabeled, categories
 
-    def start_learning(self, num_questions):
+    def get_langs_from_unlabeled_data(self):
+
+        try:
+            langs = self.get_langs_from_unlabeled_tweets(
+                index="twitterfdl2017",
+                doc_type="tweet",
+                host="localhost",
+                port="9200"
+            )
+            return langs
+        except:
+            print("An exception occurred with get_langs_from_unlabeled_tweets. Using english and french stopwords instead.")
+            return ["en", "fr"]
+
+    def get_stopwords_for_langs(self, langs):
+
+        swords = []
+        if "en" in langs:
+            swords = swords + stopwords.words('english')
+        if "fr" in langs:
+            swords = swords + stopwords.words('french')
+        if "ar" in langs:
+            swords = swords + stopwords.words('arabic')
+        if "nl" in langs:
+            swords = swords + stopwords.words('dutch')
+        if "id" in langs:
+            swords = swords + stopwords.words('indonesian')
+        if "fi" in langs:
+            swords = swords + stopwords.words('Finnish')
+        if "de" in langs:
+            swords = swords + stopwords.words('German')
+        if "hu" in langs:
+            swords = swords + stopwords.words('Hungarian')
+        if "it" in langs:
+            swords = swords + stopwords.words('Italian')
+        if "nb" in langs:
+            swords = swords + stopwords.words('Norwegian')
+        if "pt" in langs:
+            swords = swords + stopwords.words('Portuguese')
+        if "ro" in langs:
+            swords = swords + stopwords.words('Romanian')
+        if "ru" in langs:
+            swords = swords + stopwords.words('Russian')
+        if "es" in langs:
+            swords = swords + stopwords.words('spanish')
+        if "sv" in langs:
+            swords = swords + stopwords.words('Swedish')
+        if "tr" in langs:
+            swords = swords + stopwords.words('Turkish')
+
+        # TODO: complete with the full list of supported langs (there are some langs supported but miissing  and not documented. E.g. Bulgarian or Ukrainian https://pypi.org/project/stop-words/ )
+
+        return swords
+
+    def start_learning(self, num_questions, remove_stopwords):
 
         print("Starting...")
         self.clean_directories()
@@ -323,8 +427,20 @@ class ActiveLearning:
 
         # Extracting features from the training dataset using a sparse vectorizer
         print("Extracting features")
+        langs = self.get_langs_from_unlabeled_data()
+
+        # Getting the list of available stopwords, if the user asked for it
+        if remove_stopwords.lower() in ("yes", "true", "t", "1"):
+            print("Generating stopwords")
+            multilang_stopwords = self.get_stopwords_for_langs(langs)
+        else:
+            print("Ignoring stopwords")
+            multilang_stopwords = None
+
+        # TOPRINT vectorizer.get_feature_names(), vectorizer.idf_
+
         vectorizer = TfidfVectorizer(encoding=ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=None)
+                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=multilang_stopwords)
 
         # Getting a sparse csc matrix.
         X_train = vectorizer.fit_transform(data_train.data)
@@ -393,6 +509,12 @@ class ActiveLearning:
         return classified_sample[0]
 
 # classifier = ActiveLearning()
+# classifier.get_langs_from_unlabeled_tweets(
+#     index="twitterfdl2017",
+#     doc_type="tweet",
+#     host="localhost",
+#     port="9200"
+# )
 # classifier.start_learning()
 # classifier.clean_directories();
 # classifier.get_tweets_with_high_confidence();

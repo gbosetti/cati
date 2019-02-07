@@ -29,6 +29,8 @@ app.views.classification = Backbone.View.extend({
             this.suggestClassification();
         });
 
+        $("#remove-stopwords-al").bootstrapToggle();
+
         return this;
     },
     initializeSpinner: function(){
@@ -52,8 +54,12 @@ app.views.classification = Backbone.View.extend({
 
         $(".card-columns").html('');
         document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-            
-        data = [{name: "num_questions", value: numQuestions }];
+        var removeStopwords = document.querySelector("#remove-stopwords-al").checked;
+
+        data = [
+            {name: "num_questions", value: numQuestions },
+            {name: "remove_stopwords", value: removeStopwords }
+        ];
 
         $.post(app.appURL+'start_learning', data, response => {
 
