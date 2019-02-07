@@ -8,7 +8,6 @@ app.views.classification = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
-
         this.initializeSpinner();
 
         $( '#classification-strategies-tabs .nav-item a' ).on( 'click', function () {
@@ -18,7 +17,8 @@ app.views.classification = Backbone.View.extend({
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
             document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-            this.loadTweetsForLearningStage();
+            var numQuestions = document.querySelector("#num-tweet-questions").value;
+            this.loadTweetsForLearningStage(numQuestions);
         });
 
         /*document.querySelector("#to-learning-stage").addEventListener("click", () => {
@@ -48,9 +48,11 @@ app.views.classification = Backbone.View.extend({
         container.appendChild(spinner);
         this.spinner = container;
     },
-    loadTweetsForLearningStage: function(){
+    loadTweetsForLearningStage: function(numQuestions){
 
-        $.get(app.appURL+'get_question_tweets_for_active_learning', response => {
+        data = [{name: "num_questions", value: numQuestions }];
+
+        $.post(app.appURL+'start_learning', data, response => {
 
             $("#tweet-questions").html('');
             this.spinner.remove();

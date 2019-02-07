@@ -191,10 +191,15 @@ def tweets_scroll():
 
 classifier = ActiveLearning()
 
-@app.route('/get_question_tweets_for_active_learning', methods=['GET'])
+
+@app.route('/start_learning', methods=['POST'])
 # @cross_origin()
-def get_question_tweets_for_active_learning():
-    return jsonify(classifier.start_learning())
+def start_learning():
+    data = request.form
+    print("data", data)
+    print(data["num_questions"])
+    print(json.loads(data["num_questions"]))
+    return jsonify(classifier.start_learning(data["num_questions"]))
 
 
 @app.route('/suggest_classification', methods=['POST'])

@@ -9,6 +9,12 @@
   font-style: normal;
 }
 
+.tab-content>.active{
+
+    background: white,
+
+}
+
 [class^="pixicon-"], [class*=" pixicon-"] {
   /* use !important to prevent issues with browser extensions that change fonts */
   font-family: 'pixicon' !important;

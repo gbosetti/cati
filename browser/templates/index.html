@@ -283,9 +283,21 @@
 
                                     <div class="carousel-inner">
                                         <div class="carousel-item active">
-                                            <h3>About</h3>
-                                            <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as «positive» or «negative».
-                                                Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
+                                            <div class="mt-4 d-flex justify-content-center align-items-center container">
+                                                <div class="col-md-12 col-md-offset-12">
+                                                    <h3>About</h3>
+
+                                                    <div>
+                                                        <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as «positive» or «negative».
+                                                        Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
+
+                                                        <div class="form-group">
+                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify?</label>
+                                                            <input class="form-control" type="number" value="10" id="num-tweet-questions">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             <!-- Carousel navigation -->
                                             <nav aria-label="..." style="padding-top: 3em;">
@@ -300,29 +312,33 @@
                                             </nav>
                                         </div>
                                         <div class="carousel-item">
-                                            <h3>Learning stage</h3>
-                                            <p>Please, mark the tweets below as «positive» or «negative», according to your classification criteria:</p>
+                                            <div class="mt-4 d-flex justify-content-center align-items-center container">
+                                                <div class="col-md-12 col-md-offset-12">
+                                                    <h3>Learning stage</h3>
+                                                    <p>Please, mark the tweets below as «positive» or «negative», according to your classification criteria:</p>
 
-                                            <div class="col-12 pix-margin-top-10">
-                                                <div class="card-columns" id="tweet-questions">
-                                                    <!-- This is filled in the classification.js file -->
+                                                    <div class="col-12 pix-margin-top-10">
+                                                        <div class="card-columns" id="tweet-questions">
+                                                            <!-- This is filled in the classification.js file -->
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Carousel navigation -->
+                                                    <nav aria-label="..." style="padding-top: 3em;">
+                                                        <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+                                                            <li class="disabled">
+                                                                <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+                                                            </li>
+                                                            <li class="">
+                                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+                                                            </li>
+                                                            <li class="">
+                                                                <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+                                                            </li>
+                                                        </ul>
+                                                    </nav>
                                                 </div>
                                             </div>
-
-                                            <!-- Carousel navigation -->
-                                            <nav aria-label="..." style="padding-top: 3em;">
-                                                <ul class="pagination justify-content-end"> <!-- justify-content-center -->
-                                                    <li class="disabled">
-                                                        <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
-                                                    </li>
-                                                    <li class="">
-                                                        <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
-                                                    </li>
-                                                    <li class="">
-                                                        <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
-                                                    </li>
-                                                </ul>
-                                            </nav>
                                         </div>
                                         <div class="carousel-item">
                                             <h3>Validation stage</h3>

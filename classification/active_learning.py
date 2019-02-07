@@ -86,8 +86,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from elasticsearch import Elasticsearch
 import elasticsearch.helpers
 
-
-NUM_QUESTIONS = 5
 ACTIVE = False
 DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
@@ -135,9 +133,10 @@ class ActiveLearning:
 
     ###############################################################################
     # Benchmark classifiers
-    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories):
+    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
 
         print("Training. Classifier: ", clf)
+        num_questions = int(num_questions)
         t0 = time()
         clf.fit(X_train, y_train) # matches the matrix with the array of matching cases. Case 1-> label a ... ( [[1],[2],[3]], ["a","b","a"] )
 
@@ -174,10 +173,11 @@ class ActiveLearning:
         sorted_confidences = np.argsort(confidences)  # argsort returns the indices that would sort the array
 
         question_samples = []
+        num_questions = int(num_questions / 2)
         # select top k low confidence unlabeled samples
-        low_confidence_samples = sorted_confidences[0:NUM_QUESTIONS]
+        low_confidence_samples = sorted_confidences[0:num_questions]
         # select top k high confidence unlabeled samples
-        high_confidence_samples = sorted_confidences[-NUM_QUESTIONS:]
+        high_confidence_samples = sorted_confidences[-num_questions:]
         question_samples.extend(low_confidence_samples.tolist())
         question_samples.extend(high_confidence_samples.tolist())
 
@@ -294,7 +294,7 @@ class ActiveLearning:
 
         return data_train, data_test, unlabeled, categories
 
-    def start_learning(self):
+    def start_learning(self, num_questions):
 
         print("Starting...")
         self.clean_directories()
@@ -343,7 +343,7 @@ class ActiveLearning:
         results = []
         results.append(self.benchmark(
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
-            X_train, X_test, y_train, y_test, X_unlabeled, self.categories
+            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, num_questions
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
         clf_names, question_samples, confidences, predictions = [[x[i] for x in results] for i in range(4)]
 
