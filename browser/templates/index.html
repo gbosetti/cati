@@ -350,23 +350,29 @@
                                             </div>
                                         </div>
                                         <div class="carousel-item">
-                                            <h3>Validation stage</h3>
-                                            <p>...</p>
+                                            <div class="mt-4 d-flex justify-content-center align-items-center container">
+                                                <div class="col-md-12 col-md-offset-12">
+                                                    <h3>Validation stage</h3>
 
-                                            <!-- Carousel navigation -->
-                                            <nav aria-label="..." style="padding-top: 3em;">
-                                                <ul class="pagination justify-content-end"> <!-- justify-content-center -->
-                                                    <li class="">
-                                                        <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
-                                                    </li>
-                                                    <li class="">
-                                                        <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
-                                                    </li>
-                                                    <li class="">
-                                                        <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
-                                                    </li>
-                                                </ul>
-                                            </nav>
+                                                    <div id="classification-boxplots" class="graph js-plotly-plot" style="height: 70vh; width: 50%; margin: 0 auto;"></div>
+                                                    <label>...</label>
+
+                                                    <!-- Carousel navigation -->
+                                                    <nav aria-label="..." style="padding-top: 3em;">
+                                                        <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+                                                            <li class="">
+                                                                <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+                                                            </li>
+                                                            <li class="">
+                                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+                                                            </li>
+                                                            <li class="">
+                                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
+                                                            </li>
+                                                        </ul>
+                                                    </nav>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1042,6 +1048,7 @@ for each n ∈ ℤ : n ∈ [1,20]
   <script src="static/js/vendor/jarallax-element.min.js"></script>
   <script src="static/js/vendor/jarallax-video.min.js"></script>
   <script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
+  <script src="static/js/vendor/plotly-latest.min.js"></script>
 
   <script>
       window.onload = function() {

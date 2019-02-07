@@ -261,7 +261,7 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=5000,
+            size=2000,
             query={"query": {
                 "match": {
                     "session_twitterfdl2017": "confirmed"
@@ -275,7 +275,7 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=5000,
+            size=2000,
             query={"query": {
                 "match": {
                     "session_twitterfdl2017": "negative"
@@ -289,7 +289,7 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=2500,
+            size=1000,
             query={"query": {
                 "match": {
                     "session_twitterfdl2017": "proposed"
@@ -509,21 +509,29 @@ class ActiveLearning:
         # Updating the model
         clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords)
 
-        positiveTweets = []
-        negativeTweets = []
+        positiveTweets = {}
+        positiveTweets["confidences"] = []
+        positiveTweets["predictions"] = []
+        negativeTweets = {}
+        negativeTweets["confidences"] = []
+        negativeTweets["predictions"] = []
 
         # TODO: check that 1 = positive and 0 = negative in the model updating function
         for idx, val in enumerate(predictions[0]):
             if predictions[0][idx] == 1:
-                positiveTweets.append({
-                    "confidence": str(confidences[0][idx]),
-                    "prediction": "positive"
-                })
+                positiveTweets["confidences"].append(str(confidences[0][idx]))
+                positiveTweets["predictions"].append(str(predictions[0][idx]))
+                # positiveTweets.append({
+                #     "confidence": str(confidences[0][idx]),
+                #     "prediction": "positive"
+                # })
             elif predictions[0][idx] == 0:
-                negativeTweets.append({
-                    "confidence": str(confidences[0][idx]),
-                    "prediction": "negative"
-                })
+                negativeTweets["confidences"].append(str(confidences[0][idx]))
+                positiveTweets["predictions"].append(str(predictions[0][idx]))
+                # negativeTweets.append({
+                #     "confidence": str(confidences[0][idx]),
+                #     "prediction": "negative"
+                # })
 
         return {"positiveTweets": positiveTweets, "negativeTweets": negativeTweets}
 

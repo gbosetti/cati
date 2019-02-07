@@ -110,7 +110,7 @@ app.views.classification = Backbone.View.extend({
         var questions = this.getQuestionsFromUI();
         data = [{name: "questions", value: JSON.stringify(questions) }]
 
-        $.post(app.appURL+'suggest_classification', data, function(response){
+        $.post(app.appURL+'suggest_classification', data, response => {
 
             console.log(response);
             this.generateVisualizationsForValidation(response["positive"], response["negative"]);
@@ -122,5 +122,32 @@ app.views.classification = Backbone.View.extend({
         negTweets = this.getNegativeTweets(predLabeledTweets);
 
         posPlot = this.createBoxPlot(posTweets)*/
+
+        var y0=[],y1=[]
+        for ( i = 0; i < 50; i ++)
+        {
+            y0[i] = Math.random();
+            y1[i] = Math.random();
+        }
+
+        var trace1 = {
+          y: y0, // positiveTweets.confidences
+          boxpoints: 'all',
+          jitter: 0.3,
+          pointpos: -1.8,
+          type: 'box',
+          name: 'Positive tweets'
+        };
+
+        var trace2 = {
+          y: y1, // negativeTweets.confidences
+          type: 'box',
+          name: 'Negative tweets'
+        };
+
+        var data = [trace1, trace2];
+
+        Plotly.newPlot('classification-boxplots', data, {}, {showSendToCloud: true});
+
     }
 });
