@@ -92,7 +92,7 @@ def event_descriptions():
 # ==================================================================
 
 
-# Returns teh analysis of the raw dataset
+# Returns the analysis of the raw dataset
 @app.route('/produce_dataset_stats', methods=['POST'])
 # @cross_origin()
 def produce_dataset_stats():
