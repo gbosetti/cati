@@ -18,7 +18,7 @@ app.views.classification = Backbone.View.extend({
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
 
             var numQuestions = document.querySelector("#num-tweet-questions").value;
-            this.loadTweetsForLearningStage(numQuestions);
+            this.requestTweetsForLearningStage(numQuestions);
         });
 
         /*document.querySelector("#to-learning-stage").addEventListener("click", () => {
@@ -50,7 +50,34 @@ app.views.classification = Backbone.View.extend({
         container.appendChild(spinner);
         this.spinner = container;
     },
-    loadTweetsForLearningStage: function(numQuestions){
+    loadTweetsForLearningStage: function(questions){
+
+        this.spinner.remove();
+        var tweetsHtml = '', ids;
+        questions.forEach(question => {
+            // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
+            tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
+                                            '<div class="card-body"> ' +
+                                                '<p class="card-text">' + question.text + '</p> ' +
+                                                '<p class="card-text"> ' +
+                                                    '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
+                                                    '<i>Predicted</i>: ' + question.pred_label +
+                                                '</p> ' +
+                                                '<div class=""> ' +
+                                                    '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
+                                                '</div> ' +
+                                            '</div> ' +
+                                        '</div>';
+        })
+
+        $("#tweet-questions").html(tweetsHtml);
+
+        $(".card .card-body input").each(function() {
+            $(this).bootstrapToggle();
+            this.style.padding = "right";
+        });
+    },
+    requestTweetsForLearningStage: function(numQuestions){
 
         $(".card-columns").html('');
         document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
@@ -62,39 +89,13 @@ app.views.classification = Backbone.View.extend({
         ];
 
         $.post(app.appURL+'start_learning', data, response => {
-
-            this.spinner.remove();
-            var tweetsHtml = '', ids;
-            response.forEach(question => {
-                // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
-                tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
-                                                '<div class="card-body"> ' +
-                                                    '<p class="card-text">' + question.text + '</p> ' +
-                                                    '<p class="card-text"> ' +
-                                                        '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
-                                                        '<i>Predicted</i>: ' + question.pred_label +
-                                                    '</p> ' +
-                                                    '<div class=""> ' +
-                                                        '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
-                                                    '</div> ' +
-                                                '</div> ' +
-                                            '</div>';
-            })
-
-            $("#tweet-questions").html(tweetsHtml);
-
-            $(".card .card-body input").each(function() {
-                $(this).bootstrapToggle();
-                this.style.padding = "right";
-            });
-
+            this.loadTweetsForLearningStage(response);
         }, 'json');
     },
-    suggestClassification: function(){
+    getQuestionsFromUI: function(){
 
         var questions = [];
         document.querySelectorAll(".card").forEach(question => {
-            //var label = question.querySelector("input").checked;
             var label = (question.querySelector("input").checked)? "pos" : "neg"; //The labels in the folders used by the active_learning.py algorythm
             var labeled_question = {};
                 labeled_question["id"] = question.id;
@@ -102,12 +103,24 @@ app.views.classification = Backbone.View.extend({
                 labeled_question["filename"] = question.getAttribute("data-fullpath");
             questions.push(labeled_question);
         });
+        return questions;
+    },
+    suggestClassification: function(){
+
+        var questions = this.getQuestionsFromUI();
         data = [{name: "questions", value: JSON.stringify(questions) }]
 
         $.post(app.appURL+'suggest_classification', data, function(response){
 
-            console.log("RESPONSE", response)
-
+            console.log(response);
+            this.generateVisualizationsForValidation(response["positive"], response["negative"]);
         }, 'json');
+    },
+    generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
+
+        /*posTweets = this.getPositiveTweets(predLabeledTweets);
+        negTweets = this.getNegativeTweets(predLabeledTweets);
+
+        posPlot = this.createBoxPlot(posTweets)*/
     }
 });

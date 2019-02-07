@@ -395,6 +395,7 @@ class ActiveLearning:
             swords = swords + stopwords.words('Turkish')
 
         # TODO: complete with the full list of supported langs (there are some langs supported but miissing  and not documented. E.g. Bulgarian or Ukrainian https://pypi.org/project/stop-words/ )
+        # The full list of languages may be found in C:/Users/username/AppData/Roming/nltk_data/corpora/stopwords
 
         return swords
 
@@ -417,6 +418,19 @@ class ActiveLearning:
         # Writing the retrieved files into the folders
         print("Writting data from elastic into folders")
         self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
+
+        print("Updating model")
+        clf_names, question_samples, confidences, predictions = self.updating_model(num_questions, remove_stopwords)
+
+        print("Generating questions")
+        return self.generating_questions(question_samples, predictions, confidences)
+
+
+    def updating_model(self, num_questions, remove_stopwords):
+
+        # Keep track of the last used params
+        self.num_questions = num_questions
+        self.remove_stopwords = remove_stopwords
 
         # Starting the process
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
@@ -461,8 +475,10 @@ class ActiveLearning:
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
             X_train, X_test, y_train, y_test, X_unlabeled, self.categories, num_questions
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        clf_names, question_samples, confidences, predictions = [[x[i] for x in results] for i in range(4)]
+        return [[x[i] for x in results] for i in range(4)]
 
+
+    def generating_questions(self, question_samples, predictions, confidences):
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
         for index in question_samples[0]:
@@ -473,29 +489,14 @@ class ActiveLearning:
                 "data_unlabeled_index": index,
                 "confidence": confidences[0][index],
             })
-        # for i in question_samples[0]:
-        #     filename = data_unlabeled.filenames[i]
-        #     print(filename)
-        #     print('**************************content***************************')
-        #     print(data_unlabeled.data[i])
-        #     print('**************************content end***********************')
-        #     print("Annotate this text (select one label):")
-        #     for i in range(0, len(categories)):
-        #         print("%d = %s" % (i + 1, categories[i]))
-        #     labelNumber = input("Enter the correct label number:")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
-        #     while labelNumber.isdigit() == False:
-        #         labelNumber = input("Enter the correct label number (a number please):")  # raw_input was renamed to input https://docs.python.org/3/whatsnew/3.0.html
-        #     labelNumber = int(labelNumber)
-        #     category = categories[labelNumber - 1]
-        #     dstDir = os.path.join(TRAIN_FOLDER, category)
-        #     shutil.move(filename, dstDir)
-
         self.confidences = confidences
 
         return complete_question_samples
 
+
     def suggest_classification(self, labeled_questions):
 
+        print("Moving the user labeled questions into the proper folders")
         for question in labeled_questions:
             # index = int(question["id"])
             # self.data_unlabeled.filenames[index]
@@ -503,10 +504,28 @@ class ActiveLearning:
             print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 
-        classified_sample = self.confidences
-        print(classified_sample[0])
+        # classified_sample = self.confidences
 
-        return classified_sample[0]
+        # Updating the model
+        clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords)
+
+        positiveTweets = []
+        negativeTweets = []
+
+        # TODO: check that 1 = positive and 0 = negative in the model updating function
+        for idx, val in enumerate(predictions[0]):
+            if predictions[0][idx] == 1:
+                positiveTweets.append({
+                    "confidence": str(confidences[0][idx]),
+                    "prediction": "positive"
+                })
+            elif predictions[0][idx] == 0:
+                negativeTweets.append({
+                    "confidence": str(confidences[0][idx]),
+                    "prediction": "negative"
+                })
+
+        return {"positiveTweets": positiveTweets, "negativeTweets": negativeTweets}
 
 # classifier = ActiveLearning()
 # classifier.get_langs_from_unlabeled_tweets(

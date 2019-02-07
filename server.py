@@ -203,9 +203,7 @@ def start_learning():
 def suggest_classification():
     data = request.form
     questions = json.loads(data['questions'])
-    classified_sample = classifier.suggest_classification(questions)
-
-    return jsonify(classified_sample.tolist())
+    return jsonify(classifier.suggest_classification(questions))
 
 
 # Get Event related tweets
