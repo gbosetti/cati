@@ -16,7 +16,7 @@ app.views.classification = Backbone.View.extend({
         });
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
-            document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
+
             var numQuestions = document.querySelector("#num-tweet-questions").value;
             this.loadTweetsForLearningStage(numQuestions);
         });
@@ -50,11 +50,13 @@ app.views.classification = Backbone.View.extend({
     },
     loadTweetsForLearningStage: function(numQuestions){
 
+        $(".card-columns").html('');
+        document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
+            
         data = [{name: "num_questions", value: numQuestions }];
 
         $.post(app.appURL+'start_learning', data, response => {
 
-            $("#tweet-questions").html('');
             this.spinner.remove();
             var tweetsHtml = '', ids;
             response.forEach(question => {
