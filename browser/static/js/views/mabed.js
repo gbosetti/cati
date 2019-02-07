@@ -56,6 +56,8 @@ app.views.mabed = Backbone.View.extend({
 
             //On request retrieval, load the new values and stop the spinner
             document.querySelector('#total_tweets').textContent = response.total_tweets; //"20000";
+            document.querySelector('#total_hashtags').textContent = response.total_hashtags;
+            document.querySelector('#total_urls').textContent = response.total_urls;
 
         }).fail(function(err) {
             console.log(err)

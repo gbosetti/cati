@@ -33,6 +33,28 @@ class Functions:
 
         return res['hits']['total']
 
+    def get_total_hashtags(self, index):
+
+        my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
+        res = my_connector.search({
+            "query": {
+                "exists": {"field": "entities.hashtags"}
+            }
+        })
+
+        return res['hits']['total']
+
+    def get_total_urls(self, index):
+
+        my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
+        res = my_connector.search({
+            "query": {
+                "exists": {"field": "entities.urls"}
+            }
+        })
+
+        return res['hits']['total']
+
     # ==================================================================
     # Event Detection
     # ==================================================================
