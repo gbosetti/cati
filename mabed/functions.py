@@ -55,8 +55,7 @@ class Functions:
 
         return res['hits']['total']
 
-
-#get the 10 most used languages
+    # get the 10 most used languages
     def get_lang_count(selfself, index):
 
         my_connector = Es_connector(index=index,doc_type="tweet")
@@ -68,11 +67,16 @@ class Functions:
                         "field": "lang",
                         "size": 10
                     }
+                },
+                "count":{
+                    "cardinality": {
+                        "field": "lang"
+                    }
                 }
             }
         })
 
-        return res['aggregations']['distinct_lang']['buckets']
+        return res
 
     # ==================================================================
     # Event Detection
