@@ -2,6 +2,13 @@ app.views.classification = Backbone.View.extend({
     template: _.template($("#tpl-classify-tweets").html()),
     initialize: function() {
         var handler = _.bind(this.render, this);
+
+        String.prototype.chunk = function(size) {
+            return [].concat.apply([],
+                this.split('').map(function(x,i){ return i%size ? [] : this.slice(i,i+size) }, this)
+            )
+        }
+
     },
     render: function(){
 
@@ -117,58 +124,55 @@ app.views.classification = Backbone.View.extend({
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
-        var positiveLabels = [];
-        positiveTweets.confidences.forEach(conf => { positiveLabels.push("Lorem Ipsum es simplemente el texto de relleno de las imprentas y archivos de texto. Lorem Ipsum ha sido el texto de relleno estándar de las industrias ...")});
+        var positiveLabels = positiveTweets.texts.map(text => {
+            return text.chunk(45).join("<br>");
+        });
+        var negativeLabels = negativeTweets.texts.map(text => {
+            return text.chunk(45).join("<br>");
+        });
 
         var positiveTweetsTrace = {
-            x: positiveTweets.confidences,
+            y: positiveTweets.confidences,
             text: positiveLabels,
+            hoverinfo: 'y+text',
             boxpoints: 'all',
             type: 'box',
             name: 'Positive'
         };
 
         var negativeTweetsTrace = {
-            x: negativeTweets.confidences,
-            text: positiveLabels,
-            hoverinfo: 'x+y+text',
+            y: negativeTweets.confidences,
+            text: negativeLabels,
+            hoverinfo: 'y+text',
             boxpoints: 'all',
             type: 'box',
             name: 'Negative'
         };
 
         Plotly.newPlot('classification-boxplots', [positiveTweetsTrace, negativeTweetsTrace], {
-            xaxis: {
+            yaxis: {
                 title: 'Confidence',
                 showgrid: true,
                 gridcolor: '#dadee2',
                 dtick: 0.1,
                 zeroline: false
             },
-            yaxis: {
+            xaxis: {
                 zeroline: false
             },
             showlegend: false,
             margin: {
                 l: 100,
                 r: 0,
-                b: 100,
-                t: 0
+                b: 50,
+                t: 50
             }
         });
 
 
 
-        document.getElementById('classification-boxplots').on('plotly_hover', function(data){
-            if(data.points && data.points.length > 0){
-
-                console.log("Point", data.points[0]);
-
-                var hoverInfo = document.getElementById('hoverinfo');
-                console.log(hoverInfo);
-            }
-        });
-
+//        document.getElementById('classification-boxplots').on('plotly_hover', function(data){
+//        });
 //        var myPlot = document.getElementById('classification-boxplots');
 //        myPlot.on('plotly_click', function(data){
 //            if(data.points && data.points.length > 0){
