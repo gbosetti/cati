@@ -107,11 +107,16 @@ def produce_dataset_stats():
     # )
     # stats = pre_processor.get_stats()
     # print(stats)
+    stats = functions.get_lang_count(index=data['index'])
     return jsonify({
         "total_tweets": functions.get_total_tweets(index=data['index']),
         "total_hashtags": functions.get_total_hashtags(index=data['index']),
-        "total_urls": functions.get_total_urls(index=data['index'])
+        "total_urls": functions.get_total_urls(index=data['index']),
+        "lang_stats":stats['aggregations']['distinct_lang']['buckets'],
+        "total_lang": stats['aggregations']['count']['value']
+
     })
+
 
 # Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])
