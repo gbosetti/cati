@@ -18,6 +18,8 @@ You can install all the required libraries (listed in the file `requirements.txt
 
 If something fails and PyCharm is not detecting the dependencies, then install them by using the UI ( File > Settings > Project > Project Interpreter > + )
 
+Note that in Ubuntu and other Linux distribution python and pip are bound to python2, so one should explicitly call
+python3 and pip3 for these to work
 
 ## Usage
 
