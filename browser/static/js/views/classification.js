@@ -112,14 +112,17 @@ app.views.classification = Backbone.View.extend({
 
         $.post(app.appURL+'suggest_classification', data, response => {
 
-            console.log(response);
             this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
+        var positiveLabels = [];
+        positiveTweets.confidences.forEach(conf => { positiveLabels.push("Lorem Ipsum es simplemente el texto de relleno de las imprentas y archivos de texto. Lorem Ipsum ha sido el texto de relleno estándar de las industrias ...")});
+
         var positiveTweetsTrace = {
             x: positiveTweets.confidences,
+            text: positiveLabels,
             boxpoints: 'all',
             type: 'box',
             name: 'Positive'
@@ -127,6 +130,8 @@ app.views.classification = Backbone.View.extend({
 
         var negativeTweetsTrace = {
             x: negativeTweets.confidences,
+            text: positiveLabels,
+            hoverinfo: 'x+y+text',
             boxpoints: 'all',
             type: 'box',
             name: 'Negative'
@@ -152,5 +157,27 @@ app.views.classification = Backbone.View.extend({
             }
         });
 
+
+
+        document.getElementById('classification-boxplots').on('plotly_hover', function(data){
+            if(data.points && data.points.length > 0){
+
+                console.log("Point", data.points[0]);
+
+                var hoverInfo = document.getElementById('hoverinfo');
+                console.log(hoverInfo);
+            }
+        });
+
+//        var myPlot = document.getElementById('classification-boxplots');
+//        myPlot.on('plotly_click', function(data){
+//            if(data.points && data.points.length > 0){
+//                var yAxis = data.event.clientY * data.points[0].x / data.event.clientX;
+//                var annotation = { text: "TEXT", x: data.points[0].x, y:yAxis };
+//                annotations = []; // self.layout.annotations || [];
+//                annotations.push(annotation);
+//                Plotly.relayout('classification-boxplots',{annotations: annotations})
+//            }
+//        });
     }
 });
