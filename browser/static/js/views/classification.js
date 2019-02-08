@@ -2,6 +2,13 @@ app.views.classification = Backbone.View.extend({
     template: _.template($("#tpl-classify-tweets").html()),
     initialize: function() {
         var handler = _.bind(this.render, this);
+
+        String.prototype.chunk = function(size) {
+            return [].concat.apply([],
+                this.split('').map(function(x,i){ return i%size ? [] : this.slice(i,i+size) }, this)
+            )
+        }
+
     },
     render: function(){
 
@@ -112,42 +119,80 @@ app.views.classification = Backbone.View.extend({
 
         $.post(app.appURL+'suggest_classification', data, response => {
 
-            console.log(response);
-            this.generateVisualizationsForValidation(response["positive"], response["negative"]);
+            this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
-        /*posTweets = this.getPositiveTweets(predLabeledTweets);
-        negTweets = this.getNegativeTweets(predLabeledTweets);
+        $("#classif-graph-area").html("");
+        this.drawBoxplot(positiveTweets, negativeTweets);
+        this.drawPiechart(positiveTweets, negativeTweets);
+    },
+    drawBoxplot: function(positiveTweets, negativeTweets){
 
-        posPlot = this.createBoxPlot(posTweets)*/
+        $("#classif-graph-area").append(
+            '<h5 class="mt-5" align="center">Confidence of the predicted tweets\' labels</h5>' +
+            '<div id="classification-boxplots" class="graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>'
+         );
 
-        var y0=[],y1=[]
-        for ( i = 0; i < 50; i ++)
-        {
-            y0[i] = Math.random();
-            y1[i] = Math.random();
-        }
+        var positiveLabels = positiveTweets.texts.map(text => {
+            return text.chunk(45).join("<br>");
+        });
+        var negativeLabels = negativeTweets.texts.map(text => {
+            return text.chunk(45).join("<br>");
+        });
 
-        var trace1 = {
-          y: y0, // positiveTweets.confidences
-          boxpoints: 'all',
-          jitter: 0.3,
-          pointpos: -1.8,
-          type: 'box',
-          name: 'Positive tweets'
+        var positiveTweetsTrace = {
+            y: positiveTweets.confidences,
+            text: positiveLabels,
+            hoverinfo: 'y+text',
+            boxpoints: 'all',
+            type: 'box',
+            name: 'Positive'
         };
 
-        var trace2 = {
-          y: y1, // negativeTweets.confidences
-          type: 'box',
-          name: 'Negative tweets'
+        var negativeTweetsTrace = {
+            y: negativeTweets.confidences,
+            text: negativeLabels,
+            hoverinfo: 'y+text',
+            boxpoints: 'all',
+            type: 'box',
+            name: 'Negative'
         };
 
-        var data = [trace1, trace2];
+        Plotly.newPlot('classification-boxplots', [positiveTweetsTrace, negativeTweetsTrace], {
+            yaxis: {
+                title: 'Confidence',
+                showgrid: true,
+                gridcolor: '#dadee2',
+                dtick: 0.1,
+                zeroline: false
+            },
+            xaxis: {
+                zeroline: false
+            },
+            showlegend: false,
+            margin: {
+                l: 100,
+                r: 0,
+                b: 50,
+                t: 50
+            }
+        });
+    },
+    drawPiechart: function(positiveTweets, negativeTweets){
 
-        Plotly.newPlot('classification-boxplots', data, {}, {showSendToCloud: true});
+        $("#classif-graph-area").append(
+            '<h5 class="mt-5" align="center">Tweets by predicted label</h5>' +
+            '<div id="classification-piechart" class="graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+         );
 
+        var data = [{
+            values: [positiveTweets.confidences.length, negativeTweets.confidences.length],
+            labels: ['Positive', 'Negative'],
+            type: 'pie'
+        }];
+
+        Plotly.newPlot('classification-piechart', data, {});
     }
 });

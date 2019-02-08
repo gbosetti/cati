@@ -288,7 +288,7 @@
                                                     <h3>About</h3>
 
                                                     <div>
-                                                        <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success">positive</span> or <span class="badge badge-danger">negative</span>.
+                                                        <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
                                                         Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
 
                                                         <div class="card-body mx-auto" style="max-width: 400px;">
@@ -324,7 +324,7 @@
                                             <div class="mt-4 d-flex justify-content-center align-items-center container">
                                                 <div class="col-md-12 col-md-offset-12">
                                                     <h3>Learning stage</h3>
-                                                    <p>Please, mark the tweets below as <span class="badge badge-success">positive</span> or <span class="badge badge-danger">negative</span>, according to your classification criteria:</p>
+                                                    <p>Please, mark the tweets below as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>, according to your classification criteria:</p>
 
                                                     <div class="col-12 pix-margin-top-10">
                                                         <div class="card-columns" id="tweet-questions">
@@ -353,10 +353,11 @@
                                             <div class="mt-4 d-flex justify-content-center align-items-center container">
                                                 <div class="col-md-12 col-md-offset-12">
                                                     <h3>Validation stage</h3>
+                                                    <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified. If you believe that the classification is accurate, the process ends. But, it continues to train the algorithm.</p>
 
-                                                    <div id="classification-boxplots" class="graph js-plotly-plot" style="height: 70vh; width: 50%; margin: 0 auto;"></div>
-                                                    <label>...</label>
-
+                                                    <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
+                                                        <div id="classif-graph-area"></div>
+                                                    </div>
                                                     <!-- Carousel navigation -->
                                                     <nav aria-label="..." style="padding-top: 3em;">
                                                         <ul class="pagination justify-content-end"> <!-- justify-content-center -->

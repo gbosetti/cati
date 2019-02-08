@@ -1,59 +1,9 @@
 '''
-Created on Jul 4, 2014
-based on http://scikit-learn.org/stable/auto_examples/document_classification_20newsgroups.html
-
-This program implements active learning (http://en.wikipedia.org/wiki/Active_learning_(machine_learning))
-for text classification tasks with scikit-learn's LinearSVC classifier. Despite differences this can also be called
-incremental training.
-Instead of using Stochastic Gradient Descent we used the batch mode because the data is not that big
-and accuracy here was more of concern than efficiency.
-
-The algorithm trains the model based on a train dataset and evaluates using a test dataset.
-After each evaluation algorithm selects 2*NUM_QUESTIONS samples from unlabeled dataset in order
-to be labeled by a user/expert. The labeled sample is then moved to the corresponding directory in
-the train dataset and the model will start training again with the new improved training set.
-
-The selection of unlabeled samples is based on decision_function of SVM which is
-the distance of the samples X to the separating hyperplane. This distance is between
-[-1, 1] but because we need confidence levels we use absolute values. In case the classes
-are more than two, the decision function will return a confidence level for each class and for each sample
-so in case we have more than 2 classes we average over the absolute values of confidence over all the classes.
-
-We use top NUM_QUESTIONS samples with highest average absolute confidence and also top NUM_QUESTIONS
-samples with lowest average absolute confidence for expert labeling. This procedure can be easily changed
-by modifying the code in benchmark function.
-
-This program requires a directory structure similar to what is shown below:
-    mainDirectory
-       train
-           pos
-               1.txt
-               2.txt
-           neg
-               3.txt
-               4.txt
-       test
-           pos
-               5.txt
-               6.txt
-           neg
-               7.txt
-               8.txt
-       unlabeled
-           unlabeled
-               9.txt
-               10.txt
-               11.txt
-The filenames in unlabeled should not be a duplicate of filenames in train directory because every time we label a file
-we will move that file into the corresponding class directory in train directory.
-
-The pos and neg categories are arbitrary and both the number of the classes and their name can be different with what is shown here.
-The classifier can also be changed to any other classifier in scikit-learn.
-
-
+This is an extension of the work of:
 @author: afshin rahimi
+Created on Jul 4, 2014
+For more information about the original code, please visit:
 https://github.com/afshinrahimi/activelearning
-
 '''
 import matplotlib
 # matplotlib.use('Agg')
@@ -235,13 +185,9 @@ class ActiveLearning:
 
         return clf_descr, question_samples, confidences, predictions  # sorted_confidences added by Gabi
 
-    def get_tweets_with_high_confidence(self):
-
-        top_confidence_tweets = self.sorted_confidences[0][:20]
-        for i in top_confidence_tweets:
-            print("i:", i)
-            print("filename", self.data_unlabeled.data[i])
-            print("filename", self.data_unlabeled.filenames[i])
+    # def get_tweets_with_high_confidence(self):
+    #
+    #     top_confidence_tweets = self.sorted_confidences[0][:20]
 
     def clean_directories(self):
         print("Cleaning directories")
@@ -498,13 +444,9 @@ class ActiveLearning:
 
         print("Moving the user labeled questions into the proper folders")
         for question in labeled_questions:
-            # index = int(question["id"])
-            # self.data_unlabeled.filenames[index]
             dstDir = os.path.join(TRAIN_FOLDER, question["label"])
             print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
-
-        # classified_sample = self.confidences
 
         # Updating the model
         clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords)
@@ -512,22 +454,27 @@ class ActiveLearning:
         positiveTweets = {}
         positiveTweets["confidences"] = []
         positiveTweets["predictions"] = []
+        positiveTweets["texts"] = []
+
         negativeTweets = {}
         negativeTweets["confidences"] = []
         negativeTweets["predictions"] = []
+        negativeTweets["texts"] = []
 
         # TODO: check that 1 = positive and 0 = negative in the model updating function
         for idx, val in enumerate(predictions[0]):
             if predictions[0][idx] == 1:
                 positiveTweets["confidences"].append(str(confidences[0][idx]))
                 positiveTweets["predictions"].append(str(predictions[0][idx]))
+                positiveTweets["texts"].append(self.data_unlabeled.data[idx]) # self.data_unlabeled is updated when updating the model > self.updating_model
                 # positiveTweets.append({
                 #     "confidence": str(confidences[0][idx]),
                 #     "prediction": "positive"
                 # })
             elif predictions[0][idx] == 0:
                 negativeTweets["confidences"].append(str(confidences[0][idx]))
-                positiveTweets["predictions"].append(str(predictions[0][idx]))
+                negativeTweets["predictions"].append(str(predictions[0][idx]))
+                negativeTweets["texts"].append(self.data_unlabeled.data[idx])
                 # negativeTweets.append({
                 #     "confidence": str(confidences[0][idx]),
                 #     "prediction": "negative"
