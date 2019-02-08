@@ -55,6 +55,29 @@ class Functions:
 
         return res['hits']['total']
 
+    # get the 10 most used languages
+    def get_lang_count(selfself, index):
+
+        my_connector = Es_connector(index=index,doc_type="tweet")
+        res = my_connector.search({
+            "size": 0,
+            "aggs": {
+                "distinct_lang": {
+                    "terms": {
+                        "field": "lang",
+                        "size": 10
+                    }
+                },
+                "count":{
+                    "cardinality": {
+                        "field": "lang"
+                    }
+                }
+            }
+        })
+
+        return res
+
     # ==================================================================
     # Event Detection
     # ==================================================================
@@ -257,12 +280,12 @@ class Functions:
                 "_source": ["text", "id_str", "extended_entities", "user", "created_at", "link"],
                 "query": {
                     "simple_query_string": {
-                      "fields": [
-                        "text"
-                      ],
-                      "query": word
+                        "fields": [
+                            "text"
+                        ],
+                        "query": word
                     }
-                  }
+                }
             })
         return res
 
@@ -282,30 +305,30 @@ class Functions:
     def get_tweets_query_state(self, index="test3", word="", state="proposed", session=""):
         my_connector = Es_connector(index=index)
         query = {
-              "query": {
+            "query": {
                 "bool": {
-                  "must": {
-                    "simple_query_string": {
-                      "fields": [
-                        "text"
-                      ],
-                      "query": word
-                    }
-                  },
-                  "filter": {
-                    "bool": {
-                      "should": [
-                        {
-                          "match": {
-                            session: state
-                          }
+                    "must": {
+                        "simple_query_string": {
+                            "fields": [
+                                "text"
+                            ],
+                            "query": word
                         }
-                      ]
+                    },
+                    "filter": {
+                        "bool": {
+                            "should": [
+                                {
+                                    "match": {
+                                        session: state
+                                    }
+                                }
+                            ]
+                        }
                     }
-                  }
                 }
-              }
             }
+        }
         res = my_connector.init_paginatedSearch(query)
         return res
 
@@ -316,12 +339,12 @@ class Functions:
                 "_source": ["text", "id_str", "extended_entities", "user", "created_at", "link"],
                 "query": {
                     "simple_query_string": {
-                      "fields": [
-                        "text"
-                      ],
-                      "query": word
+                        "fields": [
+                            "text"
+                        ],
+                        "query": word
                     }
-                  }
+                }
             })
         return res
 
@@ -332,11 +355,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -362,12 +385,12 @@ class Functions:
             "sort": [
                 "_score"
             ],
-                "query": {
-                        "bool": {
-                            "should": terms
-                        }
-                    }
+            "query": {
+                "bool": {
+                    "should": terms
                 }
+            }
+        }
         # print(query)
         # res = my_connector.search(query)
         res = my_connector.init_paginatedSearch(query)
@@ -380,11 +403,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -407,29 +430,29 @@ class Functions:
             "sort": [
                 "_score"
             ],
-              "query": {
+            "query": {
                 "bool": {
-                  "must": [
-                    {
-                      "bool": {
-                        "should": terms
-                      }
-                    }
-                  ],
-                  "filter": {
-                    "bool": {
-                      "should": [
+                    "must": [
                         {
-                          "match": {
-                            session: state
-                          }
+                            "bool": {
+                                "should": terms
+                            }
                         }
-                      ]
+                    ],
+                    "filter": {
+                        "bool": {
+                            "should": [
+                                {
+                                    "match": {
+                                        session: state
+                                    }
+                                }
+                            ]
+                        }
                     }
-                  }
                 }
-              }
             }
+        }
         res = my_connector.init_paginatedSearch(query)
         return res
 
@@ -440,11 +463,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -498,16 +521,16 @@ class Functions:
     def get_cluster_tweets(self, index="test3", cid=0):
         my_connector = Es_connector(index=index)
         query = {
-                # "_source": [
-                #     "id_str",
-                #     "imagesCluster",
-                #     "session_Twitter2015",
-                #     "extended_entities"
-                # ],
-                "query": {
-                        "term" : { "imagesCluster": cid }
-                    }
-                }
+            # "_source": [
+            #     "id_str",
+            #     "imagesCluster",
+            #     "session_Twitter2015",
+            #     "extended_entities"
+            # ],
+            "query": {
+                "term" : { "imagesCluster": cid }
+            }
+        }
         res = my_connector.search(query)
         return res
 
@@ -518,11 +541,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -545,25 +568,25 @@ class Functions:
         #     }
         # }
         query = {
-                "size": 1,
-                "_source": [
-                    "id_str",
-                    "imagesCluster",
-                    "session_Twitter2015",
-                    "extended_entities"
-                ],
-                "query": {
-                        "bool": {
-                            "must":
-                                    {
-                                        "exists": {
-                                            "field": "extended_entities"
-                                        }
-                                    },
-                            "should": terms
-                        }
-                    }
+            "size": 1,
+            "_source": [
+                "id_str",
+                "imagesCluster",
+                "session_Twitter2015",
+                "extended_entities"
+            ],
+            "query": {
+                "bool": {
+                    "must":
+                        {
+                            "exists": {
+                                "field": "extended_entities"
+                            }
+                        },
+                    "should": terms
                 }
+            }
+        }
         # print(query)
         res = my_connector.search(query)
         return res
@@ -571,15 +594,15 @@ class Functions:
     def get_valid_tweets(self, index="test3"):
         my_connector = Es_connector(index=index)
         res = my_connector.search({
-                "query": {
-                    "simple_query_string": {
-                      "fields": [
+            "query": {
+                "simple_query_string": {
+                    "fields": [
                         "text"
-                      ],
-                      "query": word
-                    }
-                  }
-                })
+                    ],
+                    "query": word
+                }
+            }
+        })
         # res = my_connector.bigSearch(
         #     {
         #         "_source": ["text", "id_str", "extended_entities", "user", "created_at", "link"],
@@ -602,23 +625,23 @@ class Functions:
     def get_clusters(self, index="test3", word=""):
         my_connector = Es_connector(index=index)
         res = my_connector.search({
-          "size": 1,
-          "query": {
-            "simple_query_string": {
-              "fields": [
-                "text"
-              ],
-              "query": word
+            "size": 1,
+            "query": {
+                "simple_query_string": {
+                    "fields": [
+                        "text"
+                    ],
+                    "query": word
+                }
+            },
+            "aggs": {
+                "group_by_cluster": {
+                    "terms": {
+                        "field": "imagesCluster",
+                        "size": 9999
+                    }
+                }
             }
-          },
-          "aggs": {
-            "group_by_cluster": {
-              "terms": {
-                "field": "imagesCluster",
-                "size": 9999
-              }
-            }
-          }
         })
         # print("Clusters")
         # print(res['aggregations']['group_by_cluster']['buckets'])
@@ -640,11 +663,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -745,10 +768,10 @@ class Functions:
     def get_sessions(self):
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         query = {
-                "query":  {
-                    "match_all": {}
-                  }
-                }
+            "query":  {
+                "match_all": {}
+            }
+        }
 
         res = my_connector.search(query)
         return res
@@ -763,16 +786,16 @@ class Functions:
     def get_session_by_Name(self, name):
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         query = {
-                "query": {
-                        "constant_score" : {
-                            "filter" : {
-                                "term" : {
-                                    "s_name" : name
-                                }
-                            }
+            "query": {
+                "constant_score" : {
+                    "filter" : {
+                        "term" : {
+                            "s_name" : name
                         }
                     }
                 }
+            }
+        }
         res = my_connector.search(query)
         return res
 
@@ -783,9 +806,9 @@ class Functions:
         session = self.get_session_by_Name(name)
         if session['hits']['total']==0:
             res = my_connector.post({
-              "s_name": name,
-              "s_index": index,
-              "s_type": "tweet"
+                "s_name": name,
+                "s_index": index,
+                "s_type": "tweet"
             })
             tweets_connector = Es_connector(index=index, doc_type="tweet")
             tweets_connector.update_all('session_'+name, 'proposed')
@@ -881,29 +904,29 @@ class Functions:
         # }
 
         query = {
-                  "query": {
-                    "bool": {
-                      "must": [
+            "query": {
+                "bool": {
+                    "must": [
                         {
-                          "bool": {
-                            "should": terms
-                          }
-                        }
-                      ],
-                      "filter": {
-                        "bool": {
-                          "should": [
-                            {
-                              "match": {
-                                session: "proposed"
-                              }
+                            "bool": {
+                                "should": terms
                             }
-                          ]
                         }
-                      }
+                    ],
+                    "filter": {
+                        "bool": {
+                            "should": [
+                                {
+                                    "match": {
+                                        session: "proposed"
+                                    }
+                                }
+                            ]
+                        }
                     }
-                  }
                 }
+            }
+        }
 
         # print(query)
         res = tweets_connector.update_query(query, session, data['status'])
@@ -968,10 +991,10 @@ class Functions:
         # All tweets
         session = 'session_'+session
         query = {
-                "query": {
-                        "term" : { "imagesCluster": cid }
-                    }
-                }
+            "query": {
+                "term" : { "imagesCluster": cid }
+            }
+        }
         res = tweets_connector.update_query(query, session, state)
         return res
 
@@ -1016,11 +1039,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -1029,42 +1052,42 @@ class Functions:
             }
         }})
         query = {
-                "query": {
-                        "bool": {
-                            "should": terms
-                        }
-                    }
+            "query": {
+                "bool": {
+                    "should": terms
                 }
+            }
+        }
         res = my_connector.count(query)
         return res['count']
 
     def get_event_state_tweets_count(self, index="test3", session="", words="", state="confirmed"):
         my_connector = Es_connector(index=index)
         query = {
-          "query": {
-            "bool": {
-               "must": [
-                {
-                  "match": {
-                    "text": {
-                      "query": words
-                    }
-                  }
-                }
-              ],
-              "filter": {
+            "query": {
                 "bool": {
-                  "should": [
-                    {
-                      "match": {
-                        "session_"+session: state
-                      }
+                    "must": [
+                        {
+                            "match": {
+                                "text": {
+                                    "query": words
+                                }
+                            }
+                        }
+                    ],
+                    "filter": {
+                        "bool": {
+                            "should": [
+                                {
+                                    "match": {
+                                        "session_"+session: state
+                                    }
+                                }
+                            ]
+                        }
                     }
-                  ]
                 }
-              }
             }
-          }
         }
         res = my_connector.count(query)
         return res['count']
@@ -1072,19 +1095,19 @@ class Functions:
     def get_words_tweets_count(self, index="test3", session="", words=""):
         my_connector = Es_connector(index=index)
         query = {
-          "query": {
-            "bool": {
-               "must": [
-                {
-                  "match": {
-                    "text": {
-                      "query": words
-                    }
-                  }
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "match": {
+                                "text": {
+                                    "query": words
+                                }
+                            }
+                        }
+                    ]
                 }
-              ]
             }
-          }
         }
         res = my_connector.count(query)
         return res['count']
@@ -1092,25 +1115,25 @@ class Functions:
     def get_all_count(self, index="test3"):
         my_connector = Es_connector(index=index)
         query = {
-                "query": {
-                    "match_all": {}
-                  }
-                }
+            "query": {
+                "match_all": {}
+            }
+        }
         res = my_connector.count(query)
         return res['count']
 
     def get_words_count(self, index="test3", words=""):
         my_connector = Es_connector(index=index)
         query = {
-              "query": {
+            "query": {
                 "simple_query_string": {
-                  "fields": [
-                    "text"
-                  ],
-                  "query": words
+                    "fields": [
+                        "text"
+                    ],
+                    "query": words
                 }
-              }
             }
+        }
         res = my_connector.count(query)
         return res['count']
 
@@ -1118,55 +1141,55 @@ class Functions:
     def get_start_date(self, index):
         my_connector = Es_connector(index=index)
         res = my_connector.search_size({
-              "_source": [
+            "_source": [
                 "@timestamp",
                 "timestamp_ms"
-              ],
-              "query": {
+            ],
+            "query": {
                 "match_all": {}
-              },
-              "sort": [
+            },
+            "sort": [
                 {
-                  "@timestamp": {
-                    "order": "asc"
-                  }
+                    "@timestamp": {
+                        "order": "asc"
+                    }
                 }
-              ]
-            },1)
+            ]
+        },1)
         return res['hits']['hits'][0]['_source']
 
     def get_end_date(self, index):
         my_connector = Es_connector(index=index)
         res = my_connector.search_size({
-              "_source": [
+            "_source": [
                 "@timestamp",
                 "timestamp_ms"
-              ],
-              "query": {
+            ],
+            "query": {
                 "match_all": {}
-              },
-              "sort": [
+            },
+            "sort": [
                 {
-                  "@timestamp": {
-                    "order": "desc"
-                  }
+                    "@timestamp": {
+                        "order": "desc"
+                    }
                 }
-              ]
-            },1)
+            ]
+        },1)
         return res['hits']['hits'][0]['_source']
 
     def get_range_count(self, index, start, end):
         my_connector = Es_connector(index=index)
         query = {
-              "query": {
+            "query": {
                 "range": {
-                  "timestamp_ms": {
-                    "gt": str(start),
-                    "lt": str(end)
-                  }
+                    "timestamp_ms": {
+                        "gt": str(start),
+                        "lt": str(end)
+                    }
                 }
-              }
             }
+        }
         print(query)
         res = my_connector.count(query)
         return res['count']
@@ -1190,11 +1213,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -1206,12 +1229,12 @@ class Functions:
             "sort": [
                 "_score"
             ],
-                "query": {
-                        "bool": {
-                            "should": terms
-                        }
-                    }
+            "query": {
+                "bool": {
+                    "should": terms
                 }
+            }
+        }
         res = my_connector.search_size(query,1)
         return res
 
@@ -1221,11 +1244,11 @@ class Functions:
         words = main_term + ' '
         for t in related_terms:
             terms.append({ "match": {
-                    "text": {
-                        "query": t['word'],
-                        "boost": t['value']
-                    }
-                }})
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
             words += t['word']+ " "
         terms.append({"match": {
             "text": {
@@ -1283,19 +1306,19 @@ class Functions:
 
 
         query = {
-          "size": 0,
+            "size": 0,
             "query": {
                 "bool": {
                     "should": terms
                 }
             },
-          "aggs": {
-            "sum_scores": {
-              "sum": {
-                "script": "_score"
-              }
+            "aggs": {
+                "sum_scores": {
+                    "sum": {
+                        "script": "_score"
+                    }
+                }
             }
-          }
         }
         res = my_connector.search(query)
         total = res['hits']['total']
