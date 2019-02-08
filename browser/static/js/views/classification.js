@@ -124,6 +124,17 @@ app.views.classification = Backbone.View.extend({
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
+        $("#classif-graph-area").html("");
+        this.drawBoxplot(positiveTweets, negativeTweets);
+        this.drawPiechart(positiveTweets, negativeTweets);
+    },
+    drawBoxplot: function(positiveTweets, negativeTweets){
+
+        $("#classif-graph-area").append(
+            '<h5 class="mt-5" align="center">Confidence of the predicted tweets\' labels</h5>' +
+            '<div id="classification-boxplots" class="graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>'
+         );
+
         var positiveLabels = positiveTweets.texts.map(text => {
             return text.chunk(45).join("<br>");
         });
@@ -168,20 +179,20 @@ app.views.classification = Backbone.View.extend({
                 t: 50
             }
         });
+    },
+    drawPiechart: function(positiveTweets, negativeTweets){
 
+        $("#classif-graph-area").append(
+            '<h5 class="mt-5" align="center">Tweets by predicted label</h5>' +
+            '<div id="classification-piechart" class="graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+         );
 
+        var data = [{
+            values: [positiveTweets.confidences.length, negativeTweets.confidences.length],
+            labels: ['Positive', 'Negative'],
+            type: 'pie'
+        }];
 
-//        document.getElementById('classification-boxplots').on('plotly_hover', function(data){
-//        });
-//        var myPlot = document.getElementById('classification-boxplots');
-//        myPlot.on('plotly_click', function(data){
-//            if(data.points && data.points.length > 0){
-//                var yAxis = data.event.clientY * data.points[0].x / data.event.clientX;
-//                var annotation = { text: "TEXT", x: data.points[0].x, y:yAxis };
-//                annotations = []; // self.layout.annotations || [];
-//                annotations.push(annotation);
-//                Plotly.relayout('classification-boxplots',{annotations: annotations})
-//            }
-//        });
+        Plotly.newPlot('classification-piechart', data, {});
     }
 });
