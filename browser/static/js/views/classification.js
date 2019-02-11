@@ -143,11 +143,23 @@ app.views.classification = Backbone.View.extend({
                 '<div id="' + divId + '" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>' +
             '</div>'
          );
-        this.retrieveNGrams(tweetsTexts, 2, 20).then(ngrams => {
-            this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName);
+
+        // Default values
+        nGramsToGenerate = 2;
+        topNgramsToRetrieve = 25;
+        removeStopwords = true;
+        stemWords = true;
+
+        this.retrieveNGrams(tweetsTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
+
+            this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName, {
+                "nGramsToGenerate": nGramsToGenerate,
+                "topNgramsToRetrieve": topNgramsToRetrieve,
+                "removeStopwords": removeStopwords,
+                "stemWords": stemWords });
         });
     },
-    retrieveNGrams: function(tweetTexts, nGramsToGenerate, topNgramsToRetrieve){
+    retrieveNGrams: function(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords){
 
         return new Promise(function(resolve, reject) {
 
@@ -161,7 +173,7 @@ app.views.classification = Backbone.View.extend({
             }, 'json');
         });
     },
-    renderTagCloud: function(ngrams, divId, height, tweetsTextsVarName){
+    renderTagCloud: function(ngrams, divId, height, tweetsTextsVarName, defaultConfig){
 
         var skillsToDraw = ngrams.map(ngram => { // { text: 'javascript', size: 1 }
             var text = ngram[0][0] + "-" + ngram[0][1];
@@ -172,7 +184,7 @@ app.views.classification = Backbone.View.extend({
         // Use the layout script to calculate the placement, rotation and size of each word:
         var width = $("#positive-labeled-tweets-cloud").width();
         var fill = d3.scale.category20();
-        var angle = 20;
+        var angle = 15;
 
         d3.layout.cloud()
             .size([width, height])
@@ -222,9 +234,12 @@ app.views.classification = Backbone.View.extend({
             var viewBox = [bbox.x, bbox.y, bbox.width, bbox.height].join(" ");
             svg.setAttribute("viewBox", viewBox);
 
-        this.drawTagcloudControls(divId, tweetsTextsVarName);
+        this.drawTagcloudControls(divId, tweetsTextsVarName, defaultConfig);
     },
-    drawTagcloudControls: function(divId, tweetsTextsVarName){
+    drawTagcloudControls: function(divId, tweetsTextsVarName, defaultConfig){
+
+        removeStopwords = (defaultConfig.removeStopwords)? "checked" : "";
+        stemWords = (defaultConfig.stemWords)? "checked" : "";
 
         $("#" + divId).parent().append(`
             <div class="col-12 col-sm-12">
@@ -232,22 +247,22 @@ app.views.classification = Backbone.View.extend({
                     <div class="mt-4 form-row">
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="n-grams-to-generate">N-grams to generate</label>
-                            <input id="n-grams-to-generate" name="top_events" type="number" class="form-control" placeholder="0 = all" value="2">
+                            <input id="n-grams-to-generate" name="top_events" type="number" class="form-control" placeholder="0 = all" value="${defaultConfig.nGramsToGenerate}">
                         </div>
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="top-n-grams-to-display">Top-ngrams to display</label>
-                            <input id="top-n-grams-to-display" name="min_absolute_frequency" type="text" class="form-control" placeholder="Default to 25" value="25">
+                            <input id="top-n-grams-to-display" name="min_absolute_frequency" type="text" class="form-control" placeholder="Default to ${defaultConfig.topNgramsToRetrieve}" value="${defaultConfig.topNgramsToRetrieve}">
                         </div>
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="remove-stopwords">Remove stopwords</label>
                             <div class="">
-                                <input id="remove-stopwords" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">
+                                <input id="remove-stopwords" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" ${removeStopwords}>
                             </div>
                         </div>
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="stem-words">Stem words</label>
                             <div class="">
-                                <input id="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">
+                                <input id="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" ${stemWords}>
                             </div>
                         </div>
                     </div>
@@ -272,9 +287,7 @@ app.views.classification = Backbone.View.extend({
             var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
             var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
 
-            console.log(nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords);
-
-            this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve).then(ngrams => {
+            this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
                 //this.renderTagCloud(ngrams, divId, divHeight);
                 console.log("NEW N-GRAMS", ngrams)
             });
