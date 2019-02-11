@@ -128,35 +128,40 @@ app.views.classification = Backbone.View.extend({
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
         var divHeight = 350;
-        this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight);
-        this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight);
+        this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
+        this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
+
+        // Store them for user manipulation
+        this.positiveTweets = positiveTweets;
+        this.negativeTweets = negativeTweets;
     },
-    drawTagCloud: function(title, tweetsTexts, divId, divHeight){
+    drawTagCloud: function(title, tweetsTexts, divId, divHeight, tweetsTextsVarName){
 
         $("#classif-graph-area").append(
             '<h5 class="mt-5" align="center">' + title + '</h5>' +
-            '<div id="' + divId + '" class="classif-visualization" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>'
+            '<div class="classif-visualization"> ' +
+                '<div id="' + divId + '" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>' +
+            '</div>'
          );
-        this.retrieveNGrams(tweetsTexts, divId, divHeight).then(ngrams => {
-            console.log(ngrams);
-            this.renderTagCloud(ngrams, divId, divHeight);
+        this.retrieveNGrams(tweetsTexts, 2, 20).then(ngrams => {
+            this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName);
         });
     },
-    retrieveNGrams: function(tweetTexts){
+    retrieveNGrams: function(tweetTexts, nGramsToGenerate, topNgramsToRetrieve){
 
         return new Promise(function(resolve, reject) {
 
             var data = [
-                {name: "top_ngrams_to_retrieve", value: 20 },
+                {name: "top_ngrams_to_retrieve", value: topNgramsToRetrieve },
                 {name: "tweet_texts", value: tweetTexts },
-                {name: "length", value: 2 }
+                {name: "length", value: nGramsToGenerate }
             ];
             $.post(app.appURL+'most_frequent_n_grams', data, ngrams => {
                 resolve(ngrams);
             }, 'json');
         });
     },
-    renderTagCloud: function(ngrams, divId, height){
+    renderTagCloud: function(ngrams, divId, height, tweetsTextsVarName){
 
         var skillsToDraw = ngrams.map(ngram => { // { text: 'javascript', size: 1 }
             var text = ngram[0][0] + "-" + ngram[0][1];
@@ -173,7 +178,7 @@ app.views.classification = Backbone.View.extend({
             .size([width, height])
             .words(skillsToDraw)
             .rotate(function() {
-                return ~~(Math.random() * 5) * (Math.random()*(angle+angle)-angle); // Originally return ~~(Math.random() * 2) * 90;
+                return ~~(Math.random() * 5) * (Math.floor(Math.random() * angle) + -angle); // Originally return ~~(Math.random() * 2) * 90;
             })
             .font("Impact")
             .fontSize(function(d) { return d.size; })
@@ -216,12 +221,80 @@ app.views.classification = Backbone.View.extend({
             var bbox = svg.getBBox();
             var viewBox = [bbox.x, bbox.y, bbox.width, bbox.height].join(" ");
             svg.setAttribute("viewBox", viewBox);
+
+        this.drawTagcloudControls(divId, tweetsTextsVarName);
+    },
+    drawTagcloudControls: function(divId, tweetsTextsVarName){
+
+        $("#" + divId).parent().append(`
+            <div class="col-12 col-sm-12">
+                <div id="${divId}-form" class="static_box pix-padding-20 white-bg">
+                    <div class="mt-4 form-row">
+                        <div class="col-md-6 col-sm-6 h_field">
+                            <label for="n-grams-to-generate">N-grams to generate</label>
+                            <input id="n-grams-to-generate" name="top_events" type="number" class="form-control" placeholder="0 = all" value="2">
+                        </div>
+                        <div class="col-md-6 col-sm-6 h_field">
+                            <label for="top-n-grams-to-display">Top-ngrams to display</label>
+                            <input id="top-n-grams-to-display" name="min_absolute_frequency" type="text" class="form-control" placeholder="Default to 25" value="25">
+                        </div>
+                        <div class="col-md-6 col-sm-6 h_field">
+                            <label for="remove-stopwords">Remove stopwords</label>
+                            <div class="">
+                                <input id="remove-stopwords" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-sm-6 h_field">
+                            <label for="stem-words">Stem words</label>
+                            <div class="">
+                                <input id="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 form-row">
+                        <button id="${divId}-regenerate-tag-cloud" dataset="${tweetsTextsVarName}" class="btn btn-lg btn-flat btn-success" style="width:100%"><strong>Apply</strong></button>
+                    </div>
+                </div>
+            </div>`
+        );
+        $("#" + divId + "-form input[type=checkbox]").each(function() {
+            $(this).bootstrapToggle();
+        });
+
+        $("#" + divId + "-regenerate-tag-cloud").on("click", ev => {
+
+            var dataset = $(ev.target).attr("dataset");
+            var tweetTexts = this[dataset].texts;
+            var targetFormId = $(ev.target).parent().parent().attr("id");
+
+            var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
+            var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
+            var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
+            var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
+
+            console.log(nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords);
+
+            this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve).then(ngrams => {
+                //this.renderTagCloud(ngrams, divId, divHeight);
+                console.log("NEW N-GRAMS", ngrams)
+            });
+        })
+    },
+    updateNGrams: function(){
+
+        var height = $("#positive-labeled-tweets-cloud").height();
+        $("#positive-labeled-tweets-cloud").html('');
+        /*this.retrieveNGrams(this.positiveTweets.texts).then(ngrams => {
+            this.renderTagCloud(ngrams, divId, divHeight);
+        });*/
     },
     drawBoxplot: function(positiveTweets, negativeTweets){
 
         $("#classif-graph-area").append(
-            '<h5 class="mt-5" align="center">Confidence of the predicted tweets\' labels</h5>' +
-            '<div id="classification-boxplots" class="classif-visualization graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>'
+            '<div> ' +
+                '<h5 class="mt-5" align="center">Confidence of the predicted tweets\' labels</h5>' +
+                '<div id="classification-boxplots" class="classif-visualization graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>' +
+            '</div>'
          );
 
         var positiveLabels = positiveTweets.texts.map(text => {
