@@ -127,12 +127,101 @@ app.views.classification = Backbone.View.extend({
         $("#classif-graph-area").html("");
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
+        var divHeight = 350;
+        this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight);
+        this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight);
+    },
+    drawTagCloud: function(title, tweetsTexts, divId, divHeight){
+
+        $("#classif-graph-area").append(
+            '<h5 class="mt-5" align="center">' + title + '</h5>' +
+            '<div id="' + divId + '" class="classif-visualization" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>'
+         );
+        this.retrieveNGrams(tweetsTexts, divId, divHeight).then(ngrams => {
+            console.log(ngrams);
+            this.renderTagCloud(ngrams, divId, divHeight);
+        });
+    },
+    retrieveNGrams: function(tweetTexts){
+
+        return new Promise(function(resolve, reject) {
+
+            var data = [
+                {name: "top_ngrams_to_retrieve", value: 20 },
+                {name: "tweet_texts", value: tweetTexts },
+                {name: "length", value: 2 }
+            ];
+            $.post(app.appURL+'most_frequent_n_grams', data, ngrams => {
+                resolve(ngrams);
+            }, 'json');
+        });
+    },
+    renderTagCloud: function(ngrams, divId, height){
+
+        var skillsToDraw = ngrams.map(ngram => { // { text: 'javascript', size: 1 }
+            var text = ngram[0][0] + "-" + ngram[0][1];
+            var size = ngram[1];
+            return { "text": text, "size": size };
+        });
+
+        // Use the layout script to calculate the placement, rotation and size of each word:
+        var width = $("#positive-labeled-tweets-cloud").width();
+        var fill = d3.scale.category20();
+        var angle = 20;
+
+        d3.layout.cloud()
+            .size([width, height])
+            .words(skillsToDraw)
+            .rotate(function() {
+                return ~~(Math.random() * 5) * (Math.random()*(angle+angle)-angle); // Originally return ~~(Math.random() * 2) * 90;
+            })
+            .font("Impact")
+            .fontSize(function(d) { return d.size; })
+            .on("end", function(words) {
+
+                d3.select("#" + divId).append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .append("g")
+                    .attr("transform", "translate(" + ~~(width / 2) + "," + ~~(height / 2) + ")")
+                    .selectAll("text")
+                    .data(words)
+                    .enter().append("text")
+                    .style("font-size", function(d) {
+                        return d.size + "px";
+                    })
+                    .style("-webkit-touch-callout", "none")
+                    .style("-webkit-user-select", "none")
+                    .style("-khtml-user-select", "none")
+                    .style("-moz-user-select", "none")
+                    .style("-ms-user-select", "none")
+                    .style("user-select", "none")
+                    .style("cursor", "default")
+                    .style("font-family", "Impact")
+                    .style("fill", function(d, i) {
+                        return fill(i);
+                    })
+                    .attr("text-anchor", "middle")
+                    .attr("transform", function(d) {
+                        return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                    })
+                    .text(function(d) {
+                        return d.text;
+                    });
+            })
+            .start();
+
+            // set the viewbox to content bounding box (zooming in on the content, effectively trimming whitespace)
+            var svg = document.querySelector("#" + divId).querySelector("svg");
+            var bbox = svg.getBBox();
+            var viewBox = [bbox.x, bbox.y, bbox.width, bbox.height].join(" ");
+            svg.setAttribute("viewBox", viewBox);
     },
     drawBoxplot: function(positiveTweets, negativeTweets){
 
         $("#classif-graph-area").append(
             '<h5 class="mt-5" align="center">Confidence of the predicted tweets\' labels</h5>' +
-            '<div id="classification-boxplots" class="graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>'
+            '<div id="classification-boxplots" class="classif-visualization graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>'
          );
 
         var positiveLabels = positiveTweets.texts.map(text => {
@@ -184,7 +273,7 @@ app.views.classification = Backbone.View.extend({
 
         $("#classif-graph-area").append(
             '<h5 class="mt-5" align="center">Tweets by predicted label</h5>' +
-            '<div id="classification-piechart" class="graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+            '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
          );
 
         var data = [{

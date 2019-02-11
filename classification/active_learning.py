@@ -36,7 +36,7 @@ nltk.download('stopwords')
 
 from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+from collections import Counter
 from elasticsearch import Elasticsearch
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
@@ -481,6 +481,20 @@ class ActiveLearning:
                 # })
 
         return {"positiveTweets": positiveTweets, "negativeTweets": negativeTweets}
+
+    def n_grams(self, text, length=2):
+        return zip(*[text[i:] for i in range(length)])
+
+        # word_data = "The best performance can bring in sky high success."
+        # nltk_tokens = nltk.word_tokenize(word_data)
+        #
+        # print(list(nltk.bigrams(nltk_tokens)))
+
+    def most_frequent_n_grams(self, tweet_texts, length=2, top_ngrams_to_retrieve=None):
+
+        full_text = "".join(tweet_texts)
+        ngram_counts = Counter(self.n_grams(full_text.split(), length))
+        return ngram_counts.most_common(top_ngrams_to_retrieve)
 
 # classifier = ActiveLearning()
 # classifier.get_langs_from_unlabeled_tweets(

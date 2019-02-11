@@ -213,6 +213,13 @@ def suggest_classification():
     return jsonify(classifier.suggest_classification(questions))
 
 
+@app.route('/most_frequent_n_grams', methods=['POST'])
+def most_frequent_n_grams():
+    data = request.form
+    n_grams = classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), int(data['top_ngrams_to_retrieve']))
+    return jsonify(n_grams)
+
+
 # Get Event related tweets
 @app.route('/event_tweets', methods=['POST'])
 # @cross_origin()
