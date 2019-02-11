@@ -56,7 +56,7 @@ class Functions:
         return res['hits']['total']
 
     # get the 10 most used languages
-    def get_lang_count(selfself, index):
+    def get_lang_count(self, index):
 
         my_connector = Es_connector(index=index,doc_type="tweet")
         res = my_connector.search({
@@ -77,6 +77,28 @@ class Functions:
         })
 
         return res
+
+    def get_total_images(self, index):
+        my_connector = Es_connector(index=index,doc_type="tweet")
+        res = my_connector.search(
+            {
+                "size": 0,
+                "aggs": {
+                    "distinct_lang": {
+                        "terms": {
+                            "field": "extended_entities.media.id_str",
+                            "size": 1
+                        }
+                    },
+                    "count": {
+                        "cardinality": {
+                            "field": "extended_entities.media.id_str"
+                        }
+                    }
+                }
+            }
+        )
+        return res['aggregations']['count']['value']
 
     # ==================================================================
     # Event Detection
