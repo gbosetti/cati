@@ -139,7 +139,7 @@ app.views.classification = Backbone.View.extend({
 
         $("#classif-graph-area").append(
             '<h5 class="mt-5" align="center">' + title + '</h5>' +
-            '<div class="classif-visualization"> ' +
+            '<div id="' + divId + '-container" class="classif-visualization"> ' +
                 '<div id="' + divId + '" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>' +
             '</div>'
          );
@@ -281,25 +281,25 @@ app.views.classification = Backbone.View.extend({
             var dataset = $(ev.target).attr("dataset");
             var tweetTexts = this[dataset].texts;
             var targetFormId = $(ev.target).parent().parent().attr("id");
-
             var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
             var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
             var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
             var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
+            var graphArea = $("#" + targetFormId).parent().parent();
+            var graphHeight = graphArea.height();
+            var graphId = graphArea.attr("id").replace('-container','');
+            graphArea.html('');
+            graphArea.html('<div id="' + graphId + '" style="width: 100%; height: ' + graphHeight + 'px; background: white;"></div>');
 
             this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
-                //this.renderTagCloud(ngrams, divId, divHeight);
-                console.log("NEW N-GRAMS", ngrams)
+                console.log("REGENERATING!",  graphId, graphHeight, dataset, ngrams);
+                this.renderTagCloud(ngrams, graphId, graphHeight, dataset, {
+                "nGramsToGenerate": nGramsToGenerate,
+                "topNgramsToRetrieve": topNgramsToRetrieve,
+                "removeStopwords": removeStopwords,
+                "stemWords": stemWords });
             });
         })
-    },
-    updateNGrams: function(){
-
-        var height = $("#positive-labeled-tweets-cloud").height();
-        $("#positive-labeled-tweets-cloud").html('');
-        /*this.retrieveNGrams(this.positiveTweets.texts).then(ngrams => {
-            this.renderTagCloud(ngrams, divId, divHeight);
-        });*/
     },
     drawBoxplot: function(positiveTweets, negativeTweets){
 
