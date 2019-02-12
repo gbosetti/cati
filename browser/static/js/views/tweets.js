@@ -61,7 +61,7 @@ app.views.tweets = Backbone.View.extend({
       var data = $('#tweets_form').serializeArray();
       data.push({name: "index", value: app.session.s_index});
       var self = this;
-      $.post(app.appURL+'tweets', data, function(response){
+      $.post(app.appURL+'search_for_tweets', data, function(response){
         self.display_tweets(response, t0, data[0].value);
       }, 'json').fail(function() {
           $('.loading_text').fadeOut('slow');
@@ -190,11 +190,59 @@ app.views.tweets = Backbone.View.extend({
             '                    <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_filter" data-state="negative" href="#" role="button"><strong>Negative</strong></a>\n' +
             '                    <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_filter" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>\n' +
             '              </div>';
+
         html += this.get_tweets_html(response, '');
-        var chtml = "";
-        var cbtn = "", state_btns="";
-        if(response.clusters){
-            $.each(response.clusters, function(i, cluster){
+        this.showImageClusters(response.clusters, word);
+        this.showNgramClassification(response.ngrams);
+        this.showIndividualTweets(html, t0);
+        this.showResultsStats(response.tweets.total, t0);
+    },
+    showNgramClassification: function(ngrams){
+        console.log("ngrams", ngrams);
+
+        var skillsToDraw = ngrams.map(ngram => { // { text: 'javascript', size: 1 }
+            var text = ngram[0][0] + "-" + ngram[0][1];
+            var size = ngram[1];
+            return { "text": text, "size": size };
+        });
+
+        this.renderCoOccurrenceMatrix(ngrams, "ngrams-search-classif", "Tweets by most frequently related terms", "ngrams-tagcloud", 500);
+
+    },
+    renderCoOccurrenceMatrix: function(ngrams, containedId, title, graphId, graphHeight){
+         $("#" + containedId).append(
+            // '<h5 class="mt-5" align="center">' + title + '</h5>' +
+            '<div id="co-ocurrence-matrix-container" class=""> ' +
+                '<div id="' + graphId + '" style="width: 100%; height: ' + graphHeight + 'px; background: white;"></div>' +
+            '</div>'
+         );
+         this.renderMatrixGraph(ngrams, "ngrams-tagcloud")
+    },
+    renderMatrixGraph: function(ngrams, domId){
+
+
+    },
+    showResultsStats: function(total, t0){
+
+        if(t0){
+            var t1 = performance.now();
+            var time = (t1 - t0) / 1000;
+            var roundedString = time.toFixed(2);
+            $('#res_num').html(total);
+            $('#res_time').html(roundedString);
+        }
+    },
+    showIndividualTweets: function(html){
+
+        $('#tweets_result').html(html);
+        $('.loading_text').fadeOut('slow');
+        $('#tweets_results').fadeIn('slow');
+    },
+    showImageClusters: function(clusters, word){
+        var cbtn = "", chtml = "", state_btns="";
+
+        if(clusters){
+            $.each(clusters, function(i, cluster){
                 if(i>=20){return false;}
                 var cbg = "";
                 if(parseInt(cluster.size)>parseInt(cluster.doc_count)){
@@ -222,17 +270,6 @@ app.views.tweets = Backbone.View.extend({
         }
 
         $('.state_btns').show();
-        $('#tweets_result').html(html);
-        $('.loading_text').fadeOut('slow');
-        $('#tweets_results').fadeIn('slow');
-        if(t0){
-            var t1 = performance.now();
-            var time = (t1 - t0) / 1000;
-            var roundedString = time.toFixed(2);
-            $('#res_num').html(response.tweets.total);
-            $('#res_time').html(roundedString);
-        }
-
     },
     tweet_state: function(e){
 		e.preventDefault();
