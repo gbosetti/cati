@@ -9,6 +9,9 @@ from mabed.es_corpus import Corpus
 from mabed.mabed import MABED
 from mabed.es_connector import Es_connector
 
+# es connector exceptions
+from elasticsearch import RequestError
+
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 
@@ -80,25 +83,42 @@ class Functions:
 
     def get_total_images(self, index):
         my_connector = Es_connector(index=index,doc_type="tweet")
-        res = my_connector.search(
-            {
-                "size": 0,
-                "aggs": {
-                    "distinct_lang": {
-                        "terms": {
-                            "field": "extended_entities.media.id_str",
-                            "size": 1
-                        }
-                    },
-                    "count": {
-                        "cardinality": {
-                            "field": "extended_entities.media.id_str"
+        try:
+            res = my_connector.search(
+                {
+                    "size": 0,
+                    "aggs": {
+                        "distinct_lang": {
+                            "terms": {
+                                "field": "entities.media.id_str.keyword",
+                                "size": 1
+                            }
+                        },
+                        "count": {
+                            "cardinality": {
+                                "field": "entities.media.id_str.keyword"
+                            }
                         }
                     }
                 }
-            }
-        )
-        return res['aggregations']['count']['value']
+            )
+            return res['aggregations']['count']['value']
+        except RequestError:
+            # this may happen if media.id_str is not bound to a keyword multi field
+            # PUT / twitterfdl2017 / _mapping / tweet
+            # {
+            #     "properties": {
+            #         "extended_entities.media.id_str": {
+            #             "type": "text",
+            #             "fields": {
+            #                 "keyword": {
+            #                     "type": "keyword"
+            #                 }
+            #             }
+            #         }
+            #     }
+            # }
+            return "..."
 
     # ==================================================================
     # Event Detection
