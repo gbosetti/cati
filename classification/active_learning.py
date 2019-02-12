@@ -11,6 +11,7 @@ import json
 import shutil
 
 import os
+import string
 from time import time
 import numpy as np
 import pylab as pl
@@ -31,6 +32,7 @@ import itertools
 import shutil
 from sklearn.feature_extraction import text
 import nltk
+from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 
@@ -387,12 +389,12 @@ class ActiveLearning:
 
         # Extracting features from the training dataset using a sparse vectorizer
         print("Extracting features")
-        langs = self.get_langs_from_unlabeled_data()
+        self.langs = self.get_langs_from_unlabeled_data()  # We need to keep track so we can use it later
 
         # Getting the list of available stopwords, if the user asked for it
         if remove_stopwords.lower() in ("yes", "true", "t", "1"):
-            print("Generating stopwords")
-            multilang_stopwords = self.get_stopwords_for_langs(langs)
+            print("Generating stopwords for %s", self.langs)
+            multilang_stopwords = self.get_stopwords_for_langs(self.langs)
         else:
             print("Ignoring stopwords")
             multilang_stopwords = None
@@ -490,11 +492,24 @@ class ActiveLearning:
         #
         # print(list(nltk.bigrams(nltk_tokens)))
 
-    def most_frequent_n_grams(self, tweet_texts, length=2, top_ngrams_to_retrieve=None):
+    def most_frequent_n_grams(self, tweet_texts, length=2, top_ngrams_to_retrieve=None, remove_stopwords=True, stemming=True):
 
         full_text = "".join(tweet_texts)
+        print(full_text)
+
+        if remove_stopwords:
+            punctuation = list(string.punctuation + "…" + "..." + "’" + "️" + "'" + '🔴' + '•')
+            multilang_stopwords = self.get_stopwords_for_langs(self.langs) + ["Ã", "RT"] + punctuation
+            tokenized_text = word_tokenize(full_text)  # tknzr = TweetTokenizer()             tokenized_text = tknzr.tokenize(full_text)
+            print("Detected tokens:", len(tokenized_text), tokenized_text)
+            filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
+            print("Tokens after removing stop-words:", len(filtered_words), filtered_words)
+            full_text = " ".join(filtered_words)
+            print("FULL TEXT", full_text)
+
         ngram_counts = Counter(self.n_grams(full_text.split(), length))
         return ngram_counts.most_common(top_ngrams_to_retrieve)
+
 
 # classifier = ActiveLearning()
 # classifier.get_langs_from_unlabeled_tweets(

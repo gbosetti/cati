@@ -216,8 +216,17 @@ def suggest_classification():
 
 @app.route('/most_frequent_n_grams', methods=['POST'])
 def most_frequent_n_grams():
+
     data = request.form
-    n_grams = classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), int(data['top_ngrams_to_retrieve']))
+    if data['top_ngrams_to_retrieve'] == '0':
+        top_ngrams_to_retrieve = None
+    else:
+        top_ngrams_to_retrieve = int(data['top_ngrams_to_retrieve'])
+
+    stemming = data['stemming'].lower() in ("yes", "true", "t", "1")
+    remove_stopwords = data['remove_stopwords'].lower() in ("yes", "true", "t", "1")
+
+    n_grams = classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
     return jsonify(n_grams)
 
 

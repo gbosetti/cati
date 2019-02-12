@@ -150,7 +150,10 @@ app.views.classification = Backbone.View.extend({
         removeStopwords = true;
         stemWords = true;
 
+        console.log("Retrieving for ", tweetsTextsVarName);
         this.retrieveNGrams(tweetsTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
+
+            console.log("ngrams for ", tweetsTextsVarName);
 
             this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName, {
                 "nGramsToGenerate": nGramsToGenerate,
@@ -166,7 +169,9 @@ app.views.classification = Backbone.View.extend({
             var data = [
                 {name: "top_ngrams_to_retrieve", value: topNgramsToRetrieve },
                 {name: "tweet_texts", value: tweetTexts },
-                {name: "length", value: nGramsToGenerate }
+                {name: "length", value: nGramsToGenerate },
+                {name: "remove_stopwords", value: removeStopwords },
+                {name: "stemming", value: stemWords }
             ];
             $.post(app.appURL+'most_frequent_n_grams', data, ngrams => {
                 resolve(ngrams);
@@ -247,11 +252,11 @@ app.views.classification = Backbone.View.extend({
                     <div class="mt-4 form-row">
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="n-grams-to-generate">N-grams to generate</label>
-                            <input id="n-grams-to-generate" name="top_events" type="number" class="form-control" placeholder="0 = all" value="${defaultConfig.nGramsToGenerate}">
+                            <input id="n-grams-to-generate" name="top_events" type="number" class="form-control" placeholder="Default to 2" value="${defaultConfig.nGramsToGenerate}">
                         </div>
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="top-n-grams-to-display">Top-ngrams to display</label>
-                            <input id="top-n-grams-to-display" name="min_absolute_frequency" type="text" class="form-control" placeholder="Default to ${defaultConfig.topNgramsToRetrieve}" value="${defaultConfig.topNgramsToRetrieve}">
+                            <input id="top-n-grams-to-display" name="min_absolute_frequency" type="text" class="form-control" placeholder="0 = all" value="${defaultConfig.topNgramsToRetrieve}">
                         </div>
                         <div class="col-md-6 col-sm-6 h_field">
                             <label for="remove-stopwords">Remove stopwords</label>
@@ -277,30 +282,31 @@ app.views.classification = Backbone.View.extend({
         });
 
         $("#" + divId + "-regenerate-tag-cloud").on("click", ev => {
-
-            var dataset = $(ev.target).attr("dataset");
-            var tweetTexts = this[dataset].texts;
-            var targetFormId = $(ev.target).parent().parent().attr("id");
-            var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
-            var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
-            var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
-            var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
-            var graphArea = $("#" + targetFormId).parent().parent();
-            var graphHeight = graphArea.children().eq(0).height();
-            console.log("Getting the height from ", graphHeight);
-            var graphId = graphArea.attr("id").replace('-container','');
-            graphArea.html('');
-            graphArea.html('<div id="' + graphId + '" style="width: 100%; height: ' + graphHeight + 'px; background: white;"></div>');
-
-            this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
-                console.log("REGENERATING!");
-                this.renderTagCloud(ngrams, graphId, graphHeight, dataset, {
-                "nGramsToGenerate": nGramsToGenerate,
-                "topNgramsToRetrieve": topNgramsToRetrieve,
-                "removeStopwords": removeStopwords,
-                "stemWords": stemWords });
-            });
+            this.updateTagCloudView(ev.target);
         })
+    },
+    updateTagCloudView: function(btn){
+
+        var dataset = $(btn).attr("dataset");
+        var tweetTexts = this[dataset].texts;
+        var targetFormId = $(btn).parent().parent().attr("id");
+        var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
+        var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
+        var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
+        var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
+        var graphArea = $("#" + targetFormId).parent().parent();
+        var graphHeight = graphArea.children().eq(0).height();
+        var graphId = graphArea.attr("id").replace('-container','');
+        graphArea.html('');
+        graphArea.html('<div id="' + graphId + '" style="width: 100%; height: ' + graphHeight + 'px; background: white;"></div>');
+
+        this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
+            this.renderTagCloud(ngrams, graphId, graphHeight, dataset, {
+            "nGramsToGenerate": nGramsToGenerate,
+            "topNgramsToRetrieve": topNgramsToRetrieve,
+            "removeStopwords": removeStopwords,
+            "stemWords": stemWords });
+        });
     },
     drawBoxplot: function(positiveTweets, negativeTweets){
 
