@@ -28,25 +28,31 @@ class Functions:
 
     def get_total_tweets(self, index):
 
-        my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
-        res = my_connector.search({
-            "query": {
-                "match_all": {}
-            }
-        })
+        try:
+            my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
+            res = my_connector.search({
+                "query": {
+                    "match_all": {}
+                }
+            })
 
-        return res['hits']['total']
+            return res['hits']['total']
+        except RequestError:
+            return '...'
 
     def get_total_hashtags(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
-        res = my_connector.search({
-            "query": {
-                "exists": {"field": "entities.hashtags"}
-            }
-        })
+        try:
+            res = my_connector.search({
+                "query": {
+                    "exists": {"field": "entities.hashtags"}
+                }
+            })
+            return res['hits']['total']
+        except RequestError:
+            return '...'
 
-        return res['hits']['total']
 
     def get_total_urls(self, index):
 
