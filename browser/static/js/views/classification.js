@@ -286,13 +286,14 @@ app.views.classification = Backbone.View.extend({
             var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
             var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
             var graphArea = $("#" + targetFormId).parent().parent();
-            var graphHeight = graphArea.height();
+            var graphHeight = graphArea.children().eq(0).height();
+            console.log("Getting the height from ", graphHeight);
             var graphId = graphArea.attr("id").replace('-container','');
             graphArea.html('');
             graphArea.html('<div id="' + graphId + '" style="width: 100%; height: ' + graphHeight + 'px; background: white;"></div>');
 
             this.retrieveNGrams(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
-                console.log("REGENERATING!",  graphId, graphHeight, dataset, ngrams);
+                console.log("REGENERATING!");
                 this.renderTagCloud(ngrams, graphId, graphHeight, dataset, {
                 "nGramsToGenerate": nGramsToGenerate,
                 "topNgramsToRetrieve": topNgramsToRetrieve,
@@ -306,7 +307,7 @@ app.views.classification = Backbone.View.extend({
         $("#classif-graph-area").append(
             '<div> ' +
                 '<h5 class="mt-5" align="center">Confidence of the predicted tweets\' labels</h5>' +
-                '<div id="classification-boxplots" class="classif-visualization graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px;"></div>' +
+                '<div id="classification-boxplots" class="classif-visualization graph js-plotly-plot" style="height: 500px; width: 100%; min-width: 500px; max-height: 500px;"></div>' +
             '</div>'
          );
 
