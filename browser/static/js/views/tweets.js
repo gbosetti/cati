@@ -198,13 +198,7 @@ app.views.tweets = Backbone.View.extend({
         this.showResultsStats(response.tweets.total, t0);
     },
     showNgramClassification: function(ngrams){
-        console.log("ngrams", ngrams);
 
-        var skillsToDraw = ngrams.map(ngram => { // { text: 'javascript', size: 1 }
-            var text = ngram[0][0] + "-" + ngram[0][1];
-            var size = ngram[1];
-            return { "text": text, "size": size };
-        });
 
         this.renderCoOccurrenceMatrix(ngrams, "ngrams-search-classif", "Tweets by most frequently related terms", "ngrams-tagcloud", 500);
 
@@ -216,10 +210,89 @@ app.views.tweets = Backbone.View.extend({
                 '<div id="' + graphId + '" style="width: 100%; height: ' + graphHeight + 'px; background: white;"></div>' +
             '</div>'
          );
-         this.renderMatrixGraph(ngrams, "ngrams-tagcloud")
-    },
-    renderMatrixGraph: function(ngrams, domId){
 
+        var data = ngrams.map(ngram => {
+            return {"day": ngram[0][0], "hour": ngram[0][1], "value": ngram[1]};
+        });
+
+        days = Array.from(new Set(data.map(bigram => {
+            return bigram["day"]
+        })));
+
+        times = Array.from(new Set(data.map(bigram => {
+            return bigram["hour"]
+        })));
+
+        dataArray = data.map(bigram => {
+            day = days.indexOf(bigram["day"]) + 1;
+          hour = times.indexOf(bigram["hour"]) + 1;
+          return {day: day, hour: hour, value: 4}
+        });
+
+        var width = $("#graphId").width();
+
+        this.heatmapDataHandler(null, dataArray, days, times, "ngrams-tagcloud", width);
+    },
+    heatmapDataHandler: function(error, data, days, times, domId, graphWidth) {
+
+        var margin = { top: 100, right: 0, bottom: 0, left: 100 },
+            width = 960 - margin.left - margin.right,
+            height = 430 - margin.top - margin.bottom,
+            gridSize = Math.floor(width / 24),
+            legendElementWidth = gridSize*2,
+            buckets = 9,
+            colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"];
+        var colorScale = d3.scale.quantile()
+          .domain([0, buckets - 1, d3.max(data, function (d) { return d.value; })])
+          .range(colors);
+
+        var svg = d3.select("#" + domId).append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var dayLabels = svg.selectAll(".dayLabel")
+          .data(days)
+          .enter().append("text")
+            .text(function (d) { return d; })
+            .attr("x", 0)
+            .attr("y", function (d, i) { return i * gridSize; })
+            .style("text-anchor", "end")
+            .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+            .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
+
+        var timeLabels = svg.selectAll(".timeLabel")
+          .data(times)
+          .enter().append("text")
+            .text(function(d) { return d; })
+            .attr("x", function(d, i) { return i * gridSize; })
+            .attr("y", 0)
+            .style("text-anchor", "middle")
+            .attr("transform", "translate(" + gridSize / 2 + ", -6)")
+            .attr("class", function(d, i) { return ((i >= 7 && i <= 16) ? "timeLabel mono axis axis-worktime" : "timeLabel mono axis"); });
+
+        var heatMap = svg.selectAll(".hour")
+          .data(data)
+          .enter().append("rect")
+          .attr("x", function(d) { return (d.hour - 1) * gridSize; })
+          .attr("y", function(d) { return (d.day - 1) * gridSize; })
+          .attr("rx", 4)
+          .attr("ry", 4)
+          .attr("class", "hour bordered")
+          .attr("width", gridSize)
+          .attr("height", gridSize)
+          .style("fill", colors[0]);
+
+        heatMap.transition().duration(3000)
+          .style("fill", function(d) { return colorScale(d.value); });
+
+        heatMap.append("title").text(function(d) { return d.value; });
+
+        var legend = svg.selectAll(".legend")
+          .data([0].concat(colorScale.quantiles()), function(d) { return d; })
+          .enter().append("g")
+          .attr("class", "legend");
 
     },
     showResultsStats: function(total, t0){
