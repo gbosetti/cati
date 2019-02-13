@@ -8,6 +8,20 @@
   font-weight: normal;
   font-style: normal;
 }
+/* collapse navbar*/
+.progress .progress-bar {
+  color: transparent !important;
+  height: 5px;
+  font-size: 0px;
+  border-radius: 0px;
+}
+
+.progress:hover .progress-bar {
+  color: black !important;
+  font-size: 12px;
+  height: auto;
+}
+/**/
 
 .tab-content>.active{
 
