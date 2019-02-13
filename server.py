@@ -178,7 +178,7 @@ def search_for_tweets():
     data = request.form
     tweets = functions.get_tweets(index=data['index'], word=data['word'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'])
-    ngrams = NgramBasedClasifier().most_frequent_n_grams(tweets)
+    ngrams = NgramBasedClasifier().bigrams_with_higher_ocurrence(tweets)
     return jsonify({"tweets": tweets, "clusters": clusters, "ngrams": ngrams })
 
 # Get Tweets
