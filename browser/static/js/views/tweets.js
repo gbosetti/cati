@@ -62,25 +62,33 @@ app.views.tweets = Backbone.View.extend({
       data.push({name: "index", value: app.session.s_index});
       var self = this;
       $.post(app.appURL+'search_for_tweets', data, function(response){
+        self.requestBigrams(data);
         self.display_tweets(response, t0, data[0].value);
-      }, 'json').fail(function() {
-          $('.loading_text').fadeOut('slow');
-            $.confirm({
-                title: 'Error',
-                boxWidth: '600px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
-                buttons: {
-                    cancel: {
-                        text: 'CLOSE',
-                        btnClass: 'btn-cancel',
-                    }
-                }
-            });
-        });
+      }, 'json').fail(self.cnxError);
 
       return false;
+    },
+    requestBigrams: function(data){
+        var self = this;
+        $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
+            self.showBigramsClassification(response.ngrams, response.tweets_by_bigram);
+        }, 'json').fail(this.cnxError);
+    },
+    cnxError: function() {
+        $('.loading_text').fadeOut('slow');
+        $.confirm({
+            title: 'Error',
+            boxWidth: '600px',
+            theme: 'pix-danger-modal',
+            backgroundDismiss: true,
+            content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
+            buttons: {
+                cancel: {
+                    text: 'CLOSE',
+                    btnClass: 'btn-cancel',
+                }
+            }
+        });
     },
     get_tweets_html: function(response, classes, cid){
         var html = "";
@@ -234,10 +242,6 @@ app.views.tweets = Backbone.View.extend({
 
         html += this.get_tweets_html(response, '');
         this.showImageClusters(response.clusters, word);
-
-        console.log("Response: ", response);
-
-        this.showBigramsClassification(response.ngrams, response.tweets_by_bigram);
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0);
     },
@@ -531,35 +535,22 @@ app.views.tweets = Backbone.View.extend({
     	return false;
 	},
     filter_tweets: function(e){
-	    e.preventDefault();
-	    $('#tweets_results').fadeOut('slow');
+        e.preventDefault();
+        $('#tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
         var state = $(e.currentTarget).data("state");
         var t0 = performance.now();
         var data = $('#tweets_form').serializeArray();
-      data.push({name: "index", value: app.session.s_index});
-      data.push({name: "state", value: state});
-      data.push({name: "session", value:  'session_'+app.session.s_name});
-      var self = this;
-      $.post(app.appURL+'tweets_filter', data, function(response){
-        self.display_tweets(response, t0, data[0].value);
-      }, 'json').fail(function() {
-          $('.loading_text').fadeOut('slow');
-            $.confirm({
-                title: 'Error',
-                boxWidth: '600px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
-                buttons: {
-                    cancel: {
-                        text: 'CLOSE',
-                        btnClass: 'btn-cancel',
-                    }
-                }
-            });
-        });
-	    return false;
+        data.push({name: "index", value: app.session.s_index});
+        data.push({name: "state", value: state});
+        data.push({name: "session", value:  'session_'+app.session.s_name});
+        var self = this;
+
+        $.post(app.appURL+'tweets_filter', data, function(response){
+            self.display_tweets(response, t0, data[0].value);
+        }, 'json').fail(self.cnxError);
+
+        return false;
     },
     all_tweets_state: function(e){
         e.preventDefault();
