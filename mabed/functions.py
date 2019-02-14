@@ -120,6 +120,21 @@ class Functions:
             )
             return res['aggregations']['count']['value']
         except RequestError:
+              # this may happen if media.id_str is not bound to a keyword multi field
+              # PUT / twitterfdl2017 / _mapping / tweet
+
+              # {
+              # "properties": {
+              # "extended_entities.media.id_str": {
+              # "type": "text",
+              # "fields": {
+              # "keyword": {
+              # "type": "keyword"
+              # }
+              # }
+              # }
+              # }
+              # }
             return '...'
 
     def get_classification_stats(self, index):
