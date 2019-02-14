@@ -118,6 +118,14 @@ def produce_dataset_stats():
 
     })
 
+# Get Classification stats
+@app.route('/produce_classification_stats', methods=['GET'])
+def produce_classification_stats():
+    data = request.form
+    #get session and index name
+    return jsonify({
+        "classification_stats" : functions.get_classification_stats(index=data['index'])
+    })
 
 # Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])
