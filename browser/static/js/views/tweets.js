@@ -581,8 +581,7 @@ app.views.tweets = Backbone.View.extend({
         if (force.checked){
             $.post(app.appURL+'mark_search_tweets_force', data, function(response){
                 jc.close();
-                console.log(response);
-                    $.confirm({
+                $.confirm({
                     theme: 'pix-default-modal',
                     title: 'Changing tweets state',
                     boxWidth: '600px',
