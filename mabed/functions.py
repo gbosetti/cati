@@ -1037,13 +1037,13 @@ class Functions:
         res = tweets_connector.update_query(query, session, state)
         return res
 
-    def set_tweet_state(self, index, session, tid, val):
+    def set_tweet_state(self, index, session, tid, label):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         session = 'session_' + session
 
         query = {
             "doc": {
-                session: val
+                session: label
             }
         }
         res = tweets_connector.update(tid, query)

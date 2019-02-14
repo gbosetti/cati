@@ -376,6 +376,22 @@ def mark_tweet():
     return jsonify(data)
 
 
+@app.route('/mark_bigram_tweets', methods=['POST', 'GET'])
+# @cross_origin()
+def mark_bigram_tweets():
+    data = request.form
+    index = data['index']
+    session = data['session']
+    print(data['tweet_ids'])
+    tweet_ids = json.loads(data['tweet_ids'])
+    label = data['label']
+
+    for tid in tweet_ids:
+        functions.set_tweet_state(index, session, tid, label)
+
+    return jsonify(data)
+
+
 @app.route('/mark_search_tweets', methods=['POST', 'GET'])
 # @cross_origin()
 def mark_search_tweets():

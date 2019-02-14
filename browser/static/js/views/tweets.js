@@ -150,9 +150,25 @@ app.views.tweets = Backbone.View.extend({
                 self.delegateEvents();
                 // response.tweets.results
                 var response = {"tweets": {"results": relatedTweets}};
-                this.setContent(self.get_tweets_html(response, ''));
+                this.setContent("<div id='bigram_rel_tweets'>" + self.get_tweets_html(response, '') + "</div>");
             },
             buttons: {
+                confirmAll: {
+                    text: 'Confirm all',
+                    btnClass: 'btn btn-outline-success',
+                    action: function(e){
+                        self.markBigramTweets("confirmed", relatedTweets);
+                        return false; // prevent the modal from closing
+                    }
+                },
+                rejectAll: {
+                    text: 'Reject all',
+                    btnClass: 'btn btn-outline-danger',
+                    action: function(){
+                        self.markBigramTweets("negative", relatedTweets);
+                        return false; // prevent the modal from closing
+                    }
+                },
                 cancel: {
                     text: 'CLOSE',
                     btnClass: 'btn-cancel'
@@ -234,23 +250,24 @@ app.views.tweets = Backbone.View.extend({
 
         var data = this.formatDataForHeatmap(ngrams);
         Plotly.newPlot(containedId, [{
-            z: data.matrix,
-            x: data.xLabels,
-            y: data.yLabels,
-            type: 'heatmap'
-        }]);
+                z: data.matrix,
+                x: data.xLabels,
+                y: data.yLabels,
+                type: 'heatmap'
+            }],
+            { title:'Tweets grouped by co-occurring words' }
+        );
 
         document.getElementById(containedId).on('plotly_click', (evData) => {
 
-            console.log("BIGRAM CLICKED", evData.points[0].y, "-", evData.points[0].x);
-            tweetsByBigrams.some(row => {
-                //console.log("Bigram", row.bigram[0], "-", row.bigram[1]);
-                if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
-                    this.showBigramTweets("Tweets associated to the bigram " + evData.points[0].y + "-" + evData.points[0].x, row.tweets);
-                    return true;
-                }
-            });
-
+            try{
+                tweetsByBigrams.some(row => {
+                    if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
+                        this.showBigramTweets("Tweets associated to the bigram «" + evData.points[0].y + "-" + evData.points[0].x + "»", row.tweets);
+                        return true;
+                    }
+                });
+            }catch(err){console.log(err);}
         });
     },
     formatDataForHeatmap: function(ngrams){
@@ -335,6 +352,7 @@ app.views.tweets = Backbone.View.extend({
     tweet_state: function(e){
 		e.preventDefault();
 		var tid = $(e.currentTarget).data("tid");
+		console.log("ID:", tid);
 		var val = $(e.currentTarget).data("val");
 		var el = $(e.currentTarget).closest('.media-body').find('.t_state');
 		$.post(app.appURL+'mark_tweet', {tid: tid, index: app.session.s_index, session: app.session.s_name, val: val}, function(response){
@@ -394,6 +412,79 @@ app.views.tweets = Backbone.View.extend({
                 });
             });
         return false;
+    },
+    markBigramTweets: function(label, relatedTweets){
+
+        var jc = $.confirm({
+            theme: 'pix-default-modal',
+            title: 'Changing tweets state',
+            boxWidth: '600px',
+            useBootstrap: false,
+            backgroundDismiss: false,
+            content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+            defaultButtons: false,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+
+        var tweetIds = relatedTweets.map(tweet => { return tweet._id });
+
+    	var data = [];
+		data.push({name: "index", value: app.session.s_index});
+		data.push({name: "session", value: app.session.s_name});
+		data.push({name: "label", value: label});
+		data.push({name: "tweet_ids", value: JSON.stringify(tweetIds)});
+
+		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
+
+            //Update the labels in the dataset, so if the user closes and open the modal again the values will be up to date.
+		    relatedTweets.forEach(tweet => {
+                tweet._source['session_'+app.session.s_name] = label;
+            });
+
+            try{
+
+                //Update the UI in case the user wants to exclude some tweets from the global tagging
+                document.querySelectorAll("#bigram_rel_tweets .t_state").forEach(node => {
+
+                    var label_status;
+                    if(label == "confirmed"){
+                        label_status = '<span class="badge badge-success">'+label+'</span>';
+                    }else if (label == "negative"){
+                        label_status = '<span class="badge badge-danger">'+label+'</span>';
+                    }else{
+                        label_status = '<span class="badge badge-secondary">'+label+'</span>';
+                    }
+
+                    $(node).html(label_status)
+                });
+            }catch(err){console.log(err)}
+
+            //Close the "wait" message
+			jc.close();
+
+		}).fail(function(e) {
+		    console.log(e);
+            jc.close();
+            $.confirm({
+                title: 'Error',
+                boxWidth: '600px',
+                theme: 'pix-danger-modal',
+                backgroundDismiss: true,
+                content: "An error was encountered while connecting to the server, please try again.",
+                buttons: {
+                    cancel: {
+                        text: 'CANCEL',
+                        btnClass: 'btn-cancel'
+                    }
+                }
+            });
+        });
+    	return false;
     },
 	cluster_state: function(e){
     	e.preventDefault();
