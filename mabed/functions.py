@@ -122,23 +122,24 @@ class Functions:
             return '...'
 
     def get_classification_stats(self, index):
-        my_connector = Es_connector(index=index, doc_type="tweet")
         session = "session_" + index
+        keyword = session+".keyword"
+        my_connector = Es_connector(index=index)
         print("session is :%s", session)
         try:
             res = my_connector.search(
-                {"_source": ["id_str", "text", "imagesCluster", "session_" + index, "lang"],
+                {"_source": ["id_str", "text", "imagesCluster", session, "lang"],
                  "size": 0,
                  "aggs": {
                      "classification_status": {
                          "terms": {
-                             "field": "session_" + index + ".keyword",
+                             "field":  keyword,
                              "size": 10
                          }
                      },
                      "count": {
                          "cardinality": {
-                             "field": "session_" + index + ".keyword"
+                             "field": keyword
                          }
                      }
                  }}
@@ -146,7 +147,7 @@ class Functions:
             return res['aggregations']['classification_status']['buckets']
         except RequestError:
             return {
-                'buckets': [
+                 [
                     {'key': 'proposed', 'doc_count': '0'},
                     {'key': 'positive', 'doc_count': '0'},
                     {'key': 'negative', 'doc_count': '0'}

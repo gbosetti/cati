@@ -119,7 +119,7 @@ def produce_dataset_stats():
     })
 
 # Get Classification stats
-@app.route('/produce_classification_stats', methods=['GET'])
+@app.route('/produce_classification_stats', methods=['GET','POST'])
 def produce_classification_stats():
     data = request.form
     #get session and index name
