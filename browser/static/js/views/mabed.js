@@ -39,6 +39,27 @@ app.views.mabed = Backbone.View.extend({
         this.getDatasetInfo();
         return this;
     },
+    getClassificationStats: function(){
+        if(!app.session){
+            return this.notifyNoSession();
+        }
+        var data = $('#run_mabed').serializeArray();
+        data.push({name: "index", value: app.session.s_index});
+
+        $.post( app.appURL+'produce_dataset_stats', data, function(response, status) {
+            console.log("success");
+            console.log("Data: ", response, "\nStatus: ", status);
+
+
+            for (let stat of response) {
+                if(stat.key==='confirmed'){
+                    document.querySelector('#classification_confirmed').textContent = stat.doc_count;
+                }
+            }
+        }).fail(function(err){
+            console.log(err);
+        });
+    },
     getDatasetInfo: function(){
         if(!app.session){
           return this.notifyNoSession()
