@@ -86,8 +86,6 @@ app.views.tweets = Backbone.View.extend({
         var html = "";
         var template = _.template($("#tpl-item-tweet").html());
 
-
-
         $.each(response.tweets.results, function(i, tweet){
             var imgs = "";
             var t_classes = classes;
@@ -137,7 +135,34 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    cluster_tweets: function(e){
+    showBigramTweets: function(title, relatedTweets){
+
+        var self = this;
+        $.confirm({
+            theme: 'pix-cluster-modal',
+            title: title,
+            columnClass: 'col-md-12',
+            useBootstrap: true,
+            backgroundDismiss: false,
+            content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+            defaultButtons: false,
+            onContentReady: function () {
+                self.delegateEvents();
+                // response.tweets.results
+                var response = {"tweets": {"results": relatedTweets}};
+                this.setContent(self.get_tweets_html(response, ''));
+            },
+            buttons: {
+                cancel: {
+                    text: 'CLOSE',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+
+        return false;
+    },
+    cluster_tweets: function(e){ //Button "Show tweets" inn image clusters
         e.preventDefault();
         var self = this;
         var cid = $(e.currentTarget).data("cid");
@@ -215,19 +240,21 @@ app.views.tweets = Backbone.View.extend({
             type: 'heatmap'
         }]);
 
-        document.getElementById(containedId).on('plotly_click', function(evData){
+        document.getElementById(containedId).on('plotly_click', (evData) => {
 
-            console.log("CLICKED", evData.points[0].y, "-", evData.points[0].x);
-            tweetsByBigrams.forEach(row => {
+            console.log("BIGRAM CLICKED", evData.points[0].y, "-", evData.points[0].x);
+            tweetsByBigrams.some(row => {
                 //console.log("Bigram", row.bigram[0], "-", row.bigram[1]);
                 if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
-                    console.log("match: ", row.tweets);
+                    this.showBigramTweets("Tweets associated to the bigram " + evData.points[0].y + "-" + evData.points[0].x, row.tweets);
+                    return true;
                 }
             });
 
         });
     },
     formatDataForHeatmap: function(ngrams){
+        //TODO: for performance reasons, we should move this to the backend
 
         try{
 
@@ -243,14 +270,9 @@ app.views.tweets = Backbone.View.extend({
 
             for (var i = 0; i < yLabels.length; i++) {
 
-                //console.log("yLabels ", yLabels[i]);
               matrix[i] = new Array(xLabels.length).fill(0);
-              // matrix[i][j] = xLabel;
 
               for (var j = 0; j < xLabels.length; j++) {
-                //console.log("xLabels ", xLabels[j]);
-                 //matrix[i][j] = xLabels[j];
-                 //xLabels[j] is a Day
                  ngrams.forEach(row => {
                         if(row[0][0] == xLabels[j] && row[0][1] == yLabels[i]){
                             matrix[i][j] = row[1];
@@ -258,22 +280,6 @@ app.views.tweets = Backbone.View.extend({
                  });
               }
             }
-
-//            var numMatrix = [];
-//            var i = 0;
-//            for (var rowIdx in matrix) {
-//                numMatrix[i] = [];
-//                var j = 0;
-//                    for (var colIdx in matrix[rowIdx]) {
-//                    numMatrix[i][j] = matrix[rowIdx][colIdx];
-//                    j++;
-//                }
-//                i++;
-//            }
-
-
-             console.log("numMatrix", matrix);
-
             return { "matrix": matrix, "xLabels": xLabels, "yLabels": yLabels };
         }catch(err){console.log(err)}
     },
