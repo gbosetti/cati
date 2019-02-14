@@ -28,8 +28,8 @@ class Functions:
 
     def get_total_tweets(self, index):
 
-        my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
         try:
+            my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
             res = my_connector.search({
                 "query": {
                     "match_all": {}
@@ -49,10 +49,10 @@ class Functions:
                     "exists": {"field": "entities.hashtags"}
                 }
             })
-
             return res['hits']['total']
         except RequestError:
             return '...'
+
 
     def get_total_urls(self, index):
 
@@ -73,22 +73,23 @@ class Functions:
 
         my_connector = Es_connector(index=index, doc_type="tweet")
         try:
-            res = my_connector.search({
-                "size": 0,
-                "aggs": {
-                    "distinct_lang": {
-                        "terms": {
-                            "field": "lang",
-                            "size": 10
-                        }
-                    },
-                    "count": {
-                        "cardinality": {
-                            "field": "lang"
+            res = my_connector.search(
+                {
+                    "size": 0,
+                    "aggs": {
+                        "distinct_lang": {
+                            "terms": {
+                                "field": "lang.keyword",
+                                "size": 10
+                            }
+                        },
+                        "count": {
+                            "cardinality": {
+                                "field": "lang.keyword"
+                            }
                         }
                     }
-                }
-            })
+                })
 
             return res
         except RequestError:
@@ -168,6 +169,9 @@ class Functions:
 
         print('Loading corpus...')
 
+
+
+
         start_time = timeit.default_timer()
         my_corpus = Corpus(sw, maf, mrf, sep, index=index)
         elapsed = timeit.default_timer() - start_time
@@ -188,6 +192,7 @@ class Functions:
         print('Event detection performed in %f seconds.' % elapsed)
         return mabed
 
+
     def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2):
         mabed = self.detect_events(index, k, maf, mrf, tsl, p, theta, sigma, cluster)
 
@@ -207,7 +212,7 @@ class Functions:
             related_terms = []
             for related_term in event[3]:
                 # related_terms.append(related_term[0] + ' (' + str("{0:.2f}".format(related_term[1])) + ')')
-                related_terms.append({'word': related_term[0], 'value': str("{0:.2f}".format(related_term[1]))})
+                related_terms.append({'word':related_term[0], 'value':str("{0:.2f}".format(related_term[1])) })
             event_descriptions.append((mag,
                                        str(mabed.corpus.to_date(time_interval[0])),
                                        str(mabed.corpus.to_date(time_interval[1])),
@@ -219,13 +224,13 @@ class Functions:
                     value = raw_anomaly[i]
                     if value < 0:
                         value = 0
-                formatted_anomaly.append([formatted_dates[i], value])
+                formatted_anomaly.append([ formatted_dates[i],value])
             impact_data.append({"key": main_term, "values": formatted_anomaly})
 
         return {"event_descriptions": event_descriptions, "impact_data": impact_data}
 
-    def detect_filtered_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6,
-                               session=False, filter=False, cluster=2):
+
+    def detect_filtered_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, session=False, filter=False, cluster=2):
         sw = 'stopwords/twitter_all.txt'
         sep = '\t'
         print('Parameters:')
@@ -258,8 +263,7 @@ class Functions:
         print('Event detection performed in %f seconds.' % elapsed)
         return mabed
 
-    def filtered_event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6,
-                                    session=False, filter=False, cluster=2):
+    def filtered_event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, session=False, filter=False, cluster=2):
         mabed = self.detect_filtered_events(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster)
         if not mabed:
             return False
@@ -280,7 +284,7 @@ class Functions:
             related_terms = []
             for related_term in event[3]:
                 # related_terms.append(related_term[0] + ' (' + str("{0:.2f}".format(related_term[1])) + ')')
-                related_terms.append({'word': related_term[0], 'value': str("{0:.2f}".format(related_term[1]))})
+                related_terms.append({'word':related_term[0], 'value':str("{0:.2f}".format(related_term[1])) })
             event_descriptions.append((mag,
                                        str(mabed.corpus.to_date(time_interval[0])),
                                        str(mabed.corpus.to_date(time_interval[1])),
@@ -292,7 +296,7 @@ class Functions:
                     value = raw_anomaly[i]
                     if value < 0:
                         value = 0
-                formatted_anomaly.append([formatted_dates[i], value])
+                formatted_anomaly.append([ formatted_dates[i],value])
             impact_data.append({"key": main_term, "values": formatted_anomaly})
 
         return {"event_descriptions": event_descriptions, "impact_data": impact_data}
@@ -339,6 +343,7 @@ class Functions:
         })
         return res
 
+
     def get_tweets_scroll(self, index, sid, scroll_size):
         my_connector = Es_connector(index=index)
         res = my_connector.loop_paginatedSearch(sid, scroll_size)
@@ -360,13 +365,14 @@ class Functions:
             })
         return res
 
-    def get_tweets_state(self, index="test3", session="", state="proposed"):
+
+    def get_tweets_state(self, index="test3", session="",state="proposed"):
         my_connector = Es_connector(index=index)
         res = my_connector.init_paginatedSearch(
             {
                 "query": {
                     "term": {
-                        "session_" + session: state
+                        "session_"+session: state
                     }
                 }
             })
@@ -418,18 +424,19 @@ class Functions:
             })
         return res
 
+
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -465,18 +472,19 @@ class Functions:
         res = my_connector.init_paginatedSearch(query)
         return res
 
-    def get_event_filter_tweets(self, index="test3", main_term="", related_terms="", state="proposed", session=""):
+
+    def get_event_filter_tweets(self, index="test3", main_term="", related_terms="", state = "proposed", session=""):
         my_connector = Es_connector(index=index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -524,18 +532,19 @@ class Functions:
         res = my_connector.init_paginatedSearch(query)
         return res
 
-    def get_event_tweets2(self, index="test3", main_term="", related_terms="", cid=0):
+
+    def get_event_tweets2(self, index="test3", main_term="", related_terms="", cid =0):
         my_connector = Es_connector(index=index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -584,6 +593,7 @@ class Functions:
         res = my_connector.init_paginatedSearch(query)
         return res
 
+
     def get_cluster_tweets(self, index="test3", cid=0):
         my_connector = Es_connector(index=index)
         query = {
@@ -594,24 +604,25 @@ class Functions:
             #     "extended_entities"
             # ],
             "query": {
-                "term": {"imagesCluster": cid}
+                "term" : { "imagesCluster": cid }
             }
         }
         res = my_connector.search(query)
         return res
+
 
     def get_event_image(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -682,6 +693,7 @@ class Functions:
         #     })
         return res['hits']['hits']
 
+
     # ==================================================================
     # Clusters
     # ==================================================================
@@ -710,13 +722,13 @@ class Functions:
         # print("Clusters")
         # print(res['aggregations']['group_by_cluster']['buckets'])
         clusters = res['aggregations']['group_by_cluster']['buckets']
-        with open(index + '.json') as f:
+        with open(index+'.json') as f:
             data = json.load(f)
         for cluster in clusters:
             # print(cluster['key'])
             images = data['duplicates'][cluster['key']]
             # print(images[0])
-            cluster['image'] = images[0]
+            cluster['image']=images[0]
             cluster['size'] = len(images)
         # print(clusters)
         return clusters
@@ -726,13 +738,13 @@ class Functions:
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -779,6 +791,7 @@ class Functions:
         clusters = res['aggregations']['group_by_cluster']['buckets']
         with open(index + '.json') as f:
             data = json.load(f)
+
 
         for cluster in clusters:
             # q1 = {
@@ -831,7 +844,7 @@ class Functions:
     def get_sessions(self):
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         query = {
-            "query": {
+            "query":  {
                 "match_all": {}
             }
         }
@@ -850,10 +863,10 @@ class Functions:
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         query = {
             "query": {
-                "constant_score": {
-                    "filter": {
-                        "term": {
-                            "s_name": name
+                "constant_score" : {
+                    "filter" : {
+                        "term" : {
+                            "s_name" : name
                         }
                     }
                 }
@@ -862,21 +875,23 @@ class Functions:
         res = my_connector.search(query)
         return res
 
+
     # Add new session
     def add_session(self, name, index):
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         session = self.get_session_by_Name(name)
-        if session['hits']['total'] == 0:
+        if session['hits']['total']==0:
             res = my_connector.post({
                 "s_name": name,
                 "s_index": index,
                 "s_type": "tweet"
             })
             tweets_connector = Es_connector(index=index, doc_type="tweet")
-            tweets_connector.update_all('session_' + name, 'proposed')
+            tweets_connector.update_all('session_'+name, 'proposed')
             return res
         else:
             return False
+
 
     # Update specific field value in an Index
     def update_all(self, index, doc_type, field, value):
@@ -888,8 +903,8 @@ class Functions:
     def update_session_results(self, id, events, impact_data):
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         res = my_connector.update(id, {
-            "doc": {
-                "events": events,
+            "doc" : {
+                "events" : events,
                 "impact_data": impact_data
             }
         })
@@ -901,6 +916,7 @@ class Functions:
         res = my_connector.get(id)
         return res
 
+
     # Delete session by name
     def delete_session(self, id):
         session_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
@@ -910,7 +926,7 @@ class Functions:
             # print(session)
             # 1. Delete session data from the tweets
             tweets_connector = Es_connector(index=session['_source']['s_index'], doc_type=session['_source']['s_type'])
-            session_name = 'session_' + session['_source']['s_name']
+            session_name = 'session_'+session['_source']['s_name']
             print(session_name)
             tweets_connector.remove_field_all(session_name)
             # 2. Delete the session
@@ -932,7 +948,7 @@ class Functions:
     def set_status(self, index, session, data):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
-        session = 'session_' + session
+        session = 'session_'+session
         event = json.loads(data['event'])
         # print("------------------------")
         # print(data)
@@ -994,9 +1010,10 @@ class Functions:
 
         return res
 
+
     def set_search_status(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
+        session = 'session_'+session
         query = {
             "query": {
                 "bool": {
@@ -1027,7 +1044,7 @@ class Functions:
 
     def set_search_status_force(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
+        session = 'session_'+session
         query = {
             "query": {
                 "bool": {
@@ -1048,10 +1065,10 @@ class Functions:
     def set_cluster_state(self, index, session, cid, state):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
-        session = 'session_' + session
+        session = 'session_'+session
         query = {
             "query": {
-                "term": {"imagesCluster": cid}
+                "term" : { "imagesCluster": cid }
             }
         }
         res = tweets_connector.update_query(query, session, state)
@@ -1059,15 +1076,16 @@ class Functions:
 
     def set_tweet_state(self, index, session, tid, val):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
+        session = 'session_'+session
 
         query = {
-            "doc": {
-                session: val
+            "doc" : {
+                session : val
             }
         }
         res = tweets_connector.update(tid, query)
         return res
+
 
     def export_event(self, index, session):
         my_connector = Es_connector(index=index)
@@ -1078,11 +1096,14 @@ class Functions:
                 },
                 "query": {
                     "term": {
-                        "session_" + session: "confirmed"
+                        "session_"+session: "confirmed"
                     }
                 }
             })
         return res
+
+
+
 
     # ==================================================================
     # Beta
@@ -1093,13 +1114,13 @@ class Functions:
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -1135,7 +1156,7 @@ class Functions:
                             "should": [
                                 {
                                     "match": {
-                                        "session_" + session: state
+                                        "session_"+session: state
                                     }
                                 }
                             ]
@@ -1192,6 +1213,7 @@ class Functions:
         res = my_connector.count(query)
         return res['count']
 
+
     def get_start_date(self, index):
         my_connector = Es_connector(index=index)
         res = my_connector.search_size({
@@ -1209,7 +1231,7 @@ class Functions:
                     }
                 }
             ]
-        }, 1)
+        },1)
         return res['hits']['hits'][0]['_source']
 
     def get_end_date(self, index):
@@ -1229,7 +1251,7 @@ class Functions:
                     }
                 }
             ]
-        }, 1)
+        },1)
         return res['hits']['hits'][0]['_source']
 
     def get_range_count(self, index, start, end):
@@ -1248,30 +1270,31 @@ class Functions:
         res = my_connector.count(query)
         return res['count']
 
-    def process_range_tweets(self, index, start, end, words, count):
+    def process_range_tweets(self, index, start, end, words,count):
         sw = 'stopwords/twitter_all.txt'
         my_connector = Es_connector(index=index)
-        res = my_connector.range_tweets(start, end, sw, words, count)
+        res = my_connector.range_tweets(start, end, sw, words,count)
         return res
 
-    def process_w2v_tweets(self, index, words, count):
+    def process_w2v_tweets(self, index, words,count):
         sw = 'stopwords/twitter_all.txt'
         my_connector = Es_connector(index=index)
-        res = my_connector.w2v_tweets(sw, words, count)
+        res = my_connector.w2v_tweets(sw, words,count)
         return res
+
 
     def get_event_central_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -1288,7 +1311,7 @@ class Functions:
                 }
             }
         }
-        res = my_connector.search_size(query, 1)
+        res = my_connector.search_size(query,1)
         return res
 
     def get_event_tweets_bigsearch(self, index="test3", main_term="", related_terms=""):
@@ -1296,13 +1319,13 @@ class Functions:
         terms = []
         words = main_term + ' '
         for t in related_terms:
-            terms.append({"match": {
+            terms.append({ "match": {
                 "text": {
                     "query": t['word'],
                     "boost": t['value']
                 }
             }})
-            words += t['word'] + " "
+            words += t['word']+ " "
         terms.append({"match": {
             "text": {
                 "query": main_term,
@@ -1322,6 +1345,7 @@ class Functions:
 
         res = my_connector.bigTweetTextSearch(query)
         return res
+
 
     def getMean(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
@@ -1354,6 +1378,8 @@ class Functions:
                 }
             }
         }
+
+
 
         query = {
             "size": 0,
@@ -1408,6 +1434,7 @@ class Functions:
 
         res = my_connector.bigSearchSSE(query, mean)
         return res
+
 
     def d2v(self, tweet, data):
         # data = ["I love machine learning. Its awesome.",

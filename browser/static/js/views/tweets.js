@@ -61,7 +61,7 @@ app.views.tweets = Backbone.View.extend({
       var data = $('#tweets_form').serializeArray();
       data.push({name: "index", value: app.session.s_index});
       var self = this;
-      $.post(app.appURL+'tweets', data, function(response){
+      $.post(app.appURL+'search_for_tweets', data, function(response){
         self.display_tweets(response, t0, data[0].value);
       }, 'json').fail(function() {
           $('.loading_text').fadeOut('slow');
@@ -190,11 +190,114 @@ app.views.tweets = Backbone.View.extend({
             '                    <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_filter" data-state="negative" href="#" role="button"><strong>Negative</strong></a>\n' +
             '                    <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_filter" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>\n' +
             '              </div>';
+
         html += this.get_tweets_html(response, '');
-        var chtml = "";
-        var cbtn = "", state_btns="";
-        if(response.clusters){
-            $.each(response.clusters, function(i, cluster){
+        this.showImageClusters(response.clusters, word);
+
+        console.log("Response: ", response);
+
+        this.showBigramsClassification(response.ngrams, response.tweets_by_bigram);
+        this.showIndividualTweets(html, t0);
+        this.showResultsStats(response.tweets.total, t0);
+    },
+    showBigramsClassification: function(ngrams, tweetsByBigrams){
+
+        var containedId = "ngrams-search-classif",
+            graphId = "ngrams-tagcloud",
+            graphHeight = 500;
+        $("#" + containedId).html("");
+
+        var data = this.formatDataForHeatmap(ngrams);
+        Plotly.newPlot(containedId, [{
+            z: data.matrix,
+            x: data.xLabels,
+            y: data.yLabels,
+            type: 'heatmap'
+        }]);
+
+        document.getElementById(containedId).on('plotly_click', function(evData){
+
+            console.log("CLICKED", evData.points[0].y, "-", evData.points[0].x);
+            tweetsByBigrams.forEach(row => {
+                //console.log("Bigram", row.bigram[0], "-", row.bigram[1]);
+                if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
+                    console.log("match: ", row.tweets);
+                }
+            });
+
+        });
+    },
+    formatDataForHeatmap: function(ngrams){
+
+        try{
+
+            xLabels = Array.from(new Set(ngrams.map(ngram => {  // "Wednesday", "Tuesday", "Thursday", "Monday", "Friday"
+              return ngram[0][0]
+            }))).sort().reverse();
+
+            yLabels = Array.from(new Set(ngrams.map(ngram => {  // AF MN
+              return ngram[0][1]
+            }))).sort();
+
+            var matrix = []; //This will behave as an object rather than a matrix. We need to create it anyway in order to fill the blank spaces.
+
+            for (var i = 0; i < yLabels.length; i++) {
+
+                //console.log("yLabels ", yLabels[i]);
+              matrix[i] = new Array(xLabels.length).fill(0);
+              // matrix[i][j] = xLabel;
+
+              for (var j = 0; j < xLabels.length; j++) {
+                //console.log("xLabels ", xLabels[j]);
+                 //matrix[i][j] = xLabels[j];
+                 //xLabels[j] is a Day
+                 ngrams.forEach(row => {
+                        if(row[0][0] == xLabels[j] && row[0][1] == yLabels[i]){
+                            matrix[i][j] = row[1];
+                    }
+                 });
+              }
+            }
+
+//            var numMatrix = [];
+//            var i = 0;
+//            for (var rowIdx in matrix) {
+//                numMatrix[i] = [];
+//                var j = 0;
+//                    for (var colIdx in matrix[rowIdx]) {
+//                    numMatrix[i][j] = matrix[rowIdx][colIdx];
+//                    j++;
+//                }
+//                i++;
+//            }
+
+
+             console.log("numMatrix", matrix);
+
+            return { "matrix": matrix, "xLabels": xLabels, "yLabels": yLabels };
+        }catch(err){console.log(err)}
+    },
+    showResultsStats: function(total, t0){
+
+        if(t0){
+            var t1 = performance.now();
+            var time = (t1 - t0) / 1000;
+            var roundedString = time.toFixed(2);
+            $('#res_num').html(total);
+            $('#res_time').html(roundedString);
+        }
+    },
+    showIndividualTweets: function(html){
+
+        $('#tweets_result').html(html);
+        $('.loading_text').fadeOut('slow');
+        $('#tweets_results').fadeIn('slow');
+    },
+    showImageClusters: function(clusters, word){
+        var cbtn = "", chtml = "", state_btns="";
+
+        if(clusters){
+            $.each(clusters, function(i, cluster){
                 if(i>=20){return false;}
                 var cbg = "";
                 if(parseInt(cluster.size)>parseInt(cluster.doc_count)){
@@ -222,17 +325,6 @@ app.views.tweets = Backbone.View.extend({
         }
 
         $('.state_btns').show();
-        $('#tweets_result').html(html);
-        $('.loading_text').fadeOut('slow');
-        $('#tweets_results').fadeIn('slow');
-        if(t0){
-            var t1 = performance.now();
-            var time = (t1 - t0) / 1000;
-            var roundedString = time.toFixed(2);
-            $('#res_num').html(response.tweets.total);
-            $('#res_time').html(roundedString);
-        }
-
     },
     tweet_state: function(e){
 		e.preventDefault();

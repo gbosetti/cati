@@ -3,11 +3,11 @@ app.views.mabed = Backbone.View.extend({
     events: {
         'submit #run_mabed': 'run_mabed',
     },
-    initialize: function () {
+    initialize: function() {
         var handler = _.bind(this.render, this);
         this.initSpinner();
     },
-    initSpinner: function () {
+    initSpinner: function(){
         /*var opts = {
           lines: 9, // The number of lines to draw
           length: 38, // The length of each line
@@ -88,8 +88,8 @@ app.views.mabed = Backbone.View.extend({
         var data = $('#run_mabed').serializeArray();
         data.push({name: "index", value: app.session.s_index});
 
-        $.post(app.appURL + 'produce_dataset_stats', data, function (response, status) {
-            console.log("success");
+        $.post( app.appURL+'produce_dataset_stats', data, function(response, status) {
+            console.log( "success" );
             console.log("Data: ", response, "\nStatus: ", status);
 
             //On request retrieval, load the new values and stop the spinner
@@ -99,20 +99,17 @@ app.views.mabed = Backbone.View.extend({
             document.querySelector('#lang_total').textContent = response.total_lang;
             document.querySelector('#total_images').textContent = response.total_images;
             //map key and doc_count to language
-            console.log('is it ok ?');
-            console.log(response.lang_stats);
-            console.log('yes');
-            for (let i = 0; i < 10; i++) {
-                document.querySelector('#lang_' + i).textContent = response.lang_stats[i].key;
-                document.querySelector('#lang_count_' + i).textContent = response.lang_stats[i].doc_count;
+            for (let i=0; i<10;i++){
+                document.querySelector('#lang_'+i).textContent = response.lang_stats[i].key;
+                document.querySelector('#lang_count_'+i).textContent = response.lang_stats[i].doc_count;
             }
 
 
-        }).fail(function (err) {
+        }).fail(function(err) {
             console.log(err)
         });
     },
-    notifyNoSession: function () {
+    notifyNoSession: function(){
 
         $.confirm({
             title: 'Error',
@@ -129,19 +126,19 @@ app.views.mabed = Backbone.View.extend({
         });
         return false;
     },
-    run_mabed: function (e) {
+    run_mabed: function(e){
         e.preventDefault();
-        if (!app.session) {
-            return this.notifyNoSession()
+        if(!app.session){
+          return this.notifyNoSession()
         }
-        console.log("Running MABED from mabed.js...");
-        $('#mabed_loading').fadeIn('slow');
-        var self = this;
-        var data = $('#run_mabed').serializeArray();
-        data.push({name: "index", value: app.session.s_index});
-        data.push({name: "session", value: app.session.s_name});
-        console.log(data);
-        var jc = $.confirm({
+      console.log("Running MABED from mabed.js...");
+      $('#mabed_loading').fadeIn('slow');
+      var self = this;
+      var data = $('#run_mabed').serializeArray();
+      data.push({name: "index", value: app.session.s_index});
+      data.push({name: "session", value: app.session.s_name});
+      console.log(data);
+      var jc = $.confirm({
             theme: 'pix-default-modal',
             title: 'Detecting Events',
             boxWidth: '600px',
@@ -156,50 +153,46 @@ app.views.mabed = Backbone.View.extend({
                 }
             }
         });
-        console.log(app.appURL + 'detect_events', data);
-        $.post(app.appURL + 'detect_events', data, function (response) {
-            $('#mabed_loading').fadeOut();
-            jc.close();
-            if (response.result) {
-                self.model.reset();
-                $.each(response.events.event_descriptions, function (i, value) {
-                    self.model.add_event(value[0], value[1], value[2], value[3], value[4]);
-                });
-                var jsonCollection = JSON.stringify(self.model.toJSON());
-                var impact_dataCollection = JSON.stringify(response.events.impact_data);
-                // console.log(jsonCollection);
-                localStorage.removeItem('events');
-                localStorage.removeItem('impact_data');
-                localStorage.setItem('events', jsonCollection);
-                localStorage.setItem('impact_data', impact_dataCollection);
-                $.post(app.appURL + 'update_session_results', {
-                    index: app.session_id,
-                    events: jsonCollection,
-                    impact_data: impact_dataCollection
-                }, function (res) {
-                    console.log(res);
-                    $.confirm({
-                        theme: 'pix-default-modal',
-                        title: 'Success',
-                        boxWidth: '600px',
-                        type: 'green',
-                        useBootstrap: false,
-                        backgroundDismiss: false,
-                        content: 'Event detecting was finished successfully!',
-                        defaultButtons: false,
-                        buttons: {
-                            cancel: {
-                                text: 'OK',
-                                btnClass: 'btn-cancel'
-                            }
+      console.log(app.appURL+'detect_events', data);
+      $.post(app.appURL+'detect_events', data, function(response){
+          $('#mabed_loading').fadeOut();
+          jc.close();
+          if(response.result){
+              self.model.reset();
+              $.each(response.events.event_descriptions, function( i, value ) {
+                self.model.add_event(value[0], value[1], value[2], value[3], value[4]);
+              });
+              var jsonCollection = JSON.stringify(self.model.toJSON());
+              var impact_dataCollection = JSON.stringify(response.events.impact_data);
+              // console.log(jsonCollection);
+              localStorage.removeItem('events');
+              localStorage.removeItem('impact_data');
+              localStorage.setItem('events', jsonCollection);
+              localStorage.setItem('impact_data', impact_dataCollection);
+              $.post(app.appURL+'update_session_results', {index: app.session_id, events: jsonCollection, impact_data:impact_dataCollection}, function(res){
+                  console.log(res);
+                   $.confirm({
+                    theme: 'pix-default-modal',
+                    title: 'Success',
+                    boxWidth: '600px',
+                    type: 'green',
+                    useBootstrap: false,
+                    backgroundDismiss: false,
+                    content: 'Event detecting was finished successfully!',
+                    defaultButtons: false,
+                    buttons: {
+                        cancel: {
+                            text: 'OK',
+                            btnClass: 'btn-cancel'
                         }
-                    });
+                    }
                 });
-            } else {
-                console.log("No result");
-            }
+              });
+          }else{
+              console.log("No result");
+          }
 
-        }, 'json').fail(function () {
+      }, 'json').fail(function() {
             $('#mabed_loading').fadeOut();
             jc.close();
             $.confirm({
@@ -217,6 +210,6 @@ app.views.mabed = Backbone.View.extend({
             });
         });
 
-        return false;
+      return false;
     }
 });

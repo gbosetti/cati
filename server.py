@@ -16,6 +16,7 @@ from flask import Response
 from flask_htpasswd import HtPasswdAuth
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
+from classification.ngram_based_classifier import NgramBasedClasifier
 
 
 # mabed
@@ -179,13 +180,14 @@ def images():
 # ==================================================================
 
 # Get Tweets
-@app.route('/tweets', methods=['POST'])
+@app.route('/search_for_tweets', methods=['POST'])
 # @cross_origin()
-def tweets():
+def search_for_tweets():
     data = request.form
-    tweets= functions.get_tweets(index=data['index'], word=data['word'])
-    clusters= functions.get_clusters(index=data['index'], word=data['word'])
-    return jsonify({"tweets": tweets, "clusters": clusters})
+    tweets = functions.get_tweets(index=data['index'], word=data['word'])
+    clusters = functions.get_clusters(index=data['index'], word=data['word'])
+    ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(tweets)
+    return jsonify({"tweets": tweets, "clusters": clusters, "ngrams": ngrams , "tweets_by_bigram": tweets_by_bigram })
 
 # Get Tweets
 @app.route('/tweets_filter', methods=['POST'])
@@ -235,6 +237,23 @@ def most_frequent_n_grams():
     remove_stopwords = data['remove_stopwords'].lower() in ("yes", "true", "t", "1")
 
     n_grams = classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
+    return jsonify(n_grams)
+
+@app.route('/n_grams_classification', methods=['POST'])
+def n_grams_classification():
+
+    data = request.form
+    if data['top_ngrams_to_retrieve'] == '0':
+        top_ngrams_to_retrieve = None
+    else:
+        top_ngrams_to_retrieve = int(data['top_ngrams_to_retrieve'])
+
+    stemming = data['stemming'].lower() in ("yes", "true", "t", "1")
+    remove_stopwords = data['remove_stopwords'].lower() in ("yes", "true", "t", "1")
+
+    searchClassifier = NgramBasedClasifier()
+
+    n_grams = searchClassifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
     return jsonify(n_grams)
 
 
