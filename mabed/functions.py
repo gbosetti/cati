@@ -9,6 +9,9 @@ from mabed.es_corpus import Corpus
 from mabed.mabed import MABED
 from mabed.es_connector import Es_connector
 
+# es connector exceptions
+from elasticsearch import RequestError
+
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 
@@ -26,106 +29,128 @@ class Functions:
     def get_total_tweets(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
-        res = my_connector.search({
-            "query": {
-                "match_all": {}
-            }
-        })
+        try:
+            res = my_connector.search({
+                "query": {
+                    "match_all": {}
+                }
+            })
 
-        return res['hits']['total']
+            return res['hits']['total']
+        except RequestError:
+            return '...'
 
     def get_total_hashtags(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
-        res = my_connector.search({
-            "query": {
-                "exists": {"field": "entities.hashtags"}
-            }
-        })
+        try:
+            res = my_connector.search({
+                "query": {
+                    "exists": {"field": "entities.hashtags"}
+                }
+            })
 
-        return res['hits']['total']
+            return res['hits']['total']
+        except RequestError:
+            return '...'
 
     def get_total_urls(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
-        res = my_connector.search({
-            "query": {
-                "exists": {"field": "entities.urls"}
-            }
-        })
+        try:
+            res = my_connector.search({
+                "query": {
+                    "exists": {"field": "entities.urls"}
+                }
+            })
 
-        return res['hits']['total']
+            return res['hits']['total']
+        except RequestError:
+            return '...'
 
     # get the 10 most used languages
     def get_lang_count(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")
-        res = my_connector.search({
-            "size": 0,
-            "aggs": {
-                "distinct_lang": {
-                    "terms": {
-                        "field": "lang",
-                        "size": 10
-                    }
-                },
-                "count": {
-                    "cardinality": {
-                        "field": "lang"
-                    }
-                }
-            }
-        })
-
-        return res
-
-    def get_total_images(self, index):
-        my_connector = Es_connector(index=index, doc_type="tweet")
-        res = my_connector.search(
-            {
+        try:
+            res = my_connector.search({
                 "size": 0,
                 "aggs": {
                     "distinct_lang": {
                         "terms": {
-                            "field": "extended_entities.media.id_str",
-                            "size": 1
+                            "field": "lang",
+                            "size": 10
                         }
                     },
                     "count": {
                         "cardinality": {
-                            "field": "extended_entities.media.id_str"
+                            "field": "lang"
                         }
                     }
                 }
-            }
-        )
-        return res['aggregations']['count']['value']
+            })
+
+            return res
+        except RequestError:
+            return {'aggregations': {'count': {'value': '...'},
+                                     'distinct_lang': {
+                                         'buckets': [{'key': '...', 'doc_count': '...'} for i in range(10)]}}}
+
+    def get_total_images(self, index):
+        my_connector = Es_connector(index=index, doc_type="tweet")
+        try:
+            res = my_connector.search(
+                {
+                    "size": 0,
+                    "aggs": {
+                        "distinct_img": {
+                            "terms": {
+                                "field": "extended_entities.media.id_str",
+                                "size": 1
+                            }
+                        },
+                        "count": {
+                            "cardinality": {
+                                "field": "extended_entities.media.id_str"
+                            }
+                        }
+                    }
+                }
+            )
+            return res['aggregations']['count']['value']
+        except RequestError:
+            return '...'
 
     def get_classification_stats(self, index):
         my_connector = Es_connector(index=index, doc_type="tweet")
-        session = "session_"+index
-        print("session is :%s",session)
+        session = "session_" + index
+        print("session is :%s", session)
         try:
             res = my_connector.search(
-                {"_source": ["id_str", "text", "imagesCluster", "session_"+index, "lang"],
+                {"_source": ["id_str", "text", "imagesCluster", "session_" + index, "lang"],
                  "size": 0,
                  "aggs": {
                      "classification_status": {
                          "terms": {
-                             "field": "session_"+index+".keyword",
+                             "field": "session_" + index + ".keyword",
                              "size": 10
                          }
                      },
                      "count": {
                          "cardinality": {
-                             "field": "session_"+index+".keyword"
+                             "field": "session_" + index + ".keyword"
                          }
                      }
                  }}
             )
             return res['aggregations']['classification_status']['buckets']
-        except:
-            return {}
+        except RequestError:
+            return {
+                'buckets': [
+                    {'key': 'proposed', 'doc_count': '0'},
+                    {'key': 'positive', 'doc_count': '0'},
+                    {'key': 'negative', 'doc_count': '0'}
+                ]}
 
     # ==================================================================
     # Event Detection
