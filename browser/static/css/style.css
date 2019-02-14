@@ -10,16 +10,24 @@
 }
 /* collapse navbar*/
 .progress .progress-bar {
-  color: transparent !important;
   height: 5px;
   font-size: 0px;
   border-radius: 0px;
+  text-shadow: 1px 1px 1px #000;
+}
+
+.progress {
+  height: 25px !important;
+}
+
+.progress:hover {
+  height: 40px !important;
 }
 
 .progress:hover .progress-bar {
-  color: black !important;
   font-size: 12px;
   height: auto;
+  transition: .5s linear;
 }
 /**/
 
