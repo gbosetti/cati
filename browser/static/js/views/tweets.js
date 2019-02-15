@@ -35,6 +35,8 @@ app.views.tweets = Backbone.View.extend({
                     '<li> ~N after a phrase signifies slop amount</li></ul>'
         });
 
+        $("[name=word]").focus();
+
         return this;
     },
     tweets_submit: function(e){
@@ -255,6 +257,7 @@ app.views.tweets = Backbone.View.extend({
         $("#" + containedId).html("");
 
         var formattedBigrams = this.formatDataForBubbleChart(bigrams);
+
         var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
             chart.onBubbleClick = (event) => {
                 for (var bigram in bigrams) {
@@ -271,7 +274,7 @@ app.views.tweets = Backbone.View.extend({
 
         var children = [];
         for (var bigram in rawData) {
-            children.push({name: bigram, size: rawData[bigram].length });
+            children.push({name: bigram, size: (new Set(rawData[bigram])).size });
         }
 		return {
 			"name": "tweets", //You can put whatever here
