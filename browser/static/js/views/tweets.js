@@ -248,31 +248,36 @@ app.views.tweets = Backbone.View.extend({
     showBigramsClassification: function(ngrams, tweetsByBigrams){
 
         var containedId = "ngrams-search-classif",
-            graphId = "ngrams-tagcloud",
             graphHeight = 500;
+            graphWidth = $("#" + containedId).width();
         $("#" + containedId).html("");
 
-        var data = this.formatDataForHeatmap(ngrams);
-        Plotly.newPlot(containedId, [{
-                z: data.matrix,
-                x: data.xLabels,
-                y: data.yLabels,
-                type: 'heatmap'
-            }],
-            { title:'Tweets grouped by co-occurring words' }
-        );
+        var formattedBigrams = this.formatDataForBubbleChart(ngrams);
+        var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#ffe5cb", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
+            chart.onBubbleClick = (event) => {
+                try{
+                    console.log("ds", tweetsByBigrams);
+                    tweetsByBigrams.some(row => {
+                        console.log(row);
+                        console.log(row.bigram[0] + " - " + row.bigram[1]);
+                        if (row.bigram[0] + " - " + row.bigram[1] == event.className){
+                            this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", row.tweets);
+                            return true;
+                        }
+                    });
+                }catch(err){console.log(err);}
+            };
+            chart.draw(formattedBigrams);
+    },
+    formatDataForBubbleChart: function(rawData){
+        var children = rawData.map(row => {
+			return {name: row[0][0] + " - " + row[0][1], size: row[1]}
+		});
 
-        document.getElementById(containedId).on('plotly_click', (evData) => {
-
-            try{
-                tweetsByBigrams.some(row => {
-                    if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
-                        this.showBigramTweets("Tweets associated to the bigram «" + evData.points[0].y + "-" + evData.points[0].x + "»", row.tweets);
-                        return true;
-                    }
-                });
-            }catch(err){console.log(err);}
-        });
+		return {
+			"name": "tweets", //You can put whatever here
+			"children": children
+		};
     },
     formatDataForHeatmap: function(ngrams){
         //TODO: for performance reasons, we should move this to the backend
