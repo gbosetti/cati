@@ -21,6 +21,7 @@ app.views.tweets = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+        app.views.mabed.prototype.getClassificationStats();
         $('.popover-dismiss').popover({
           trigger: 'focus',
           html: true,
@@ -369,6 +370,7 @@ app.views.tweets = Backbone.View.extend({
 					state = '<span class="badge badge-secondary">'+state+'</span>';
 				}
 				el.html(state);
+            app.views.mabed.prototype.getClassificationStats();
 		}, 'json').fail(function() {
                         $.confirm({
                             title: 'Error',
@@ -516,6 +518,7 @@ app.views.tweets = Backbone.View.extend({
 			});
 		$.post(app.appURL+'mark_cluster', data, function(response){
 			jc.close();
+            app.views.mabed.prototype.getClassificationStats();
 		}).fail(function() {
             jc.close();
             $.confirm({
