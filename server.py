@@ -180,14 +180,26 @@ def images():
 # ==================================================================
 
 # Get Tweets
+app.last_searched_tweets = []
+
 @app.route('/search_for_tweets', methods=['POST'])
 # @cross_origin()
 def search_for_tweets():
     data = request.form
-    tweets = functions.get_tweets(index=data['index'], word=data['word'])
+    app.last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'])
-    ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(tweets)
-    return jsonify({"tweets": tweets, "clusters": clusters, "ngrams": ngrams , "tweets_by_bigram": tweets_by_bigram })
+    # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
+    return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
+
+# Get Tweets
+@app.route('/bigrams_with_higher_ocurrence', methods=['POST'])
+# @cross_origin()
+def bigrams_with_higher_ocurrence():
+    # data = request.form
+    # tweets = data['tweets'] > app.last_searched_tweets
+    ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
+    return jsonify({"ngrams": ngrams , "tweets_by_bigram": tweets_by_bigram })
+
 
 # Get Tweets
 @app.route('/tweets_filter', methods=['POST'])
@@ -381,6 +393,22 @@ def mark_tweet():
     tid = data['tid']
     val = data['val']
     functions.set_tweet_state(index, session, tid, val)
+    return jsonify(data)
+
+
+@app.route('/mark_bigram_tweets', methods=['POST', 'GET'])
+# @cross_origin()
+def mark_bigram_tweets():
+    data = request.form
+    index = data['index']
+    session = data['session']
+    print(data['tweet_ids'])
+    tweet_ids = json.loads(data['tweet_ids'])
+    label = data['label']
+
+    for tid in tweet_ids:
+        functions.set_tweet_state(index, session, tid, label)
+
     return jsonify(data)
 
 

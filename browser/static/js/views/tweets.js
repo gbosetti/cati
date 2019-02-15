@@ -62,31 +62,37 @@ app.views.tweets = Backbone.View.extend({
       data.push({name: "index", value: app.session.s_index});
       var self = this;
       $.post(app.appURL+'search_for_tweets', data, function(response){
+        self.requestBigrams(data);
         self.display_tweets(response, t0, data[0].value);
-      }, 'json').fail(function() {
-          $('.loading_text').fadeOut('slow');
-            $.confirm({
-                title: 'Error',
-                boxWidth: '600px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
-                buttons: {
-                    cancel: {
-                        text: 'CLOSE',
-                        btnClass: 'btn-cancel',
-                    }
-                }
-            });
-        });
+      }, 'json').fail(self.cnxError);
 
       return false;
+    },
+    requestBigrams: function(data){
+        var self = this;
+        $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
+            self.showBigramsClassification(response.ngrams, response.tweets_by_bigram);
+        }, 'json').fail(this.cnxError);
+    },
+    cnxError: function() {
+        $('.loading_text').fadeOut('slow');
+        $.confirm({
+            title: 'Error',
+            boxWidth: '600px',
+            theme: 'pix-danger-modal',
+            backgroundDismiss: true,
+            content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
+            buttons: {
+                cancel: {
+                    text: 'CLOSE',
+                    btnClass: 'btn-cancel',
+                }
+            }
+        });
     },
     get_tweets_html: function(response, classes, cid){
         var html = "";
         var template = _.template($("#tpl-item-tweet").html());
-
-
 
         $.each(response.tweets.results, function(i, tweet){
             var imgs = "";
@@ -137,7 +143,50 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    cluster_tweets: function(e){
+    showBigramTweets: function(title, relatedTweets){
+
+        var self = this;
+        $.confirm({
+            theme: 'pix-cluster-modal',
+            title: title,
+            columnClass: 'col-md-12',
+            useBootstrap: true,
+            backgroundDismiss: false,
+            content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+            defaultButtons: false,
+            onContentReady: function () {
+                self.delegateEvents();
+                // response.tweets.results
+                var response = {"tweets": {"results": relatedTweets}};
+                this.setContent("<div id='bigram_rel_tweets'>" + self.get_tweets_html(response, '') + "</div>");
+            },
+            buttons: {
+                confirmAll: {
+                    text: 'Confirm all',
+                    btnClass: 'btn btn-outline-success',
+                    action: function(e){
+                        self.markBigramTweets("confirmed", relatedTweets);
+                        return false; // prevent the modal from closing
+                    }
+                },
+                rejectAll: {
+                    text: 'Reject all',
+                    btnClass: 'btn btn-outline-danger',
+                    action: function(){
+                        self.markBigramTweets("negative", relatedTweets);
+                        return false; // prevent the modal from closing
+                    }
+                },
+                cancel: {
+                    text: 'CLOSE',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+
+        return false;
+    },
+    cluster_tweets: function(e){ //Button "Show tweets" inn image clusters
         e.preventDefault();
         var self = this;
         var cid = $(e.currentTarget).data("cid");
@@ -193,10 +242,6 @@ app.views.tweets = Backbone.View.extend({
 
         html += this.get_tweets_html(response, '');
         this.showImageClusters(response.clusters, word);
-
-        console.log("Response: ", response);
-
-        this.showBigramsClassification(response.ngrams, response.tweets_by_bigram);
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0);
     },
@@ -209,25 +254,28 @@ app.views.tweets = Backbone.View.extend({
 
         var data = this.formatDataForHeatmap(ngrams);
         Plotly.newPlot(containedId, [{
-            z: data.matrix,
-            x: data.xLabels,
-            y: data.yLabels,
-            type: 'heatmap'
-        }]);
+                z: data.matrix,
+                x: data.xLabels,
+                y: data.yLabels,
+                type: 'heatmap'
+            }],
+            { title:'Tweets grouped by co-occurring words' }
+        );
 
-        document.getElementById(containedId).on('plotly_click', function(evData){
+        document.getElementById(containedId).on('plotly_click', (evData) => {
 
-            console.log("CLICKED", evData.points[0].y, "-", evData.points[0].x);
-            tweetsByBigrams.forEach(row => {
-                //console.log("Bigram", row.bigram[0], "-", row.bigram[1]);
-                if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
-                    console.log("match: ", row.tweets);
-                }
-            });
-
+            try{
+                tweetsByBigrams.some(row => {
+                    if ((row.bigram[0] == evData.points[0].x || row.bigram[0] == evData.points[0].y) && (row.bigram[1] == evData.points[0].x || row.bigram[1] == evData.points[0].y )){
+                        this.showBigramTweets("Tweets associated to the bigram «" + evData.points[0].y + "-" + evData.points[0].x + "»", row.tweets);
+                        return true;
+                    }
+                });
+            }catch(err){console.log(err);}
         });
     },
     formatDataForHeatmap: function(ngrams){
+        //TODO: for performance reasons, we should move this to the backend
 
         try{
 
@@ -243,14 +291,9 @@ app.views.tweets = Backbone.View.extend({
 
             for (var i = 0; i < yLabels.length; i++) {
 
-                //console.log("yLabels ", yLabels[i]);
               matrix[i] = new Array(xLabels.length).fill(0);
-              // matrix[i][j] = xLabel;
 
               for (var j = 0; j < xLabels.length; j++) {
-                //console.log("xLabels ", xLabels[j]);
-                 //matrix[i][j] = xLabels[j];
-                 //xLabels[j] is a Day
                  ngrams.forEach(row => {
                         if(row[0][0] == xLabels[j] && row[0][1] == yLabels[i]){
                             matrix[i][j] = row[1];
@@ -258,22 +301,6 @@ app.views.tweets = Backbone.View.extend({
                  });
               }
             }
-
-//            var numMatrix = [];
-//            var i = 0;
-//            for (var rowIdx in matrix) {
-//                numMatrix[i] = [];
-//                var j = 0;
-//                    for (var colIdx in matrix[rowIdx]) {
-//                    numMatrix[i][j] = matrix[rowIdx][colIdx];
-//                    j++;
-//                }
-//                i++;
-//            }
-
-
-             console.log("numMatrix", matrix);
-
             return { "matrix": matrix, "xLabels": xLabels, "yLabels": yLabels };
         }catch(err){console.log(err)}
     },
@@ -329,6 +356,7 @@ app.views.tweets = Backbone.View.extend({
     tweet_state: function(e){
 		e.preventDefault();
 		var tid = $(e.currentTarget).data("tid");
+		console.log("ID:", tid);
 		var val = $(e.currentTarget).data("val");
 		var el = $(e.currentTarget).closest('.media-body').find('.t_state');
 		$.post(app.appURL+'mark_tweet', {tid: tid, index: app.session.s_index, session: app.session.s_name, val: val}, function(response){
@@ -389,6 +417,79 @@ app.views.tweets = Backbone.View.extend({
             });
         return false;
     },
+    markBigramTweets: function(label, relatedTweets){
+
+        var jc = $.confirm({
+            theme: 'pix-default-modal',
+            title: 'Changing tweets state',
+            boxWidth: '600px',
+            useBootstrap: false,
+            backgroundDismiss: false,
+            content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+            defaultButtons: false,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+
+        var tweetIds = relatedTweets.map(tweet => { return tweet._id });
+
+    	var data = [];
+		data.push({name: "index", value: app.session.s_index});
+		data.push({name: "session", value: app.session.s_name});
+		data.push({name: "label", value: label});
+		data.push({name: "tweet_ids", value: JSON.stringify(tweetIds)});
+
+		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
+
+            //Update the labels in the dataset, so if the user closes and open the modal again the values will be up to date.
+		    relatedTweets.forEach(tweet => {
+                tweet._source['session_'+app.session.s_name] = label;
+            });
+
+            try{
+
+                //Update the UI in case the user wants to exclude some tweets from the global tagging
+                document.querySelectorAll("#bigram_rel_tweets .t_state").forEach(node => {
+
+                    var label_status;
+                    if(label == "confirmed"){
+                        label_status = '<span class="badge badge-success">'+label+'</span>';
+                    }else if (label == "negative"){
+                        label_status = '<span class="badge badge-danger">'+label+'</span>';
+                    }else{
+                        label_status = '<span class="badge badge-secondary">'+label+'</span>';
+                    }
+
+                    $(node).html(label_status)
+                });
+            }catch(err){console.log(err)}
+
+            //Close the "wait" message
+			jc.close();
+
+		}).fail(function(e) {
+		    console.log(e);
+            jc.close();
+            $.confirm({
+                title: 'Error',
+                boxWidth: '600px',
+                theme: 'pix-danger-modal',
+                backgroundDismiss: true,
+                content: "An error was encountered while connecting to the server, please try again.",
+                buttons: {
+                    cancel: {
+                        text: 'CANCEL',
+                        btnClass: 'btn-cancel'
+                    }
+                }
+            });
+        });
+    	return false;
+    },
 	cluster_state: function(e){
     	e.preventDefault();
     	var state = $(e.currentTarget).data("state");
@@ -434,35 +535,22 @@ app.views.tweets = Backbone.View.extend({
     	return false;
 	},
     filter_tweets: function(e){
-	    e.preventDefault();
-	    $('#tweets_results').fadeOut('slow');
+        e.preventDefault();
+        $('#tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
         var state = $(e.currentTarget).data("state");
         var t0 = performance.now();
         var data = $('#tweets_form').serializeArray();
-      data.push({name: "index", value: app.session.s_index});
-      data.push({name: "state", value: state});
-      data.push({name: "session", value:  'session_'+app.session.s_name});
-      var self = this;
-      $.post(app.appURL+'tweets_filter', data, function(response){
-        self.display_tweets(response, t0, data[0].value);
-      }, 'json').fail(function() {
-          $('.loading_text').fadeOut('slow');
-            $.confirm({
-                title: 'Error',
-                boxWidth: '600px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
-                buttons: {
-                    cancel: {
-                        text: 'CLOSE',
-                        btnClass: 'btn-cancel',
-                    }
-                }
-            });
-        });
-	    return false;
+        data.push({name: "index", value: app.session.s_index});
+        data.push({name: "state", value: state});
+        data.push({name: "session", value:  'session_'+app.session.s_name});
+        var self = this;
+
+        $.post(app.appURL+'tweets_filter', data, function(response){
+            self.display_tweets(response, t0, data[0].value);
+        }, 'json').fail(self.cnxError);
+
+        return false;
     },
     all_tweets_state: function(e){
         e.preventDefault();
@@ -493,8 +581,7 @@ app.views.tweets = Backbone.View.extend({
         if (force.checked){
             $.post(app.appURL+'mark_search_tweets_force', data, function(response){
                 jc.close();
-                console.log(response);
-                    $.confirm({
+                $.confirm({
                     theme: 'pix-default-modal',
                     title: 'Changing tweets state',
                     boxWidth: '600px',
