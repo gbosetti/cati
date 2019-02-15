@@ -25,6 +25,7 @@ app.views.client = Backbone.View.extend({
 	  	$('#timeline_div').html('<div id="timeline-embed" style="width: 100%; height: 800px;box-shadow: 0 4px 2px -2px rgba(0,0,0,0.2)"></div>');
 		this.load_timeline();
 		this.load_impact();
+		  app.views.mabed.prototype.getClassificationStats();
 	  	return this;
 	  },
 		load_timeline: function(){
@@ -302,6 +303,7 @@ app.views.client = Backbone.View.extend({
 					state = '<span class="badge badge-secondary">'+state+'</span>';
 				}
 				el.html(state);
+			app.views.mabed.prototype.getClassificationStats();
 		}, 'json');
 		return false;
 	},
@@ -362,6 +364,7 @@ app.views.client = Backbone.View.extend({
 			});
 		$.post(app.appURL+'mark_cluster', data, function(response){
 			jc.close();
+			app.views.mabed.prototype.getClassificationStats();
 		}).fail(function() {
             jc.close();
             $.confirm({

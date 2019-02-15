@@ -57,13 +57,16 @@ class Functions:
     def get_total_urls(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
-        res = my_connector.search({
-            "query": {
-                "exists": {"field": "entities.urls"}
-            }
-        })
+        try:
+            res = my_connector.search({
+                "query": {
+                    "exists": {"field": "entities.urls"}
+                }
+            })
 
-        return res['hits']['total']
+            return res['hits']['total']
+        except RequestError:
+            return '...'
 
     # get the 10 most used languages
     def get_lang_count(self, index):
@@ -101,15 +104,15 @@ class Functions:
                 {
                     "size": 0,
                     "aggs": {
-                        "distinct_images": {
+                        "distinct_img": {
                             "terms": {
-                                "field": "entities.media.id_str.keyword",
+                                "field": "extended_entities.media.id_str",
                                 "size": 1
                             }
                         },
                         "count": {
                             "cardinality": {
-                                "field": "entities.media.id_str.keyword"
+                                "field": "extended_entities.media.id_str"
                             }
                         }
                     }
@@ -117,21 +120,54 @@ class Functions:
             )
             return res['aggregations']['count']['value']
         except RequestError:
-            # this may happen if media.id_str is not bound to a keyword multi field
-            # PUT / twitterfdl2017 / _mapping / tweet
-            # {
-            #     "properties": {
-            #         "extended_entities.media.id_str": {
-            #             "type": "text",
-            #             "fields": {
-            #                 "keyword": {
-            #                     "type": "keyword"
-            #                 }
-            #             }
-            #         }
-            #     }
-            # }
-            return "..."
+              # this may happen if media.id_str is not bound to a keyword multi field
+              # PUT / twitterfdl2017 / _mapping / tweet
+
+              # {
+              # "properties": {
+              # "extended_entities.media.id_str": {
+              # "type": "text",
+              # "fields": {
+              # "keyword": {
+              # "type": "keyword"
+              # }
+              # }
+              # }
+              # }
+              # }
+            return '...'
+
+    def get_classification_stats(self, index):
+        session = "session_" + index
+        keyword = session+".keyword"
+        my_connector = Es_connector(index=index)
+        print("session is :%s", session)
+        try:
+            res = my_connector.search(
+                {"_source": ["id_str", "text", "imagesCluster", session, "lang"],
+                 "size": 0,
+                 "aggs": {
+                     "classification_status": {
+                         "terms": {
+                             "field":  keyword,
+                             "size": 10
+                         }
+                     },
+                     "count": {
+                         "cardinality": {
+                             "field": keyword
+                         }
+                     }
+                 }}
+            )
+            return res['aggregations']['classification_status']['buckets']
+        except RequestError:
+            return {
+                 [
+                    {'key': 'proposed', 'doc_count': '0'},
+                    {'key': 'positive', 'doc_count': '0'},
+                    {'key': 'negative', 'doc_count': '0'}
+                ]}
 
     # ==================================================================
     # Event Detection
@@ -1037,13 +1073,13 @@ class Functions:
         res = tweets_connector.update_query(query, session, state)
         return res
 
-    def set_tweet_state(self, index, session, tid, label):
+    def set_tweet_state(self, index, session, tid, val):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         session = 'session_' + session
 
         query = {
             "doc": {
-                session: label
+                session: val
             }
         }
         res = tweets_connector.update(tid, query)

@@ -14,6 +14,7 @@ app.views.events = Backbone.View.extend({
 		var html = this.template({});
 		this.$el.html(html);
 		this.delegateEvents();
+        app.views.mabed.prototype.getClassificationStats();
 
 		return this;
 	},
@@ -143,6 +144,7 @@ app.views.events = Backbone.View.extend({
 					state = '<span class="badge badge-secondary">'+state+'</span>';
 				}
 				el.html(state);
+            app.views.mabed.prototype.getClassificationStats();
 		}, 'json').fail(function() {
                         $.confirm({
                             title: 'Error',
