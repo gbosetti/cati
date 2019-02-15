@@ -189,8 +189,10 @@ def search_for_tweets():
 def bigrams_with_higher_ocurrence():
     # data = request.form
     # tweets = data['tweets'] > app.last_searched_tweets
-    ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
-    return jsonify({"ngrams": ngrams , "tweets_by_bigram": tweets_by_bigram })
+    # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
+    # return jsonify({"ngrams": ngrams , "tweets_by_bigram": tweets_by_bigram })
+    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
+    return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": app.last_searched_tweets })
 
 
 # Get Tweets

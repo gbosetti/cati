@@ -70,8 +70,10 @@ app.views.tweets = Backbone.View.extend({
     },
     requestBigrams: function(data){
         var self = this;
+        console.log("Requesting bigrams...")
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
-            self.showBigramsClassification(response.ngrams, response.tweets_by_bigram);
+            console.log("Bigrams response: ", response);
+            self.showBigramsClassification(response.bigrams, response.tweets.results);
         }, 'json').fail(this.cnxError);
     },
     cnxError: function() {
@@ -245,35 +247,32 @@ app.views.tweets = Backbone.View.extend({
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0);
     },
-    showBigramsClassification: function(ngrams, tweetsByBigrams){
+    showBigramsClassification: function(bigrams, tweets){
 
         var containedId = "ngrams-search-classif",
             graphHeight = 500;
             graphWidth = $("#" + containedId).width();
         $("#" + containedId).html("");
 
-        var formattedBigrams = this.formatDataForBubbleChart(ngrams);
-        var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#ffe5cb", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
+        var formattedBigrams = this.formatDataForBubbleChart(bigrams);
+        var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
             chart.onBubbleClick = (event) => {
-                try{
-                    console.log("ds", tweetsByBigrams);
-                    tweetsByBigrams.some(row => {
-                        console.log(row);
-                        console.log(row.bigram[0] + " - " + row.bigram[1]);
-                        if (row.bigram[0] + " - " + row.bigram[1] == event.className){
-                            this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", row.tweets);
-                            return true;
-                        }
-                    });
-                }catch(err){console.log(err);}
+                for (var bigram in bigrams) {
+                    if (bigram == event.className){
+                        var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
+                        this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", matchingTweets);
+                        return true;
+                    }
+                }
             };
             chart.draw(formattedBigrams);
     },
     formatDataForBubbleChart: function(rawData){
-        var children = rawData.map(row => {
-			return {name: row[0][0] + " - " + row[0][1], size: row[1]}
-		});
 
+        var children = [];
+        for (var bigram in rawData) {
+            children.push({name: bigram, size: rawData[bigram].length });
+        }
 		return {
 			"name": "tweets", //You can put whatever here
 			"children": children
@@ -361,7 +360,6 @@ app.views.tweets = Backbone.View.extend({
     tweet_state: function(e){
 		e.preventDefault();
 		var tid = $(e.currentTarget).data("tid");
-		console.log("ID:", tid);
 		var val = $(e.currentTarget).data("val");
 		var el = $(e.currentTarget).closest('.media-body').find('.t_state');
 		$.post(app.appURL+'mark_tweet', {tid: tid, index: app.session.s_index, session: app.session.s_name, val: val}, function(response){
@@ -477,7 +475,6 @@ app.views.tweets = Backbone.View.extend({
 			jc.close();
 
 		}).fail(function(e) {
-		    console.log(e);
             jc.close();
             $.confirm({
                 title: 'Error',
@@ -607,7 +604,6 @@ app.views.tweets = Backbone.View.extend({
 
             $.post(app.appURL+'mark_search_tweets', data, function(response){
                 jc.close();
-                console.log(response);
                     $.confirm({
                     theme: 'pix-default-modal',
                     title: 'Changing tweets state',
