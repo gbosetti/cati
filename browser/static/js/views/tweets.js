@@ -110,7 +110,9 @@ app.views.tweets = Backbone.View.extend({
         console.log("Requesting bigrams...")
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
             console.log("Bigrams response: ", response);
-            self.showBigramsClassification(response.bigrams, response.tweets.results);
+            //check if there are any bigrams
+            if(Object.is(response.bigrams,{})){
+            self.showBigramsClassification(response.bigrams, response.tweets.results);}
         }, 'json').fail(this.cnxError);
     },
     cnxError: function() {
