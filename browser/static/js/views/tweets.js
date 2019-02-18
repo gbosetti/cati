@@ -73,11 +73,31 @@ app.views.tweets = Backbone.View.extend({
     },
     requestBigrams: function(data){
         var self = this;
-        console.log("Requesting bigrams...", data);
+        var containerId = "ngrams-search-classif";
+
+        this.showLoadingMessage(containerId, 500);
+
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
-            console.log("Bigrams response: ", response);
-            self.showBigramsClassification(response.bigrams, response.tweets.hits.hits); //response.tweets.results);
+            self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500); //response.tweets.results);
         }, 'json').fail(this.cnxError);
+    },
+    showLoadingMessage: function(containerId, height){
+
+        $("#" + containerId).html("");
+        var spinner = document.createElement("div");
+            spinner.className = "loader";
+
+        var spinnerFrame = document.createElement("div");
+            spinnerFrame.className = "card-columns";
+            spinnerFrame.style.width = "120px";
+            spinnerFrame.style.margin = "0 auto";
+            spinnerFrame.style["min-height"] = height + "px";
+            spinnerFrame.style["padding-top"] = "150px";
+            spinnerFrame.appendChild(spinner);
+
+        var container = document.querySelector("#" + containerId);
+            container.style.height = height + "px";
+        container.appendChild(spinnerFrame);
     },
     cnxError: function() {
         $('.loading_text').fadeOut('slow');
@@ -250,23 +270,19 @@ app.views.tweets = Backbone.View.extend({
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0);
     },
-    showBigramsClassification: function(bigrams, tweets){
+    showBigramsClassification: function(bigrams, tweets, containedId, graphHeight){
 
-        var containedId = "ngrams-search-classif",
-            graphHeight = 500;
-            graphWidth = $("#" + containedId).width();
+        var graphWidth = $("#" + containedId).width();
         $("#" + containedId).html("");
 
         var formattedBigrams = this.formatDataForBubbleChart(bigrams);
 
         var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
             chart.onBubbleClick = (event) => {
-                console.log("CLICK");
+
                 for (var bigram in bigrams) {
                     if (bigram == event.className){
-                        console.log("BIGRAM: ", bigram);
                         var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
-                        console.log("Matching Tweets", matchingTweets);
                         this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", matchingTweets);
                         return true;
                     }
