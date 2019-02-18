@@ -195,12 +195,10 @@ def search_for_tweets():
 @app.route('/bigrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
 def bigrams_with_higher_ocurrence():
-    # data = request.form
-    # tweets = data['tweets'] > app.last_searched_tweets
-    # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
-    # return jsonify({"ngrams": ngrams , "tweets_by_bigram": tweets_by_bigram })
-    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
-    return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": app.last_searched_tweets })
+    data = request.form
+    full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'])
+    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(full_searched_tweets)
+    return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets })
 
 
 # Get Tweets
