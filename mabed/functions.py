@@ -358,7 +358,7 @@ class Functions:
     def get_tweets_state(self, index, session_name, word, state):
         my_connector = Es_connector(index=index)
         session = "session_"+session_name
-        res = my_connector.init_paginateSearch({
+        res = my_connector.init_paginatedSearch({
             "query": {
                 "bool": {
                     "must": {
@@ -370,6 +370,7 @@ class Functions:
                 }
             }
         })
+        return res
 
     def get_tweets_scroll(self, index, sid, scroll_size):
         my_connector = Es_connector(index=index)
