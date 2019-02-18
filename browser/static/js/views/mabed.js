@@ -31,7 +31,7 @@ app.views.mabed = Backbone.View.extend({
 
         this.spinner = new Spinner(opts);*/
     },
-    render: function(){
+    render: function () {
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
@@ -39,9 +39,49 @@ app.views.mabed = Backbone.View.extend({
         this.getDatasetInfo();
         return this;
     },
-    getDatasetInfo: function(){
-        if(!app.session){
-          return this.notifyNoSession()
+    getClassificationStats: function () {
+        if (!app.session) {
+            return this.notifyNoSession();
+        }
+        var data = $('#run_mabed').serializeArray();
+        data.push({name: "index", value: app.session.s_index});
+
+        $.post(app.appURL + 'produce_classification_stats', data, function (response, status) {
+            console.log("success");
+            console.log("Data: ", response, "\nStatus: ", status);
+
+            let total_confirmed = 0;
+            let total_negative = 0;
+            let total_proposed = 0;
+            for (let stat of response.classification_stats) {
+                if (stat.key === 'confirmed') {
+                    total_confirmed = stat.doc_count;
+                } else if (stat.key === 'negative') {
+
+                    total_negative = stat.doc_count;
+                } else if (stat.key === 'proposed') {
+
+                    total_proposed = stat.doc_count;
+                }
+            }
+            let total = total_confirmed+total_negative+total_proposed;
+
+
+            document.querySelector('#classification_confirmed').textContent = "Confirmed (" + total_confirmed + ")";
+            document.querySelector('#classification_confirmed').setAttribute("style", "width: "+Math.trunc(1000*total_confirmed/total)/10.0+"%");
+            document.querySelector('#classification_negative').textContent = "Negative (" + total_negative + ")";
+            document.querySelector('#classification_negative').setAttribute("style", "width: "+Math.trunc(1000*total_negative/total)/10.0+"%");
+            document.querySelector('#classification_proposed').textContent = "Proposed (" + total_proposed + ")";
+            document.querySelector('#classification_proposed').setAttribute("style", "width: "+Math.trunc(1000*total_proposed/total)/10.0+"%");
+            document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+
+                " , Negative: "+total_negative+", Unlabeled : "+total_proposed);
+        }).fail(function (err) {
+            console.log(err);
+        });
+    },
+    getDatasetInfo: function () {
+        if (!app.session) {
+            return this.notifyNoSession()
         }
 
         //Enabling the spinner

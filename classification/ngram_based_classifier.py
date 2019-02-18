@@ -20,24 +20,26 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
-    def most_frequent_n_grams(self, tweets, length=2, min_occurrences=20, top_ngrams_to_retrieve=None):
+    def bigrams_with_higher_ocurrence(self, tweets, min_occurrences=20, remove_stopwords=True, stemming=True, length=2, top_ngrams_to_retrieve=None):
 
-        full_bigrams = {}
-        for tweet in tweets["results"]:
-            clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
-            bigrams = Counter(self.get_n_grams(clean_text, length)).most_common(top_ngrams_to_retrieve)
+        try:
+            full_bigrams = {}
+            res = tweets["hits"]["hits"]
+            for tweet in res:
+                clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
+                bigrams = Counter(self.get_n_grams(clean_text, length)).most_common(top_ngrams_to_retrieve)
 
-            for k, v in bigrams:
-                try:
-                    full_bigrams[k[0] + " " + k[1]].append(tweet["_id"]) # .add for {}
-                except KeyError:
-                    full_bigrams[k[0] + " " + k[1]] = [tweet["_id"]]  # Use an array otherwise it will be expensive to convert to json
+                for k, v in bigrams:
+                    try:
+                        full_bigrams[k[0] + " " + k[1]].append(tweet["_id"])  # .add for {}
+                    except KeyError:
+                        full_bigrams[k[0] + " " + k[1]] = [
+                            tweet["_id"]]  # Use an array otherwise it will be expensive to convert to json
 
-        return {k: full_bigrams[k] for k in full_bigrams if len(full_bigrams[k]) > min_occurrences}  # partial_bigrams
+            return {k: full_bigrams[k] for k in full_bigrams if len(full_bigrams[k]) > min_occurrences}  # partial_bigrams
 
-    def bigrams_with_higher_ocurrence(self, tweets, min_occurrences=20, remove_stopwords=True, stemming=True):
-
-        return self.most_frequent_n_grams(tweets, 2, min_occurrences)
+        except Exception as e:
+            print('Error: ' + str(e))
 
     def get_stopwords_for_langs(self, langs):
 

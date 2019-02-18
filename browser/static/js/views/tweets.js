@@ -64,18 +64,19 @@ app.views.tweets = Backbone.View.extend({
       data.push({name: "index", value: app.session.s_index});
       var self = this;
       $.post(app.appURL+'search_for_tweets', data, function(response){
-        self.requestBigrams(data);
         self.display_tweets(response, t0, data[0].value);
       }, 'json').fail(self.cnxError);
+
+      this.requestBigrams(data);
 
       return false;
     },
     requestBigrams: function(data){
         var self = this;
-        console.log("Requesting bigrams...")
+        console.log("Requesting bigrams...", data);
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
             console.log("Bigrams response: ", response);
-            self.showBigramsClassification(response.bigrams, response.tweets.results);
+            self.showBigramsClassification(response.bigrams, response.tweets.hits.hits); //response.tweets.results);
         }, 'json').fail(this.cnxError);
     },
     cnxError: function() {
@@ -260,9 +261,12 @@ app.views.tweets = Backbone.View.extend({
 
         var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
             chart.onBubbleClick = (event) => {
+                console.log("CLICK");
                 for (var bigram in bigrams) {
                     if (bigram == event.className){
+                        console.log("BIGRAM: ", bigram);
                         var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
+                        console.log("Matching Tweets", matchingTweets);
                         this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", matchingTweets);
                         return true;
                     }

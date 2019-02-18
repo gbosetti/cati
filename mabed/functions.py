@@ -11,6 +11,7 @@ from mabed.es_connector import Es_connector
 
 # es connector exceptions
 from elasticsearch import RequestError
+import elasticsearch.helpers
 
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
@@ -280,6 +281,49 @@ class Functions:
     # ==================================================================
     # Tweets
     # ==================================================================
+
+    def get_full_matching_tweets(self, index="test3", word="", host="localhost", port="9200"):
+
+        # print("...", index, " ... ", word)
+        # elastic = Es_connector([{'host': host, 'port': port}])
+        # # scan_iter = elasticsearch.helpers.scan(elastic, index=index, doc_type="tweet", query={"query": {"match_all": {}}})
+        # # scan_iter = elasticsearch.helpers.scan(elastic,
+        # #      query={
+        # #         "simple_query_string": {
+        # #              "fields": ["text"],
+        # #              "query": word
+        # #         }
+        # #      },
+        # #      index=index,
+        # #      doc_type="tweet"
+        # # );
+        # scan_iter = elasticsearch.helpers.scan(elastic,
+        #      query={"query": {"match": {"text": word}}},
+        #      index=index,
+        #      doc_type="books"
+        # );
+        #
+        # # tweets = list(enumerate(scan_iter))
+        # tweets = []
+        # for tweet in scan_iter:
+        #     tweets.append(tweet)
+        # return tweets
+        my_connector = Es_connector(index=index)
+
+        query = {
+            "query": {
+                "simple_query_string": {
+                    "fields": [
+                        "text"
+                    ],
+                    "query": word
+                }
+            }
+        }
+
+        total_matches = my_connector.count(query)["count"]
+        return my_connector.search_size(query, total_matches)
+        # return {"results": res["hits"]["hits"] }
 
     def get_tweets(self, index="test3", word=""):
         my_connector = Es_connector(index=index)
