@@ -137,8 +137,8 @@ class Functions:
               # }
             return '...'
 
-    def get_classification_stats(self, index):
-        session = "session_" + index
+    def get_classification_stats(self, index, session_name):
+        session = "session_" + session_name
         keyword = session+".keyword"
         my_connector = Es_connector(index=index)
         print("session is :%s", session)
