@@ -2,10 +2,10 @@ class BubbleChart{
 
     constructor(graphAreaSelector, width, height, colorRange){
 
-        this.width = width;
         this.height = height;
         this.colorRange = colorRange || ["#ffe5cb", "#ff7f0e"];
         this.graphAreaSelector = graphAreaSelector;
+        this.width = width || $(graphAreaSelector).width();
     }
 
     onBubbleClick(e){

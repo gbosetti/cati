@@ -296,23 +296,36 @@ app.views.tweets = Backbone.View.extend({
     },
     showBigramsClassification: function(bigrams, tweets, containedId, graphHeight){
 
-        var graphWidth = $("#" + containedId).width();
         $("#" + containedId).html("");
 
         var formattedBigrams = this.formatDataForBubbleChart(bigrams);
+        this.renderBigramsGrid(containedId);
+        var chart = new BubbleChart("#bigrams-graph-area", undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
 
-        var chart = new BubbleChart("#" + containedId, graphWidth, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
-            chart.onBubbleClick = (event) => {
+        chart.onBubbleClick = (event) => {
 
-                for (var bigram in bigrams) {
-                    if (bigram == event.className){
-                        var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
-                        this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", matchingTweets);
-                        return true;
-                    }
+            for (var bigram in bigrams) {
+                if (bigram == event.className){
+                    var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
+                    this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", matchingTweets);
+                    return true;
                 }
-            };
-            chart.draw(formattedBigrams);
+            }
+        };
+        chart.draw(formattedBigrams);
+    },
+    renderBigramsGrid: function(containedId){
+        var grid = `<div class="row">
+                        <div class="col">
+                            TODO: general stats
+                        </div>
+                        <div class="col-6" id="bigrams-graph-area">
+                        </div>
+                        <div class="col">
+                            TODO: options
+                        </div>
+                    </div>`;
+        $("#" + containedId).html(grid);
     },
     formatDataForBubbleChart: function(rawData){
 
