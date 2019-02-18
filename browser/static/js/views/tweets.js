@@ -62,19 +62,37 @@ app.views.tweets = Backbone.View.extend({
             });
           return false;
       }
+
       $('#tweets_results').fadeOut('slow');
       $('.loading_text').fadeIn('slow');
-      var t0 = performance.now();
-      var data = $('#tweets_form').serializeArray();
-      data.push({name: "index", value: app.session.s_index});
-      var self = this;
-      $.post(app.appURL+'search_for_tweets', data, function(response){
-        self.display_tweets(response, t0, data[0].value);
-      }, 'json').fail(self.cnxError);
 
+      this.displayResultsArea();
+
+      var data = $('#tweets_form').serializeArray();
+          data.push({name: "index", value: app.session.s_index});
+      this.requestTweets(data);
       this.requestBigrams(data);
 
       return false;
+    },
+    displayResultsArea: function(){
+        document.querySelector("#search-accordion").hidden = false;
+    },
+    requestTweets: function(data){
+
+        var t0 = performance.now();
+
+        //First clean the previous results
+        $('#imagesClusters').html("");
+        this.showLoadingMessage('imagesClusters', 400);
+
+        $('#tweets_result').html("");
+        this.showLoadingMessage('tweets_result', 400);
+
+        var self = this;
+        $.post(app.appURL+'search_for_tweets', data, function(response){
+            self.displayPaginatedResults(response, t0, data[0].value);
+        }, 'json').fail(self.cnxError);
     },
     requestBigrams: function(data){
         var self = this;
@@ -96,12 +114,13 @@ app.views.tweets = Backbone.View.extend({
             spinnerFrame.className = "card-columns";
             spinnerFrame.style.width = "120px";
             spinnerFrame.style.margin = "0 auto";
-            spinnerFrame.style["min-height"] = height + "px";
+            if(height)
+                spinnerFrame.style.height = height + "px";
             spinnerFrame.style["padding-top"] = "150px";
             spinnerFrame.appendChild(spinner);
 
         var container = document.querySelector("#" + containerId);
-            container.style.height = height + "px";
+
         container.appendChild(spinnerFrame);
     },
     cnxError: function() {
@@ -262,7 +281,7 @@ app.views.tweets = Backbone.View.extend({
 
         return false;
     },
-    display_tweets: function(response, t0, word){
+    displayPaginatedResults: function(response, t0, word){
         var html = '';
         html += '<div class="col-12 pix-padding-top-30 pix-padding-bottom-30">\n' +
             '                    <a class="btn btn-lg btn-success pix-white fly shadow scale btn_filter" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>\n' +
@@ -579,7 +598,7 @@ app.views.tweets = Backbone.View.extend({
         var self = this;
 
         $.post(app.appURL+'tweets_filter', data, function(response){
-            self.display_tweets(response, t0, data[0].value);
+            self.displayPaginatedResults(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
 
         return false;
