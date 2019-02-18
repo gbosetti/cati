@@ -125,7 +125,7 @@ def produce_classification_stats():
     data = request.form
     #get session and index name
     return jsonify({
-        "classification_stats" : functions.get_classification_stats(index=data['index'])
+        "classification_stats" : functions.get_classification_stats(index=data['index'],session_name=data['session'])
     })
 
 # Run MABED
