@@ -355,6 +355,22 @@ class Functions:
         })
         return res
 
+    def get_tweets_state(self, index, session_name, word, state):
+        my_connector = Es_connector(index=index)
+        session = "session_"+session_name
+        res = my_connector.init_paginateSearch({
+            "query": {
+                "bool": {
+                    "must": {
+                        "match": {
+                            "text": word
+                        }
+                    },
+                    "filter": {"term": {session: state}}
+                }
+            }
+        })
+
     def get_tweets_scroll(self, index, sid, scroll_size):
         my_connector = Es_connector(index=index)
         res = my_connector.loop_paginatedSearch(sid, scroll_size)
