@@ -45,6 +45,7 @@ app.views.mabed = Backbone.View.extend({
         }
         var data = $('#run_mabed').serializeArray();
         data.push({name: "index", value: app.session.s_index});
+        data.push({name: "session", value: app.session.s_name});
 
         $.post(app.appURL + 'produce_classification_stats', data, function (response, status) {
             console.log("success");
