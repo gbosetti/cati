@@ -11,12 +11,13 @@
     <!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
     <link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
     <link rel="stylesheet" type="text/css" href="static/css/main.css"/>
+    <link rel="stylesheet" type="text/css" href="static/css/tweets.css" />
     <link rel="stylesheet" type="text/css" href="static/css/style.css" />
     <link rel="stylesheet" type="text/css" href="static/css/jquery-confirm.css" />
     <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="static/css/bootstrap4-toggle.min.css">
     <link rel="stylesheet" type="text/css" href="static/css/spin.css">
-
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 </head>
 
 <body>
@@ -459,18 +460,52 @@
                 <label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>
                 </div>
 
-          <!-- NGRAMS CLUSTERS RESULTS -->
-          <div class="col-12 pix-margin-top-10">
-            <div class="" id="ngrams-search-classif"></div>
-          </div>
 
-          <!-- IMAGE CLUSTERS RESULTS -->
-          <div class="col-12 pix-margin-top-10">
-            <div class="card-columns" id="imagesClusters"></div>
-          </div>
 
-          <!-- INDIVIDUAL TWEET RESULTS -->
-          <div class="col-12" id="tweets_result"></div>
+
+            <div class="container">
+              <div id="search-accordion">
+                <div class="card">
+                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
+                  <div id="collapseNgrams" class="collapse"> <!-- class="collapse show" -->
+                    <div class="card-body">
+
+                       <!-- NGRAMS CLUSTERS RESULTS -->
+                      <div class="col-12 pix-margin-top-10">
+                        <div class="" id="ngrams-search-classif"></div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
+                  <div id="collapseImages" class="collapse">
+                    <div class="card-body">
+
+                        <!-- IMAGE CLUSTERS RESULTS -->
+                        <div class="col-12 pix-margin-top-10">
+                            <div class="card-columns" id="imagesClusters"></div>
+                        </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
+                  <div id="collapseIndividual" class="collapse">
+                    <div class="card-body">
+
+                        <!-- INDIVIDUAL TWEET RESULTS -->
+                        <div class="col-12" id="tweets_result"></div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
         </div>
       </div>

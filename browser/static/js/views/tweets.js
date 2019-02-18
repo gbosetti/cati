@@ -16,6 +16,10 @@ app.views.tweets = Backbone.View.extend({
         $(document).on("click","body .tweet_state",function(e){
 			self.tweet_state(e);
 		});
+		$(document).on("click","#search-accordion .card-header",function(e){
+			if(e.target.tagName.toLocaleLowerCase() == "div")
+			    e.target.querySelector("a").click();
+		});
     },
     render: function(){
         var html = this.template();
