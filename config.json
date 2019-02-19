@@ -1,0 +1,13 @@
+{
+  "DEFAULT": {
+    "elastic_search": {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "test2",
+      "doc_type": "tweet"
+    }
+  }
+}
