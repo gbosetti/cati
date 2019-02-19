@@ -16,3 +16,7 @@
 #search-accordion .card .card-header a.collapsed:after{
     content: "\f078";
 }
+
+div#bigrams-graph-area circle {
+    cursor: pointer;
+}

@@ -340,10 +340,23 @@ app.views.tweets = Backbone.View.extend({
         this.renderBigramsGrid(containedId);
         var formattedBigrams = this.formatDataForBubbleChart(bigrams);
 
-        this.renderBigramsChart("#bigrams-graph-area", bigrams, formattedBigrams, tweets, graphHeight);
-        setTimeout(() => { this.renderBigramsStats(bigrams, tweets); }, 0); //In a new thread
+        var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
+        var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
+
+        setTimeout(() => { this.renderBigramsChart("#bigrams-graph-area", bigrams, formattedBigrams, tweets, graphHeight, filteredTweetsInBigrams); }, 0);
+        setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
     },
-    renderBigramsChart: function(domSelector, bigrams, formattedBigrams, tweets, graphHeight){
+    renderBigramsChart: function(domSelector, bigrams, formattedBigrams, tweets, graphHeight, filteredTweetsInBigrams){
+
+        var labeledBigrams = Object.entries(bigrams);
+        console.log("labeledBigrams", labeledBigrams);
+        console.log("tweets", tweets);
+        console.log("filteredTweetsInBigrams", filteredTweetsInBigrams)
+
+        labeledBigrams.map(bigram => { bigram.push({negatives:0, confirmed: 0, unlabeled:0 }); return bigram }); //  <-- COUNTING AND MAPPING EACH LABEL
+        //TODO: FILL THE LABELS BY SEARCHING EACH id in bigram[1] in filteredTweetsInBigrams
+        //After that, I can check the data in:
+        //http://jsfiddle.net/gal007/owtpzn03/40/
 
         var chart = new BubbleChart(domSelector, undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
         chart.onBubbleClick = (event) => {
@@ -358,14 +371,11 @@ app.views.tweets = Backbone.View.extend({
         };
         chart.draw(formattedBigrams);
     },
-    renderBigramsStats: function(bigrams, tweets){
+    renderBigramsStats: function(filteredTweetsInBigrams, tweets){
 
         var query_confirmed = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
         var query_negative = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
         var query_unlabeled = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
-
-        var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
-        var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
         var bigrams_confirmed = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
         var bigrams_negative = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;

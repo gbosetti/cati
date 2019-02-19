@@ -7,7 +7,7 @@ class BarChart{
     this.height = height - this.margin.top - this.margin.bottom;
     this.width = width - this.margin.left - this.margin.right;
 		this.labels = labels;
-    this.colors = colors || ["#28a745", "#dc3545", "#e8e8e8"];
+    this.colors = colors || ["#28a745", "#dc3545", "#e8e8e8"]; // Green, Red, Gray
 	}
   
   transformData(labels, data){
