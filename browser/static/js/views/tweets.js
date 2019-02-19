@@ -8,6 +8,7 @@ app.views.tweets = Backbone.View.extend({
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
         'click .all_tweets_state': 'all_tweets_state',
+        'click #search_not_labeled': 'search_not_labeled',
     },
     initialize: function() {
         this.render();
@@ -74,6 +75,39 @@ app.views.tweets = Backbone.View.extend({
       this.requestBigrams(data);
 
       return false;
+    },search_not_labeled: function(e){
+        e.preventDefault();
+        if(!app.session){
+            $.confirm({
+                title: 'Error',
+                boxWidth: '800px',
+                theme: 'pix-danger-modal',
+                backgroundDismiss: true,
+                content: "Error! please select a session from the settings page.",
+                buttons: {
+                    cancel: {
+                        text: 'CLOSE',
+                        btnClass: 'btn-primary',
+                    }
+                }
+            });
+            return false;
+        }
+        $('#tweets_results').fadeOut('slow');
+        $('.loading_text').fadeIn('slow');
+        var t0 = performance.now();
+        var data = $('#tweets_form').serializeArray();
+        data.push({name: "index", value: app.session.s_index});
+        data.push({name: "session", value: app.session.s_name});
+        data.push({name: "state", value: "proposed"});
+
+        var self = this;
+        $.post(app.appURL+'search_for_tweets_state', data, function(response){
+            self.requestBigrams(data);
+            self.display_tweets(response, t0, data[0].value);
+        }, 'json').fail(self.cnxError);
+
+        return false;
     },
     displayResultsArea: function(){
         document.querySelector("#search-accordion").hidden = false;
@@ -95,14 +129,19 @@ app.views.tweets = Backbone.View.extend({
         }, 'json').fail(self.cnxError);
     },
     requestBigrams: function(data){
-        var self = this;
         var containerId = "ngrams-search-classif";
 
         this.showLoadingMessage(containerId, 500);
-
-        $.post(app.appURL+'bigrams_with_higher_ocurrence', data, function(response){
-            self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500); //response.tweets.results);
+        var self = this;
+        $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
+            //check if there are any bigrams
+            if($.isEmptyObject(response.bigrams))
+                self.showNoBigramsFound(containerId);
+            else self.showBigramsClassification(response.bigrams, response.tweets.results, containerId, 500);
         }, 'json').fail(this.cnxError);
+    },
+    showNoBigramsFound: function(containedId){
+        $("#" + containedId).html("Sorry, no bigrams were found.");
     },
     showLoadingMessage: function(containerId, height){
 

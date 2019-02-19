@@ -125,7 +125,7 @@ def produce_classification_stats():
     data = request.form
     #get session and index name
     return jsonify({
-        "classification_stats" : functions.get_classification_stats(index=data['index'],session_name=data['session'])
+        "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
     })
 
 # Run MABED
@@ -188,6 +188,14 @@ def search_for_tweets():
     data = request.form
     app.last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'])
+    # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
+    return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
+
+@app.route('/search_for_tweets_state', methods=['POST'])
+def search_for_tweets_state():
+    data = request.form
+    app.last_searched_tweets = functions.get_tweets_classification_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
+    clusters = functions.get_clusters_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
     # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
     return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
 

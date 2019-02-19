@@ -399,6 +399,23 @@ class Functions:
         })
         return res
 
+    def get_tweets_classification_state(self, index, session_name, word, state):
+        my_connector = Es_connector(index=index)
+        session = "session_"+session_name
+        res = my_connector.init_paginatedSearch({
+            "query": {
+                "bool": {
+                    "must": {
+                        "match": {
+                            "text": word
+                        }
+                    },
+                    "filter": {"term": {session: state}}
+                }
+            }
+        })
+        return res
+
     def get_tweets_scroll(self, index, sid, scroll_size):
         my_connector = Es_connector(index=index)
         res = my_connector.loop_paginatedSearch(sid, scroll_size)
@@ -779,6 +796,40 @@ class Functions:
             cluster['image'] = images[0]
             cluster['size'] = len(images)
         # print(clusters)
+        return clusters
+
+# like get_clusters but can query for states
+    def get_clusters_state(self, index, session_name, word, state):
+        session = "session_"+session_name
+        my_connector = Es_connector(index=index)
+        res = my_connector.search({
+            "size": 1,
+            "query": {
+                "bool":{
+                    "must": {
+                        "match": {
+                            "text": word
+                        }
+                    },
+                    "filter": {"term": {session: state}}
+                }
+            },
+            "aggs": {
+                "group_by_cluster": {
+                    "terms": {
+                        "field": "imagesCluster",
+                        "size": 9999
+                    }
+                }
+            }
+        })
+        clusters = res['aggregations']['group_by_cluster']['buckets']
+        with open(index + '.json') as f:
+            data = json.load(f)
+        for cluster in clusters:
+            images = data['duplicates'][cluster['key']]
+            cluster['image'] = images[0]
+            cluster['size'] = len(images)
         return clusters
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
