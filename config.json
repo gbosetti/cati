@@ -8,6 +8,9 @@
       "timeout": 1000,
       "index": "test2",
       "doc_type": "tweet"
+    },
+    "test": {
+      "session": "session_twitter2017"
     }
   }
 }

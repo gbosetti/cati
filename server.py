@@ -26,6 +26,16 @@ app = Flask(__name__, static_folder='browser/static', template_folder='browser/t
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 
+with open('config.json', 'r') as f:
+    config = json.load(f)
+default_host = config['DEFAULT']['elastic_search']['host']
+default_port = config['DEFAULT']['elastic_search']['port']
+default_user = config['DEFAULT']['elastic_search']['user']
+default_password = config['DEFAULT']['elastic_search']['password']
+default_timeout = config['DEFAULT']['elastic_search']['timeout']
+default_index = config['DEFAULT']['elastic_search']['index']
+default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
+default_session = config['test']['session']
 
 htpasswd = HtPasswdAuth(app)
 
@@ -164,6 +174,9 @@ def detect_events():
 # 3. Images
 # ==================================================================
 # TODO replace hard coded options
+# this function is not working
+# we must find out what is the expected content
+# have tested twitter2017.json, and it renders a page with broken images
 @app.route('/images')
 def images():
     with open('twitter2015.json') as f:
@@ -366,7 +379,7 @@ def event_image():
 # @cross_origin()
 def mark_valid():
     data = request.form
-    res = functions.set_all_status("twitter2015", "session_Twitter2015", "proposed")
+    res = functions.set_all_status(default_index, default_session, "proposed")
     return jsonify(res)
 
 

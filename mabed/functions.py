@@ -22,6 +22,7 @@ __email__ = "odehfiras@gmail.com"
 
 # Interface Functions
 class Functions:
+    #TODO check if this needs to e configured on master
     def __init__(self):
         self.sessions_index = 'mabed_sessions'
         self.sessions_doc_type = 'session'
