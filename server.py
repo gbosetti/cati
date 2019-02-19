@@ -163,7 +163,7 @@ def detect_events():
 # ==================================================================
 # 3. Images
 # ==================================================================
-
+# TODO replace hard coded options
 @app.route('/images')
 def images():
     with open('twitter2015.json') as f:
@@ -360,7 +360,7 @@ def event_image():
         res = True
     return jsonify({"result":res, "image": image})
 
-
+# TODO replace hard coded options
 # Test & Debug
 @app.route('/mark_valid', methods=['POST', 'GET'])
 # @cross_origin()
@@ -442,7 +442,7 @@ def mark_search_tweets_force():
     functions.set_search_status_force(index, session, state, word)
     return jsonify(data)
 
-
+# TODO replace hard coded options
 @app.route('/delete_field', methods=['POST', 'GET'])
 # @cross_origin()
 def delete_field():
@@ -576,7 +576,7 @@ def get_keywords():
     # res = {"words":words, "count":count}
     return jsonify(res)
 
-
+# TODO replace hard coded options
 @app.route('/get_word2vec', methods=['POST', 'GET'])
 def get_word2vec():
     # data = request.form
