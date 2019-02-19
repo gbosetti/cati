@@ -300,8 +300,19 @@ app.views.tweets = Backbone.View.extend({
 
         var formattedBigrams = this.formatDataForBubbleChart(bigrams);
         this.renderBigramsGrid(containedId);
-        var chart = new BubbleChart("#bigrams-graph-area", undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
 
+        //Draw the stats chart
+        //var stats = BarChart("#bigrams-stats");
+        var data = [
+              { label: "Total", confirmed: "10", negative: "9", unlabeled: "6" },
+              { label: "Query", confirmed: "12", negative: "9", unlabeled: "4" },
+              { label: "Bigrams", confirmed: "05", negative: "8", unlabeled: "2" }
+            ];
+
+        new BarChart("#bigrams-stats", 300, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"]).draw(data)
+
+        //Draw the bubble chart
+        var chart = new BubbleChart("#bigrams-graph-area", undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
         chart.onBubbleClick = (event) => {
 
             for (var bigram in bigrams) {
@@ -316,7 +327,7 @@ app.views.tweets = Backbone.View.extend({
     },
     renderBigramsGrid: function(containedId){
         var grid = `<div class="row">
-                        <div class="col">
+                        <div class="col" id="bigrams-stats">
                             TODO: general stats
                         </div>
                         <div class="col-6" id="bigrams-graph-area">
