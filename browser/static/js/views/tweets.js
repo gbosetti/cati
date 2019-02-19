@@ -135,9 +135,10 @@ app.views.tweets = Backbone.View.extend({
         var self = this;
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
             //check if there are any bigrams
+            console.log(response);
             if($.isEmptyObject(response.bigrams))
                 self.showNoBigramsFound(containerId);
-            else self.showBigramsClassification(response.bigrams, response.tweets.results, containerId, 500);
+            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
         }, 'json').fail(this.cnxError);
     },
     showNoBigramsFound: function(containedId){
@@ -336,22 +337,15 @@ app.views.tweets = Backbone.View.extend({
     showBigramsClassification: function(bigrams, tweets, containedId, graphHeight){
 
         $("#" + containedId).html("");
-
-        var formattedBigrams = this.formatDataForBubbleChart(bigrams);
         this.renderBigramsGrid(containedId);
+        var formattedBigrams = this.formatDataForBubbleChart(bigrams);
 
-        //Draw the stats chart
-        //var stats = BarChart("#bigrams-stats");
-        var data = [
-              { label: "Total", confirmed: "10", negative: "9", unlabeled: "6" },
-              { label: "Query", confirmed: "12", negative: "9", unlabeled: "4" },
-              { label: "Bigrams", confirmed: "05", negative: "8", unlabeled: "2" }
-            ];
+        this.renderBigramsChart("#bigrams-graph-area", bigrams, formattedBigrams, tweets, graphHeight);
+        setTimeout(() => { this.renderBigramsStats(bigrams, tweets); }, 0); //In a new thread
+    },
+    renderBigramsChart: function(domSelector, bigrams, formattedBigrams, tweets, graphHeight){
 
-        new BarChart("#bigrams-stats", 300, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"]).draw(data)
-
-        //Draw the bubble chart
-        var chart = new BubbleChart("#bigrams-graph-area", undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
+        var chart = new BubbleChart(domSelector, undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
         chart.onBubbleClick = (event) => {
 
             for (var bigram in bigrams) {
@@ -364,16 +358,32 @@ app.views.tweets = Backbone.View.extend({
         };
         chart.draw(formattedBigrams);
     },
+    renderBigramsStats: function(bigrams, tweets){
+
+        var query_confirmed = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
+        var query_negative = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
+        var query_unlabeled = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
+
+        var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
+        var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
+
+        var bigrams_confirmed = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
+        var bigrams_negative = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
+        var bigrams_unlabeled = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
+
+        var data = [
+              { label: "Query", confirmed: query_confirmed, negative: query_negative, unlabeled: query_unlabeled },
+              { label: "Bigrams", confirmed: bigrams_confirmed, negative: bigrams_negative, unlabeled: bigrams_unlabeled }
+            ];
+
+            console.log(data);
+
+        new BarChart("#bigrams-stats", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(data)
+    },
     renderBigramsGrid: function(containedId){
         var grid = `<div class="row">
-                        <div class="col" id="bigrams-stats">
-                            TODO: general stats
-                        </div>
-                        <div class="col-6" id="bigrams-graph-area">
-                        </div>
-                        <div class="col">
-                            TODO: options
-                        </div>
+                        <div class="col-3" id="bigrams-stats"></div>
+                        <div class="col-9" id="bigrams-graph-area"></div>
                     </div>`;
         $("#" + containedId).html(grid);
     },
