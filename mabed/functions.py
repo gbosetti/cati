@@ -399,7 +399,7 @@ class Functions:
         })
         return res
 
-    def get_tweets_classification_state(self, index, session_name, word, state):
+    def get_tweets_filter_classification_state(self, index, session_name, word, state):
         my_connector = Es_connector(index=index)
         session = "session_"+session_name
         res = my_connector.init_paginatedSearch({
