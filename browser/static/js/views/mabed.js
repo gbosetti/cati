@@ -53,6 +53,7 @@ app.views.mabed = Backbone.View.extend({
             let total_confirmed = 0;
             let total_negative = 0;
             let total_proposed = 0;
+
             for (let stat of response.classification_stats) {
                 if (stat.key === 'confirmed') {
                     total_confirmed = stat.doc_count;
@@ -66,6 +67,12 @@ app.views.mabed = Backbone.View.extend({
             }
             let total = total_confirmed+total_negative+total_proposed;
 
+            app["lastStats"] = {
+                total: total,
+                total_confirmed: total_confirmed,
+                total_negative: total_negative,
+                total_proposed: total_proposed
+            };
 
             document.querySelector('#classification_confirmed').textContent = "Confirmed (" + total_confirmed + ")";
             document.querySelector('#classification_confirmed').setAttribute("style", "width: "+Math.trunc(1000*total_confirmed/total)/10.0+"%");
