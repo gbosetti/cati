@@ -349,16 +349,24 @@ app.views.tweets = Backbone.View.extend({
     renderBigramsChart: function(domSelector, bigrams, formattedBigrams, tweets, graphHeight, filteredTweetsInBigrams){
 
         var labeledBigrams = Object.entries(bigrams);
-        console.log("labeledBigrams", labeledBigrams);
-        console.log("tweets", tweets);
-        console.log("filteredTweetsInBigrams", filteredTweetsInBigrams)
+        // labeledBigrams.map(bigram => { bigram.push({negatives:0, confirmed: 0, unlabeled:0 }); return bigram }); //  <-- COUNTING AND MAPPING EACH LABEL
+        labeledBigrams.forEach(bigram => {
 
-        labeledBigrams.map(bigram => { bigram.push({negatives:0, confirmed: 0, unlabeled:0 }); return bigram }); //  <-- COUNTING AND MAPPING EACH LABEL
-        //TODO: FILL THE LABELS BY SEARCHING EACH id in bigram[1] in filteredTweetsInBigrams
-        //After that, I can check the data in:
-        //http://jsfiddle.net/gal007/owtpzn03/40/
+            var bigramMatchingTweets = tweets.filter(tweet => { return bigram[1].includes(tweet["_id"]) });
 
-        var chart = new BubbleChart(domSelector, undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
+            var bigram_confirmed = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
+            var bigram_negative = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
+            var bigram_unlabeled = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
+
+            bigram.push({negatives: bigram_negative, confirmed: bigram_confirmed, unlabeled: bigram_unlabeled });
+        });
+
+        var dta = labeledBigrams.map(row => { return [ row[0], [row[2]["confirmed"], row[2]["negatives"], row[2]["unlabeled"]] ] });
+        var graphWidth = $(domSelector).width();
+
+        new MultiPieChart(domSelector, graphWidth, graphHeight).draw(dta);
+
+        /*var chart = new BubbleChart(domSelector, undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
         chart.onBubbleClick = (event) => {
 
             for (var bigram in bigrams) {
@@ -369,7 +377,7 @@ app.views.tweets = Backbone.View.extend({
                 }
             }
         };
-        chart.draw(formattedBigrams);
+        chart.draw(formattedBigrams);*/
     },
     renderBigramsStats: function(filteredTweetsInBigrams, tweets){
 
