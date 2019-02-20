@@ -35,7 +35,7 @@ default_password = config['DEFAULT']['elastic_search']['password']
 default_timeout = config['DEFAULT']['elastic_search']['timeout']
 default_index = config['DEFAULT']['elastic_search']['index']
 default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
-default_session = config['test']['session']
+default_session = config['DEFAULT']['test']['session']
 
 htpasswd = HtPasswdAuth(app)
 
