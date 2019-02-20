@@ -103,7 +103,7 @@ app.views.tweets = Backbone.View.extend({
 
         var self = this;
         $.post(app.appURL+'search_for_tweets_state', data, function(response){
-            self.requestBigrams(data);
+            self.requestBigramsFiltered(data);
             self.display_tweets(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
 
@@ -134,6 +134,19 @@ app.views.tweets = Backbone.View.extend({
         this.showLoadingMessage(containerId, 500);
         var self = this;
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
+            //check if there are any bigrams
+            console.log(response);
+            if($.isEmptyObject(response.bigrams))
+                self.showNoBigramsFound(containerId);
+            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
+        }, 'json').fail(this.cnxError);
+    },
+    requestBigramsFiltered: function(data){
+        var containerId = "ngrams-search-classif";
+
+        this.showLoadingMessage(containerId, 500);
+        var self = this;
+        $.post(app.appURL+'bigrams_with_higher_ocurrence_filter_state', data, (response) => {
             //check if there are any bigrams
             console.log(response);
             if($.isEmptyObject(response.bigrams))
