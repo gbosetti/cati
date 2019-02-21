@@ -9,8 +9,10 @@ app.views.tweets = Backbone.View.extend({
         'click .btn_filter': 'filter_tweets',
         'click .all_tweets_state': 'all_tweets_state',
         'click #search_not_labeled': 'search_not_labeled',
+        'change #top-bubbles-to-display': 'updateTopBubblesToDisplay'
     },
     initialize: function() {
+        this.session = {};
         this.render();
         var handler = _.bind(this.render, this);
         var self = this;
@@ -135,7 +137,6 @@ app.views.tweets = Backbone.View.extend({
         var self = this;
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
             //check if there are any bigrams
-            console.log(response);
             if($.isEmptyObject(response.bigrams))
                 self.showNoBigramsFound(containerId);
             else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
@@ -336,21 +337,40 @@ app.views.tweets = Backbone.View.extend({
     },
     showBigramsClassification: function(bigrams, tweets, containedId, graphHeight){
 
-        $("#" + containedId).html("");
-        this.renderBigramsGrid(containedId);
-        var formattedBigrams = this.formatDataForBubbleChart(bigrams);
+        var graphArea = $("#" + containedId);
+            graphArea.html("");
 
+        this.renderBigramsGrid(containedId);
         var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
-        setTimeout(() => { this.renderBigramsChart("#bigrams-graph-area", bigrams, formattedBigrams, tweets, graphHeight, filteredTweetsInBigrams); }, 0);
+        setTimeout(() => { this.renderBigramsChart("#bigrams-graph-area", bigrams, tweets, graphHeight); }, 0);
         setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
+        this.updateBigramsControls(bigrams);
     },
-    renderBigramsChart: function(domSelector, bigrams, formattedBigrams, tweets, graphHeight, filteredTweetsInBigrams){
+    updateBigramsControls: function(bigrams){
 
-        var labeledBigrams = Object.entries(bigrams);
-        // labeledBigrams.map(bigram => { bigram.push({negatives:0, confirmed: 0, unlabeled:0 }); return bigram }); //  <-- COUNTING AND MAPPING EACH LABEL
-        var dta = labeledBigrams.map(bigram => {
+        var len = Object.keys(bigrams).length;
+        $("#top-bubbles-to-display").attr({"max": len});
+        $("#top-bubbles-to-display").val(len);
+    },
+    updateTopBubblesToDisplay: function(evt){
+
+        this.renderBigramsChart("#bigrams-graph-area", this.session.bigrams.bigrams, this.session.bigrams.tweets, this.session.bigrams.graphHeight, evt.target.value);
+    },
+    renderBigramsChart: function(domSelector, bigrams, tweets, graphHeight, maxBubblesToShow){
+
+        $(domSelector).html("");
+
+        //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
+        this.session["bigrams"] = {
+            "bigrams": bigrams,
+            "tweets": tweets,
+            "graphHeight": graphHeight
+        };
+
+        var bigramsAsFilteredOrderedArray = maxBubblesToShow? Object.entries(bigrams).sort(function(a, b){return (new Set(a[1]).size > new Set(b[1]).size? -1 : 1) }).splice(0,maxBubblesToShow) : Object.entries(bigrams);
+        var dta = bigramsAsFilteredOrderedArray.map(bigram => {
 
             var bigramMatchingTweets = tweets.filter(tweet => { return bigram[1].includes(tweet["_id"]) });
             var bigram_confirmed = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
@@ -362,7 +382,6 @@ app.views.tweets = Backbone.View.extend({
 
         var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
-            console.log(event);
             for (var bigram in bigrams) {
                 if (bigram == event.label){
                     var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
@@ -388,27 +407,52 @@ app.views.tweets = Backbone.View.extend({
               { label: "Bigrams", confirmed: bigrams_confirmed, negative: bigrams_negative, unlabeled: bigrams_unlabeled }
             ];
 
-            console.log(data);
-
         new BarChart("#bigrams-stats", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(data)
     },
     renderBigramsGrid: function(containedId){
         var grid = `<div class="row">
                         <div class="col-3" id="bigrams-stats"></div>
                         <div class="col-9" id="bigrams-graph-area"></div>
-                    </div>`;
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-sm-12">
+                                <div id="bigrams-controls" class="static_box pix-padding-20 white-bg">
+                                    <div class="form-row">
+                                        <!--<div class="col-md-2">
+                                            <label for="n-grams-to-generate">N-gram length</label>
+                                            <input id="n-grams-to-generate" type="number" class="form-control" value="2">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="min-tweets-in-bigram">Min tweets by n-gram</label>
+                                            <input id="min-tweets-in-bigram" type="number" class="form-control" value="25">
+                                        </div>-->
+                                        <div class="col-md-2">
+                                            <label for="top-bubbles-to-display">Max bubbles to show</label>
+                                            <input id="top-bubbles-to-display" type="number" class="form-control" value="10" min="1" max="10">
+                                        </div>
+                                        <!--<div class="col-md-2">
+                                            <label for="remove-stopwords">Remove stopwords</label>
+                                            <div class="">
+                                                <div class="toggle btn btn-success" data-toggle="toggle" style="width: 100%; height: 37px;"><div class="toggle btn btn-success" data-toggle="toggle" style="width: 113px; height: 37px;"><input id="remove-stopwords" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked=""><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="stem-words">Stem words</label>
+                                            <div class="">
+                                                <div class="toggle btn btn-success" data-toggle="toggle" style="width: 113px; height: 37px;"><input id="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked=""><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div>
+                                            </div>
+                                        </div>-->
+                                    </div>
+                                    <div class="mt-4 form-row">
+                                        <button id="regenerate-bigrams" class="btn  btn-default" style="width:100%">
+                                            <i class="fa fa-refresh" aria-hidden="true"></i>
+                                            <strong>Refresh</strong>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
         $("#" + containedId).html(grid);
-    },
-    formatDataForBubbleChart: function(rawData){
-
-        var children = [];
-        for (var bigram in rawData) {
-            children.push({name: bigram, size: (new Set(rawData[bigram])).size });
-        }
-		return {
-			"name": "tweets", //You can put whatever here
-			"children": children
-		};
     },
     formatDataForHeatmap: function(ngrams){
         //TODO: for performance reasons, we should move this to the backend

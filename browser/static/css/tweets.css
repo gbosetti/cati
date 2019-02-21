@@ -34,3 +34,7 @@
 #bigrams-graph-area {
   cursor: move
 }
+
+#bigrams-controls{
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.54);
+}

@@ -71,12 +71,13 @@ while (word = words.pop()) {
 
 	draw(data){
 
-    var layout = this.createLayout(data);
-    var svg = this.createSvg(this.width, this.height);
-    var nodes = this.generateNodes(svg, layout, data);
-    this.tooltip = this.createTooltip();
-    var arc = this.generateBubbles(nodes, this.tooltip);
-    this.generateBubbleNames(nodes);
+	    $(this.domSelector).html="";
+        var layout = this.createLayout(data);
+        var svg = this.createSvg(this.width, this.height);
+        var nodes = this.generateNodes(svg, layout, data);
+        this.tooltip = this.createTooltip();
+        var arc = this.generateBubbles(nodes, this.tooltip);
+        this.generateBubbleNames(nodes);
   }
 
   generateNodes(svg, layout, data){
@@ -186,7 +187,6 @@ while (word = words.pop()) {
       this.currentBubbleWidth = d.r / 5;
 
       var splittedWords = d[0].split(/\s+/).map(word => {
-      		console.log(word, this.currentBubbleWidth);
           var ending = word.length > maxCharacters ? "…": "";
           return word.substring(0, maxCharacters) + ending;
       });
@@ -197,7 +197,6 @@ while (word = words.pop()) {
   onBubbleClick(e){
     console.log("Default behaviour");
   }
-
 }
 
 
