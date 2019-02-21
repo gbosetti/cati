@@ -1,6 +1,5 @@
 // gbosetti https://github.com/gbosetti
 // http://jsfiddle.net/gal007/owtpzn03
-
 class MultiPieChart{
 
   constructor(domSelector, width, height){
@@ -53,8 +52,9 @@ class MultiPieChart{
               dy = parseFloat(text.attr("dy"));
 
           var tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-					var tspanHeight = 20; //Math.abs(tspan[0][0]["y"]);
-          while (word = words.pop()) {
+					var tspanHeight = 1.5*parseInt(tspan.style("font-size")).toFixed(0);
+
+while (word = words.pop()) {
             line.push(word);
             tspan.text(line.join(" "));
             if (tspan.node().getComputedTextLength() > this.currentBubbleWidth) {
@@ -170,7 +170,8 @@ class MultiPieChart{
     }
 
   generateBubbleNames(nodes){
-
+		// Math.min(2 * d.r, (2 * d.r - 8) / this.getComputedTextLength() * 24)
+    var maxCharacters = 10;
   	var labels = nodes.selectAll("text.label")
     .data(function(d) { return [d]; });
 
@@ -180,14 +181,17 @@ class MultiPieChart{
       dy: "0.35em"
     })
     .style("text-anchor", "middle")
+    .style("font-size", function(d) { return d.r / 3; })
     .text(function(d) {
       this.currentBubbleWidth = d.r / 5;
+
       var splittedWords = d[0].split(/\s+/).map(word => {
-          var ending = word.length > this.currentBubbleWidth ? "…": "";
-          return word.substring(0, this.currentBubbleWidth) + ending;
+      		console.log(word, this.currentBubbleWidth);
+          var ending = word.length > maxCharacters ? "…": "";
+          return word.substring(0, maxCharacters) + ending;
       });
       return splittedWords.join(" ");
-    }).call(this.wrap, 100);
+    }).call(this.wrap, 200);
   }
 
   onBubbleClick(e){
@@ -195,3 +199,5 @@ class MultiPieChart{
   }
 
 }
+
+
