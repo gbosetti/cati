@@ -350,34 +350,28 @@ app.views.tweets = Backbone.View.extend({
 
         var labeledBigrams = Object.entries(bigrams);
         // labeledBigrams.map(bigram => { bigram.push({negatives:0, confirmed: 0, unlabeled:0 }); return bigram }); //  <-- COUNTING AND MAPPING EACH LABEL
-        labeledBigrams.forEach(bigram => {
+        var dta = labeledBigrams.map(bigram => {
 
             var bigramMatchingTweets = tweets.filter(tweet => { return bigram[1].includes(tweet["_id"]) });
-
             var bigram_confirmed = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
             var bigram_negative = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
             var bigram_unlabeled = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
 
-            bigram.push({negatives: bigram_negative, confirmed: bigram_confirmed, unlabeled: bigram_unlabeled });
+            return [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
         });
 
-        var dta = labeledBigrams.map(row => { return [ row[0], [row[2]["confirmed"], row[2]["negatives"], row[2]["unlabeled"]] ] });
-        var graphWidth = $(domSelector).width();
-
-        new MultiPieChart(domSelector, graphWidth, graphHeight).draw(dta);
-
-        /*var chart = new BubbleChart(domSelector, undefined, graphHeight, ["#d8d8d8", "#ff7f0e"]); // ["#aec7e8", "#1f77b4"]);
+        var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
-
+            console.log(event);
             for (var bigram in bigrams) {
-                if (bigram == event.className){
+                if (bigram == event.label){
                     var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
-                    this.showBigramTweets("Tweets associated to the bigram «" + event.className + "»", matchingTweets);
+                    this.showBigramTweets("Tweets associated to the bigram «" + event.label + "»", matchingTweets);
                     return true;
                 }
             }
         };
-        chart.draw(formattedBigrams);*/
+        chart.draw(dta);
     },
     renderBigramsStats: function(filteredTweetsInBigrams, tweets){
 

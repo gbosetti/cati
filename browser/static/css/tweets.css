@@ -17,15 +17,20 @@
     content: "\f078";
 }
 
-div#bigrams-graph-area circle {
-    cursor: pointer;
-}
 
 #bigrams-graph-area g.arc:hover path {
     stroke: gray;
     stroke-width: 1;
 }
 
-#bigrams-graph-area g.arc:hover text {
-    display: inline !important;
+#bigrams-graph-area .node {
+  cursor: pointer
+}
+
+#bigrams-graph-area .node {
+  cursor: pointer
+}
+
+#bigrams-graph-area {
+  cursor: move
 }
