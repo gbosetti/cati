@@ -9,27 +9,6 @@
   font-style: normal;
 }
 
-/* collapse navbar*/
-#progress_classification .progress-bar {
-  height: 5px;
-  font-size: 0px;
-  border-radius: 0px;
-  text-shadow: 1px 1px 1px #000;
-}
-
-#progress_classification {
-  height: 25px !important;
-}
-
-#progress_classification:hover {
-  height: 25px !important;
-}
-
-#progress_classification:hover .progress-bar {
-  font-size: 12px;
-  height: auto;
-  transition: .5s linear;
-}
 /**/
 
 .tab-content>.active{
