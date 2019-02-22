@@ -35,6 +35,15 @@
   cursor: move
 }
 
+#bigrams-graph-area svg:hover {
+    outline: thin dotted #c7c7c7;
+}
+
 #bigrams-controls{
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.54);
+}
+
+#bigrams-stats svg{
+    display: block;
+    margin: 0px auto;
 }

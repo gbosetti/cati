@@ -8,8 +8,9 @@ from collections import Counter
 class NgramBasedClasifier:
 
     def get_n_grams(self, text, length=2):
-        # return zip(*[text[i:] for i in range(length)])
-        return list(nltk.bigrams(text))
+        n_grams = zip(*[text[i:] for i in range(length)])
+        # n_grams = list(nltk.bigrams(text))
+        return n_grams
 
     def remove_stop_words(self, full_text, langs=["en", "fr", "es"]):
 
@@ -20,23 +21,35 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
-    def bigrams_with_higher_ocurrence(self, tweets, min_occurrences=20, remove_stopwords=True, stemming=True, length=2, top_ngrams_to_retrieve=None):
+    def bigrams_with_higher_ocurrence(self, tweets, **kwargs ):  #min_occurrences=20, remove_stopwords=True, stemming=True, length=2, top_ngrams_to_retrieve=None):
+
+        length = kwargs.get('length', 2)
+        top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
+        min_occurrences = kwargs.get('min_occurrences', 2)
 
         try:
             full_bigrams = {}
             res = tweets["hits"]["hits"]
             for tweet in res:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
-                bigrams = Counter(self.get_n_grams(clean_text, length)).most_common(top_ngrams_to_retrieve)
+                bigrams = Counter(self.get_n_grams(clean_text, length)).most_common(None) #We don't filter at this point but at the end
+
+                # print("N-grams", bigrams)
 
                 for k, v in bigrams:
-                    try:
-                        full_bigrams[k[0] + " " + k[1]].append(tweet["_id"])  # .add for {}
-                    except KeyError:
-                        full_bigrams[k[0] + " " + k[1]] = [
-                            tweet["_id"]]  # Use an array otherwise it will be expensive to convert to json
 
-            return {k: full_bigrams[k] for k in full_bigrams if len(full_bigrams[k]) > min_occurrences}  # partial_bigrams
+                    ngram_text=""
+                    for term in k:
+                        ngram_text = ngram_text + term + " "
+                    ngram_text = ngram_text.strip()
+                    # print("N-gram: ", ngram_text, " - ", k)
+
+                    try:
+                        full_bigrams[ngram_text].append(tweet["_id"])  # .add for {}
+                    except KeyError:  # If the collection doesn't have the entry yet
+                        full_bigrams[ngram_text] = [tweet["_id"]]  # Use an array otherwise it will be expensive to convert to json
+
+            return {k: full_bigrams[k] for k in full_bigrams if len(full_bigrams[k]) > min_occurrences}  # Removing bigrams with a low ocurrence (associated num of tweets)
 
         except Exception as e:
             print('Error: ' + str(e))

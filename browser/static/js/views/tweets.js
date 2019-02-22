@@ -12,7 +12,14 @@ app.views.tweets = Backbone.View.extend({
         'change #top-bubbles-to-display': 'updateTopBubblesToDisplay'
     },
     initialize: function() {
-        this.session = {};
+
+        this.bigrams = { //Session data for the bigrams
+            bigrams: undefined,
+            tweets: undefined,
+            graphHeight: undefined,
+            formData: this.getBigramsDefaultFormData()
+        };
+
         this.render();
         var handler = _.bind(this.render, this);
         var self = this;
@@ -73,7 +80,8 @@ app.views.tweets = Backbone.View.extend({
 
       var data = this.getSearchFormData();
       this.requestTweets(data);
-      this.requestBigrams(data);
+      console.log("1", data.concat(this.bigrams.formData));
+      this.requestBigrams(data.concat(this.bigrams.formData));
 
       return false;
     },
@@ -107,7 +115,8 @@ app.views.tweets = Backbone.View.extend({
             self.display_tweets(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
 
-        self.requestBigrams(data);
+        console.log("2", data.concat(this.bigrams.formData));
+        self.requestBigrams(data.concat(this.bigrams.formData));
 
         return false;
     },
@@ -132,14 +141,16 @@ app.views.tweets = Backbone.View.extend({
     },
     requestBigrams: function(data){
         var containerId = "ngrams-search-classif";
-
         this.showLoadingMessage(containerId, 500);
         var self = this;
+        console.log("requestBigrams's data", data);
+
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
             //check if there are any bigrams
             if($.isEmptyObject(response.bigrams))
                 self.showNoBigramsFound(containerId);
             else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
+
         }, 'json').fail(this.cnxError);
     },
     showNoBigramsFound: function(containedId){
@@ -344,6 +355,8 @@ app.views.tweets = Backbone.View.extend({
         var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
+        console.log("bigrams", bigrams);
+
         setTimeout(() => { this.renderBigramsChart("#bigrams-graph-area", bigrams, tweets, graphHeight); }, 0);
         setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
         this.updateBigramsControls(bigrams);
@@ -353,21 +366,20 @@ app.views.tweets = Backbone.View.extend({
         var len = Object.keys(bigrams).length;
         $("#top-bubbles-to-display").attr({"max": len});
         $("#top-bubbles-to-display").val(len);
+        $("#n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart("#bigrams-graph-area", this.session.bigrams.bigrams, this.session.bigrams.tweets, this.session.bigrams.graphHeight, evt.target.value);
+        this.renderBigramsChart("#bigrams-graph-area", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
     },
     renderBigramsChart: function(domSelector, bigrams, tweets, graphHeight, maxBubblesToShow){
 
         $(domSelector).html("");
 
         //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
-        this.session["bigrams"] = {
-            "bigrams": bigrams,
-            "tweets": tweets,
-            "graphHeight": graphHeight
-        };
+        this.bigrams.bigrams = bigrams;
+        this.bigrams.tweets = tweets;
+        this.bigrams.graphHeight = graphHeight;
 
         var bigramsAsFilteredOrderedArray = maxBubblesToShow? Object.entries(bigrams).sort(function(a, b){return (new Set(a[1]).size > new Set(b[1]).size? -1 : 1) }).splice(0,maxBubblesToShow) : Object.entries(bigrams);
         var dta = bigramsAsFilteredOrderedArray.map(bigram => {
@@ -416,11 +428,11 @@ app.views.tweets = Backbone.View.extend({
                     </div>
                     <div class="row">
                         <div class="col-12 col-sm-12">
-                                <div id="bigrams-controls" class="static_box pix-padding-20 white-bg">
+                                <form id="bigrams-controls" class="static_box pix-padding-20 white-bg">
                                     <div class="form-row">
                                         <div class="col-md-2">
                                             <label for="n-grams-to-generate">N-gram length</label>
-                                            <input id="n-grams-to-generate" type="number" class="form-control" value="2">
+                                            <input id="n-grams-to-generate" name="n-grams-to-generate" type="number" class="form-control" value="2">
                                         </div>
                                         <!--<div class="col-md-2">
                                             <label for="min-tweets-in-bigram">Min tweets by n-gram</label>
@@ -428,7 +440,7 @@ app.views.tweets = Backbone.View.extend({
                                         </div>-->
                                         <div class="col-md-2">
                                             <label for="top-bubbles-to-display">Max bubbles to show</label>
-                                            <input id="top-bubbles-to-display" type="number" class="form-control" value="10" min="1" max="10">
+                                            <input id="top-bubbles-to-display" name="top-bubbles-to-display" type="number" class="form-control" value="10" min="1" max="10">
                                         </div>
                                         <!--<div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
@@ -449,15 +461,24 @@ app.views.tweets = Backbone.View.extend({
                                             <strong>Refresh</strong>
                                         </button>
                                     </div>
-                                </div>
+                                </form>
                             </div>
                         </div>`;
         $("#" + containedId).html(grid);
 
         $(document).on("click", "#regenerate-bigrams", () => {
-
-            this.requestBigrams(this.getSearchFormData());
+            this.bigrams.formData = this.getBigramsFormData();
+            this.requestBigrams(this.getSearchFormData().concat(this.bigrams.formData));
         })
+    },
+    getBigramsFormData: function(){
+        return $('#bigrams-controls').serializeArray();
+    },
+    getBigramsDefaultFormData: function(){
+        return [
+            {name: "n-grams-to-generate", value: "2"},
+            {name: "top-bubbles-to-display", value: "10"}
+        ];
     },
     getSearchFormData: function(){
         var data = $('#tweets_form').serializeArray();
@@ -481,7 +502,6 @@ app.views.tweets = Backbone.View.extend({
             var matrix = []; //This will behave as an object rather than a matrix. We need to create it anyway in order to fill the blank spaces.
 
             for (var i = 0; i < yLabels.length; i++) {
-
               matrix[i] = new Array(xLabels.length).fill(0);
 
               for (var j = 0; j < xLabels.length; j++) {
@@ -590,22 +610,7 @@ app.views.tweets = Backbone.View.extend({
         $.post(app.appURL+'tweets_scroll', data, function(response){
             var html = self.get_tweets_html(response, '');
             btn_area.replaceWith(html);
-          }, 'json').fail(function() {
-              $('.loading_text').fadeOut('slow');
-                $.confirm({
-                    title: 'Error',
-                    boxWidth: '600px',
-                    theme: 'pix-danger-modal',
-                    backgroundDismiss: true,
-                    content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
-                    buttons: {
-                        cancel: {
-                            text: 'CLOSE',
-                            btnClass: 'btn-cancel',
-                        }
-                    }
-                });
-            });
+          }, 'json').fail(this.cnxError);
         return false;
     },
     markBigramTweets: function(label, relatedTweets){

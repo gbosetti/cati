@@ -215,8 +215,9 @@ def search_for_tweets_state():
 # @cross_origin()
 def bigrams_with_higher_ocurrence():
     data = request.form
+    print(int(data["n-grams-to-generate"]))
     full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'])
-    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(full_searched_tweets)
+    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(full_searched_tweets, length=int(data["n-grams-to-generate"]))
     return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets })
 
 

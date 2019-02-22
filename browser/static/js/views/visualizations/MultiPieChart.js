@@ -28,6 +28,7 @@ class MultiPieChart{
   	var svg = d3
       .select(this.domSelector)
       .append("svg")
+      //.attr("style", "outline: thin dotted #e2e2e2;")
       .attr("width", width)
       .attr("height", height)
       .attr("class", "bubble")
