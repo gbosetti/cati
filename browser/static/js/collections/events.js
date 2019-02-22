@@ -68,8 +68,8 @@ app.collections.events = Backbone.Collection.extend({
         terms+='<div class="timeline_options"><hr>';
         terms+='Mark event tweets as: <a href="#" data-cid="'+event.cid+'" data-status="negative" class="timeline_btn tl_options_btn options_btn_negative">negative</a> <a href="#" data-cid="'+event.cid+'" data-status="confirmed" class="timeline_btn tl_options_btn options_btn_valid">Confirmed</a>';
         terms+='</div>';
-        console.log("ev", event.attributes);
-        console.log("image", image);
+        //console.log("ev", event.attributes);
+        //console.log("image", image);
           if(!image){
               image = "static/images/img.jpg";
           }

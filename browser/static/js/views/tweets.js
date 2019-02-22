@@ -71,13 +71,13 @@ app.views.tweets = Backbone.View.extend({
 
       this.displayResultsArea();
 
-      var data = $('#tweets_form').serializeArray();
-          data.push({name: "index", value: app.session.s_index});
+      var data = this.getSearchFormData();
       this.requestTweets(data);
       this.requestBigrams(data);
 
       return false;
-    },search_not_labeled: function(e){
+    },
+    search_not_labeled: function(e){
         e.preventDefault();
         if(!app.session){
             $.confirm({
@@ -98,16 +98,16 @@ app.views.tweets = Backbone.View.extend({
         $('#tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
         var t0 = performance.now();
-        var data = $('#tweets_form').serializeArray();
-        data.push({name: "index", value: app.session.s_index});
-        data.push({name: "session", value: app.session.s_name});
+        var data = this.getSearchFormData();
         data.push({name: "state", value: "proposed"});
 
         var self = this;
         $.post(app.appURL+'search_for_tweets_state', data, function(response){
-            self.requestBigrams(data);
+
             self.display_tweets(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
+
+        self.requestBigrams(data);
 
         return false;
     },
@@ -418,11 +418,11 @@ app.views.tweets = Backbone.View.extend({
                         <div class="col-12 col-sm-12">
                                 <div id="bigrams-controls" class="static_box pix-padding-20 white-bg">
                                     <div class="form-row">
-                                        <!--<div class="col-md-2">
+                                        <div class="col-md-2">
                                             <label for="n-grams-to-generate">N-gram length</label>
                                             <input id="n-grams-to-generate" type="number" class="form-control" value="2">
                                         </div>
-                                        <div class="col-md-2">
+                                        <!--<div class="col-md-2">
                                             <label for="min-tweets-in-bigram">Min tweets by n-gram</label>
                                             <input id="min-tweets-in-bigram" type="number" class="form-control" value="25">
                                         </div>-->
@@ -453,6 +453,17 @@ app.views.tweets = Backbone.View.extend({
                             </div>
                         </div>`;
         $("#" + containedId).html(grid);
+
+        $(document).on("click", "#regenerate-bigrams", () => {
+
+            this.requestBigrams(this.getSearchFormData());
+        })
+    },
+    getSearchFormData: function(){
+        var data = $('#tweets_form').serializeArray();
+        data.push({name: "index", value: app.session.s_index});
+        data.push({name: "session", value:  'session_'+app.session.s_name});
+        return data;
     },
     formatDataForHeatmap: function(ngrams){
         //TODO: for performance reasons, we should move this to the backend
@@ -720,10 +731,8 @@ app.views.tweets = Backbone.View.extend({
         $('.loading_text').fadeIn('slow');
         var state = $(e.currentTarget).data("state");
         var t0 = performance.now();
-        var data = $('#tweets_form').serializeArray();
-        data.push({name: "index", value: app.session.s_index});
-        data.push({name: "state", value: state});
-        data.push({name: "session", value:  'session_'+app.session.s_name});
+        var data = this.getSearchFormData();
+
         var self = this;
 
         $.post(app.appURL+'tweets_filter', data, function(response){
@@ -735,12 +744,9 @@ app.views.tweets = Backbone.View.extend({
     all_tweets_state: function(e){
         e.preventDefault();
         var state = $(e.currentTarget).data("state");
-        var data = $('#tweets_form').serializeArray();
-        var force = document.getElementById('force_all');
-
-         data.push({name: "index", value: app.session.s_index});
-            data.push({name: "session", value: app.session.s_name});
+        var data = this.getSearchFormData();
             data.push({name: "state", value: state});
+        var force = document.getElementById('force_all');
 
              var jc = $.confirm({
                 theme: 'pix-default-modal',
