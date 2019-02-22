@@ -95,7 +95,7 @@ app.views.tweets = Backbone.View.extend({
         }
         $('#tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
-        var t0 = performance.now();
+        this.displayResultsArea();
         var data = $('#tweets_form').serializeArray();
         data.push({name: "index", value: app.session.s_index});
         data.push({name: "session", value: app.session.s_name});
