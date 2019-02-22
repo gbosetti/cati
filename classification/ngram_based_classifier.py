@@ -25,7 +25,7 @@ class NgramBasedClasifier:
 
         length = kwargs.get('length', 2)
         top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
-        min_occurrences = kwargs.get('min_occurrences', 2)
+        min_occurrences = kwargs.get('min_occurrences', 20)
 
         try:
             full_bigrams = {}

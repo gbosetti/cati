@@ -80,7 +80,6 @@ app.views.tweets = Backbone.View.extend({
 
       var data = this.getSearchFormData();
       this.requestTweets(data);
-      console.log("1", data.concat(this.bigrams.formData));
       this.requestBigrams(data.concat(this.bigrams.formData));
 
       return false;
@@ -115,7 +114,6 @@ app.views.tweets = Backbone.View.extend({
             self.display_tweets(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
 
-        console.log("2", data.concat(this.bigrams.formData));
         self.requestBigrams(data.concat(this.bigrams.formData));
 
         return false;
@@ -141,9 +139,11 @@ app.views.tweets = Backbone.View.extend({
     },
     requestBigrams: function(data){
         var containerId = "ngrams-search-classif";
-        this.showLoadingMessage(containerId, 500);
+        this.showLoadingMessage(containerId, 677);
         var self = this;
         console.log("requestBigrams's data", data);
+
+        this.bigrams.formData = data;
 
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
             //check if there are any bigrams
@@ -151,7 +151,14 @@ app.views.tweets = Backbone.View.extend({
                 self.showNoBigramsFound(containerId);
             else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
 
-        }, 'json').fail(this.cnxError);
+        }, 'json').fail(function(err){
+            this.clearNgramsGraph();
+            console.log(err);
+            self.cnxError(err);
+        });
+    },
+    clearNgramsGraph: function(){
+        $("#bigrams-graph-area").html("");
     },
     showNoBigramsFound: function(containedId){
         $("#" + containedId).html("Sorry, no bigrams were found.");
@@ -171,18 +178,17 @@ app.views.tweets = Backbone.View.extend({
             spinnerFrame.style["padding-top"] = "150px";
             spinnerFrame.appendChild(spinner);
 
-        var container = document.querySelector("#" + containerId);
-
-        container.appendChild(spinnerFrame);
+        document.querySelector("#" + containerId).appendChild(spinnerFrame);
     },
-    cnxError: function() {
+    cnxError: function(err) {
         $('.loading_text').fadeOut('slow');
+        var err_content = "An error was encountered while connecting to the server, please try again." + ((err && err.statusText)? " Error's status: " + err.statusText : " ");
         $.confirm({
             title: 'Error',
             boxWidth: '600px',
             theme: 'pix-danger-modal',
             backgroundDismiss: true,
-            content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweets_submit",
+            content: err_content,
             buttons: {
                 cancel: {
                     text: 'CLOSE',
@@ -366,6 +372,8 @@ app.views.tweets = Backbone.View.extend({
         var len = Object.keys(bigrams).length;
         $("#top-bubbles-to-display").attr({"max": len});
         $("#top-bubbles-to-display").val(len);
+
+        console.log(this.bigrams.formData);
         $("#n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
     },
     updateTopBubblesToDisplay: function(evt){
@@ -374,7 +382,7 @@ app.views.tweets = Backbone.View.extend({
     },
     renderBigramsChart: function(domSelector, bigrams, tweets, graphHeight, maxBubblesToShow){
 
-        $(domSelector).html("");
+        this.clearNgramsGraph();
 
         //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
         this.bigrams.bigrams = bigrams;
@@ -466,7 +474,7 @@ app.views.tweets = Backbone.View.extend({
                         </div>`;
         $("#" + containedId).html(grid);
 
-        $(document).on("click", "#regenerate-bigrams", () => {
+        $("#bigrams-controls").on("click", "#regenerate-bigrams", () => {
             this.bigrams.formData = this.getBigramsFormData();
             this.requestBigrams(this.getSearchFormData().concat(this.bigrams.formData));
         })
