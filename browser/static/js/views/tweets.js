@@ -373,8 +373,8 @@ app.views.tweets = Backbone.View.extend({
         $("#top-bubbles-to-display").attr({"max": len});
         $("#top-bubbles-to-display").val(len);
 
-        console.log(this.bigrams.formData);
         $("#n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
+        $("#min-tweets-in-ngram").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
     },
     updateTopBubblesToDisplay: function(evt){
 
@@ -442,10 +442,10 @@ app.views.tweets = Backbone.View.extend({
                                             <label for="n-grams-to-generate">N-gram length</label>
                                             <input id="n-grams-to-generate" name="n-grams-to-generate" type="number" class="form-control" value="2">
                                         </div>
-                                        <!--<div class="col-md-2">
+                                        <div class="col-md-2">
                                             <label for="min-tweets-in-bigram">Min tweets by n-gram</label>
-                                            <input id="min-tweets-in-bigram" type="number" class="form-control" value="25">
-                                        </div>-->
+                                            <input id="min-tweets-in-ngram" name="min-tweets-in-ngram" type="number" class="form-control" value="20">
+                                        </div>
                                         <div class="col-md-2">
                                             <label for="top-bubbles-to-display">Max bubbles to show</label>
                                             <input id="top-bubbles-to-display" name="top-bubbles-to-display" type="number" class="form-control" value="10" min="1" max="10">
@@ -485,7 +485,8 @@ app.views.tweets = Backbone.View.extend({
     getBigramsDefaultFormData: function(){
         return [
             {name: "n-grams-to-generate", value: "2"},
-            {name: "top-bubbles-to-display", value: "10"}
+            {name: "top-bubbles-to-display", value: "10"},
+            {name: "min-tweets-in-ngram", value: "20"}
         ];
     },
     getSearchFormData: function(){

@@ -21,11 +21,13 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
-    def bigrams_with_higher_ocurrence(self, tweets, **kwargs ):  #min_occurrences=20, remove_stopwords=True, stemming=True, length=2, top_ngrams_to_retrieve=None):
+    def bigrams_with_higher_ocurrence(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
 
         length = kwargs.get('length', 2)
         top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
         min_occurrences = kwargs.get('min_occurrences', 20)
+
+        print("Params", kwargs)
 
         try:
             full_bigrams = {}
