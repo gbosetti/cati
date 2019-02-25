@@ -434,26 +434,26 @@ def mark_bigram_tweets():
     return jsonify(data)
 
 
-@app.route('/mark_search_tweets', methods=['POST', 'GET'])
+@app.route('/mark_unlabeled_tweets', methods=['POST', 'GET'])
 # @cross_origin()
-def mark_search_tweets():
+def mark_unlabeled_tweets():
     data = request.form
     index = data['index']
     session = data['session']
     word= data['word']
     state = data['state']
-    functions.set_search_status(index, session, state, word)
+    functions.mark_unlabeled_tweets(index, session, state, word)
     return jsonify(data)
 
 
-@app.route('/mark_search_tweets_force', methods=['POST', 'GET'])
-def mark_search_tweets_force():
+@app.route('/mark_all_matching_tweets', methods=['POST', 'GET'])
+def mark_all_matching_tweets():
     data = request.form
     index = data['index']
     session = data['session']
     word= data['word']
     state = data['state']
-    functions.set_search_status_force(index, session, state, word)
+    functions.mark_all_matching_tweets(index, session, state, word)
     return jsonify(data)
 
 # TODO replace hard coded options

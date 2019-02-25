@@ -785,13 +785,14 @@ app.views.tweets = Backbone.View.extend({
             });
         };
 
-        if (document.getElementById('force_all').checked){
-            $.post(app.appURL+'mark_search_tweets_force', data, callback, 'json');
+        var matchingStrategy = document.getElementById('force_all').value;
 
-        }else{
-            $.post(app.appURL+'mark_search_tweets', data, callback, 'json');
+        if (matchingStrategy == "mark_all_results"){
+            $.post(app.appURL+'mark_all_matching_tweets', data, callback, 'json');
+
+        }else if(matchingStrategy == "mark_unlabeled_results"){
+            $.post(app.appURL+'mark_unlabeled_tweets', data, callback, 'json');
         }
-
 
         return false;
     }

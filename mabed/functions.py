@@ -1105,7 +1105,7 @@ class Functions:
 
         return res
 
-    def set_search_status(self, index, session, state, word):
+    def mark_unlabeled_tweets(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         query = {
             "query": {
@@ -1135,7 +1135,7 @@ class Functions:
         res = tweets_connector.update_query(query, session, state)
         return res
 
-    def set_search_status_force(self, index, session, state, word):
+    def mark_all_matching_tweets(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         query = {
             "query": {

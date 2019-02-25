@@ -174,7 +174,6 @@
               </div>
               <div class="form-group">
                 <label for="session_name">Session Index</label>
-{#                <input name="s_index" type="text" class="form-control" id="session_index" placeholder="Enter Session Index">#}
                   <select name="s_index" class="custom-select" id="session_index">
                       <option value="twitter2015">Twitter2015</option>
                       <option value="twitter2016">Twitter2016</option>
@@ -412,11 +411,15 @@
           </div>
 
             <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="display:none;">
-                Mark all the results as:
-                <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">negative</a>
+                Mark
+                <select id="force_all">
+                      <option value="mark_all_results">all the results</option>
+                      <option value="mark_unlabeled_results">the unlabeled results</option>
+                </select>
+                as:
+                <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
                 <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
-
-                <label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>
+                <!--<label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>-->
             </div>
 
             <div class="container">
@@ -680,36 +683,7 @@
             <div class="col-12 pix-margin-bottom-30">
             <h2 class="pix-gray darken-4 font-black">Export</h2>
           </div>
-{#          <div class="col-12 col-sm-12 pix-margin-v-30">#}
-{#            <table class="table">#}
-{#              <thead>#}
-{#                <tr>#}
-{#                  <th scope="col">Time</th>#}
-{#                  <th scope="col">Main terms</th>#}
-{#                  <th scope="col">Related terms</th>#}
-{#                </tr>#}
-{#              </thead>#}
-{#              <tbody>#}
-{#                <tr>#}
-{#                  <td>2017-12-07 06:00 | 2017-12-11 10:00</td>#}
-{#                  <td>fdl2017</td>#}
-{#                  <td>onlylyon, fetesdeslumieres, fetedeslumieres, prefetrhone, fetelumieres, cluster97</td>#}
-{#                </tr>#}
-{#                <tr>#}
-{#                  <td>2017-12-07 06:00 | 2017-12-11 10:00</td>#}
-{#                  <td>fdl2017</td>#}
-{#                  <td>onlylyon, fetesdeslumieres, fetedeslumieres, prefetrhone, fetelumieres, cluster97</td>#}
-{#                </tr>#}
-{#              <tr>#}
-{#                  <td>2017-12-07 06:00 | 2017-12-11 10:00</td>#}
-{#                  <td>fdl2017</td>#}
-{#                  <td>onlylyon, fetesdeslumieres, fetedeslumieres, prefetrhone, fetelumieres, cluster97</td>#}
-{#                </tr>#}
-{#              </tbody>#}
-{#            </table>#}
-{#          </div>#}
             <div class="col-12 pix-padding-bottom-60">
-{#                <a href="#" class="btn btn-lg btn-flat btn-success" ><strong>Export events .json File</strong></a>#}
                 <a href="#" class="btn btn-lg btn-flat btn-success export_tweets" ><strong>Export confirmed tweets .json File</strong></a>
           </div>
 
