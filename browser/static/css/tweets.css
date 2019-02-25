@@ -43,6 +43,10 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.54);
 }
 
+#bigrams-controls .toggle {
+    width: 100% !important;
+}
+
 #bigrams-stats svg{
     display: block;
     margin: 0px auto;

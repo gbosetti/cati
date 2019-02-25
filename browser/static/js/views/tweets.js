@@ -372,6 +372,7 @@ app.views.tweets = Backbone.View.extend({
         var len = Object.keys(bigrams).length;
         $("#top-bubbles-to-display").attr({"max": len});
         $("#top-bubbles-to-display").val(len);
+        //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
 
         $("#n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
         $("#min-tweets-in-ngram").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
@@ -450,13 +451,13 @@ app.views.tweets = Backbone.View.extend({
                                             <label for="top-bubbles-to-display">Max bubbles to show</label>
                                             <input id="top-bubbles-to-display" name="top-bubbles-to-display" type="number" class="form-control" value="10" min="1" max="10">
                                         </div>
-                                        <!--<div class="col-md-2">
+                                        <div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
                                             <div class="">
-                                                <div class="toggle btn btn-success" data-toggle="toggle" style="width: 100%; height: 37px;"><div class="toggle btn btn-success" data-toggle="toggle" style="width: 113px; height: 37px;"><input id="remove-stopwords" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked=""><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div>
+                                                <input type="checkbox" name="remove-stopwords" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked>
                                             </div>
                                         </div>
-                                        <div class="col-md-2">
+                                        <!--<div class="col-md-2">
                                             <label for="stem-words">Stem words</label>
                                             <div class="">
                                                 <div class="toggle btn btn-success" data-toggle="toggle" style="width: 113px; height: 37px;"><input id="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked=""><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div>
@@ -473,6 +474,7 @@ app.views.tweets = Backbone.View.extend({
                             </div>
                         </div>`;
         $("#" + containedId).html(grid);
+        $("input[data-toggle='toggle'").bootstrapToggle();
 
         $("#bigrams-controls").on("click", "#regenerate-bigrams", () => {
             this.bigrams.formData = this.getBigramsFormData();
@@ -486,7 +488,8 @@ app.views.tweets = Backbone.View.extend({
         return [
             {name: "n-grams-to-generate", value: "2"},
             {name: "top-bubbles-to-display", value: "10"},
-            {name: "min-tweets-in-ngram", value: "20"}
+            {name: "min-tweets-in-ngram", value: "20"},
+            {name: "remove-stopwords", value: "true"}
         ];
     },
     getSearchFormData: function(){
