@@ -395,11 +395,16 @@
                 <i class="pixicon-question-circle" style="margin-right:5px;position:relative;top:2px;"></i>
               </a>
               <div class="input-group mb-3">
-                <input name="word" type="text" class="form-control" placeholder="Search..." aria-label="" aria-describedby="basic-addon2" value="">
+                <!--<input name="word" type="text" class="form-control" placeholder="Search..." aria-label="" aria-describedby="basic-addon2" value="" style="border-radius: 1em 0px 0px 1em;">
                 <div class="input-group-append">
-                  <button class="btn btn-outline-success" type="submit">Search</button>
-                  <button class="btn btn-outline-warning" id="search_not_labeled">Search Not Labeled</button>
-                </div>
+                  <button class="btn btn-outline-success" type="submit" style="border-radius: 0px 1em 1em 0em;">Search</button>
+                </div>-->
+                <input name="word" type="text" class="form-control" placeholder="Search..." aria-label="" aria-describedby="basic-addon2" value="" style="">
+                <span class="input-group-append">
+                    <button class="btn btn-outline-secondary border-left-0 border" type="submit" style="border-left: none !important; background: white;">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </span>
               </div>
             </form>
           </div>
