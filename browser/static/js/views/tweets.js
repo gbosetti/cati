@@ -340,14 +340,7 @@ app.views.tweets = Backbone.View.extend({
         return false;
     },
     displayPaginatedResults: function(response, t0, word){
-        var html = '';
-        html += '<div class="col-12 pix-padding-top-30 pix-padding-bottom-30">\n' +
-            '                    <a class="btn btn-lg btn-success pix-white fly shadow scale btn_filter" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>\n' +
-            '                    <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_filter" data-state="negative" href="#" role="button"><strong>Negative</strong></a>\n' +
-            '                    <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_filter" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>\n' +
-            '              </div>';
-
-        html += this.get_tweets_html(response, '');
+        var html = this.get_tweets_html(response, '');
         this.showImageClusters(response.clusters, word);
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0);
