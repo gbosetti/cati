@@ -1044,7 +1044,6 @@ class Functions:
     def set_status(self, index, session, data):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
-        session = 'session_' + session
         event = json.loads(data['event'])
         # print("------------------------")
         # print(data)
@@ -1108,7 +1107,6 @@ class Functions:
 
     def set_search_status(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
         query = {
             "query": {
                 "bool": {
@@ -1139,7 +1137,6 @@ class Functions:
 
     def set_search_status_force(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
         query = {
             "query": {
                 "bool": {
@@ -1154,13 +1151,11 @@ class Functions:
                 }
             }
         }
-        res = tweets_connector.update_query(query, session, state)
-        return res
+        return tweets_connector.update_query(query, session, state)
 
     def set_cluster_state(self, index, session, cid, state):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
-        session = 'session_' + session
         query = {
             "query": {
                 "term": {"imagesCluster": cid}
@@ -1171,7 +1166,8 @@ class Functions:
 
     def set_tweet_state(self, index, session, tid, val):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
+
+        print("PARAMS", index, session, tid, val)
 
         query = {
             "doc": {

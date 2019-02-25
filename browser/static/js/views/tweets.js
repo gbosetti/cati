@@ -7,7 +7,7 @@ app.views.tweets = Backbone.View.extend({
         'click .scroll_tweets': 'scroll_tweets',
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
-        'click .all_tweets_state': 'all_tweets_state',
+        'click .massive_tagging_to_state': 'massive_tagging_to_state',
         'click #search_not_labeled': 'search_not_labeled',
         'change #top-bubbles-to-display': 'updateTopBubblesToDisplay'
     },
@@ -574,7 +574,8 @@ app.views.tweets = Backbone.View.extend({
 		var tid = $(e.currentTarget).data("tid");
 		var val = $(e.currentTarget).data("val");
 		var el = $(e.currentTarget).closest('.media-body').find('.t_state');
-		$.post(app.appURL+'mark_tweet', {tid: tid, index: app.session.s_index, session: app.session.s_name, val: val}, function(response){
+
+		$.post(app.appURL+'mark_tweet', {tid: tid, index: app.session.s_index, session: 'session_'+app.session.s_name, val: val}, function(response){
 			var state = val;
 				if(state === "confirmed"){
 					state = '<span class="badge badge-success">'+state+'</span>';
@@ -584,22 +585,9 @@ app.views.tweets = Backbone.View.extend({
 					state = '<span class="badge badge-secondary">'+state+'</span>';
 				}
 				el.html(state);
+
             app.views.mabed.prototype.getClassificationStats();
-		}, 'json').fail(function() {
-                        $.confirm({
-                            title: 'Error',
-                            boxWidth: '600px',
-                            theme: 'pix-danger-modal',
-                            backgroundDismiss: true,
-                            content: "An error was encountered while connecting to the server, please try again.<br>Error code: tweets__tweet_state",
-                            buttons: {
-                                cancel: {
-                                    text: 'CLOSE',
-                                    btnClass: 'btn-cancel',
-                                }
-                            }
-                        });
-                    });
+		}, 'json').fail(this.cnxError);
 		return false;
 	},
     scroll_tweets: function(e){
@@ -640,7 +628,7 @@ app.views.tweets = Backbone.View.extend({
 
     	var data = [];
 		data.push({name: "index", value: app.session.s_index});
-		data.push({name: "session", value: app.session.s_name});
+		data.push({name: "session", value: 'session_'+app.session.s_name});
 		data.push({name: "label", value: label});
 		data.push({name: "tweet_ids", value: JSON.stringify(tweetIds)});
 
@@ -696,7 +684,7 @@ app.views.tweets = Backbone.View.extend({
     	var cid = $(e.currentTarget).data("cid");
     	var data = [];
 		data.push({name: "index", value: app.session.s_index});
-		data.push({name: "session", value: app.session.s_name});
+		data.push({name: "session", value: 'session_'+app.session.s_name});
 		data.push({name: "state", value: state});
 		data.push({name: "cid", value: cid});
 		var jc = $.confirm({
@@ -751,69 +739,57 @@ app.views.tweets = Backbone.View.extend({
 
         return false;
     },
-    all_tweets_state: function(e){
+    massive_tagging_to_state: function(e){
         e.preventDefault();
+
         var state = $(e.currentTarget).data("state");
         var data = this.getSearchFormData();
             data.push({name: "state", value: state});
-        var force = document.getElementById('force_all');
 
-             var jc = $.confirm({
+        //Loading message
+        var jc = $.confirm({
+            theme: 'pix-default-modal',
+            title: 'Changing tweets state',
+            boxWidth: '600px',
+            useBootstrap: false,
+            backgroundDismiss: false,
+            content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+            defaultButtons: false,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+
+        var callback = function(response){
+            jc.close();
+            $.confirm({
                 theme: 'pix-default-modal',
                 title: 'Changing tweets state',
                 boxWidth: '600px',
                 useBootstrap: false,
                 backgroundDismiss: false,
-                content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+                content: 'Please click the search button again to refresh the result!',
                 defaultButtons: false,
                 buttons: {
                     cancel: {
                         text: 'OK',
-                        btnClass: 'btn-cancel'
+                        btnClass: 'btn-cancel',
+                        action: function(e){
+                            app.views.mabed.prototype.getClassificationStats();
+                        }
                     }
                 }
             });
+        };
 
-        if (force.checked){
-            $.post(app.appURL+'mark_search_tweets_force', data, function(response){
-                jc.close();
-                $.confirm({
-                    theme: 'pix-default-modal',
-                    title: 'Changing tweets state',
-                    boxWidth: '600px',
-                    useBootstrap: false,
-                    backgroundDismiss: false,
-                    content: 'Please click the search button again to refresh the result!',
-                    defaultButtons: false,
-                    buttons: {
-                        cancel: {
-                            text: 'OK',
-                            btnClass: 'btn-cancel'
-                        }
-                    }
-                });
-            }, 'json');
+        if (document.getElementById('force_all').checked){
+            $.post(app.appURL+'mark_search_tweets_force', data, callback, 'json');
+
         }else{
-
-
-            $.post(app.appURL+'mark_search_tweets', data, function(response){
-                jc.close();
-                    $.confirm({
-                    theme: 'pix-default-modal',
-                    title: 'Changing tweets state',
-                    boxWidth: '600px',
-                    useBootstrap: false,
-                    backgroundDismiss: false,
-                    content: 'Please click the search button again to refresh the result!',
-                    defaultButtons: false,
-                    buttons: {
-                        cancel: {
-                            text: 'OK',
-                            btnClass: 'btn-cancel'
-                        }
-                    }
-                });
-            }, 'json');
+            $.post(app.appURL+'mark_search_tweets', data, callback, 'json');
         }
 
 

@@ -408,6 +408,7 @@ def mark_cluster():
 @app.route('/mark_tweet', methods=['POST', 'GET'])
 # @cross_origin()
 def mark_tweet():
+    print("MARK TWEET")
     data = request.form
     index = data['index']
     session = data['session']
