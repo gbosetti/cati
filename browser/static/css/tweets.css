@@ -51,3 +51,7 @@
     display: block;
     margin: 0px auto;
 }
+
+#search-results-tabs .nav-link {
+    padding: 9px;
+}

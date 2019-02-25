@@ -27,8 +27,6 @@ class NgramBasedClasifier:
         top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
         min_occurrences = kwargs.get('min_occurrences', 20)
 
-        print("Params", kwargs)
-
         try:
             full_bigrams = {}
             res = tweets["hits"]["hits"]
