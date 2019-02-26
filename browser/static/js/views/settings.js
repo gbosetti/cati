@@ -99,6 +99,7 @@ app.views.settings = Backbone.View.extend({
               app.eventsCollection.reset();
               localStorage.removeItem('events');
             }
+          app.views.mabed.prototype.getClassificationStats();
           }
       }, 'json');
       return false;
