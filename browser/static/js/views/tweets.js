@@ -105,21 +105,19 @@ app.views.tweets = Backbone.View.extend({
         $('#tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
         this.displayResultsArea();
-        var data = $('#tweets_form').serializeArray();
-        data.push({name: "index", value: app.session.s_index});
-        data.push({name: "session", value: app.session.s_name});
         var t0 = performance.now();
         var data = this.getSearchFormData();
+        data.push({name: "index", value: app.session.s_index});
+        data.push({name: "session", value: app.session.s_name});
         data.push({name: "state", value: "proposed"});
 
         var self = this;
         $.post(app.appURL+'search_for_tweets_state', data, function(response){
 
-            self.requestBigramsFiltered(data);
             self.display_tweets(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
 
-        self.requestBigrams(data.concat(this.bigrams.formData));
+        self.requestBigramsFiltered(data.concat(this.bigrams.formData));
 
         return false;
     },
@@ -164,20 +162,26 @@ app.views.tweets = Backbone.View.extend({
     },
     clearNgramsGraph: function(){
         $("#bigrams-graph-area").html("");
-        }, 'json').fail(this.cnxError);
     },
     requestBigramsFiltered: function(data){
         var containerId = "ngrams-search-classif";
-
-        this.showLoadingMessage(containerId, 500);
+        this.showLoadingMessage(containerId, 677);
         var self = this;
+        console.log("requestBigrams's data", data);
+
+        this.bigrams.formData = data;
+
         $.post(app.appURL+'bigrams_with_higher_ocurrence_filter_state', data, (response) => {
             //check if there are any bigrams
-            console.log(response);
             if($.isEmptyObject(response.bigrams))
                 self.showNoBigramsFound(containerId);
             else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
-        }, 'json').fail(this.cnxError);
+
+        }, 'json').fail(function(err){
+            this.clearNgramsGraph();
+            console.log(err);
+            self.cnxError(err);
+        });
     },
     showNoBigramsFound: function(containedId){
         $("#" + containedId).html("Sorry, no bigrams were found.");
