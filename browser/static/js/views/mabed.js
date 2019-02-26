@@ -48,8 +48,7 @@ app.views.mabed = Backbone.View.extend({
         data.push({name: "session", value: app.session.s_name});
 
         $.post(app.appURL + 'produce_classification_stats', data, function (response, status) {
-            console.log("Data: ", response, "\nStatus: ", status);
-
+            //console.log("Updating classification stats: ", response);
             let total_confirmed = 0;
             let total_negative = 0;
             let total_proposed = 0;

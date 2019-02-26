@@ -22,6 +22,7 @@ __email__ = "odehfiras@gmail.com"
 
 # Interface Functions
 class Functions:
+    #TODO check if this needs to e configured on master
     def __init__(self):
         self.sessions_index = 'mabed_sessions'
         self.sessions_doc_type = 'session'
@@ -1068,7 +1069,6 @@ class Functions:
     def set_status(self, index, session, data):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
-        session = 'session_' + session
         event = json.loads(data['event'])
         # print("------------------------")
         # print(data)
@@ -1130,9 +1130,8 @@ class Functions:
 
         return res
 
-    def set_search_status(self, index, session, state, word):
+    def mark_unlabeled_tweets(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
         query = {
             "query": {
                 "bool": {
@@ -1161,9 +1160,8 @@ class Functions:
         res = tweets_connector.update_query(query, session, state)
         return res
 
-    def set_search_status_force(self, index, session, state, word):
+    def mark_all_matching_tweets(self, index, session, state, word):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
         query = {
             "query": {
                 "bool": {
@@ -1178,13 +1176,11 @@ class Functions:
                 }
             }
         }
-        res = tweets_connector.update_query(query, session, state)
-        return res
+        return tweets_connector.update_query(query, session, state)
 
     def set_cluster_state(self, index, session, cid, state):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
-        session = 'session_' + session
         query = {
             "query": {
                 "term": {"imagesCluster": cid}
@@ -1195,7 +1191,8 @@ class Functions:
 
     def set_tweet_state(self, index, session, tid, val):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        session = 'session_' + session
+
+        print("PARAMS", index, session, tid, val)
 
         query = {
             "doc": {

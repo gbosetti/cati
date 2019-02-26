@@ -26,6 +26,16 @@ app = Flask(__name__, static_folder='browser/static', template_folder='browser/t
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 
+with open('config.json', 'r') as f:
+    config = json.load(f)
+default_host = config['DEFAULT']['elastic_search']['host']
+default_port = config['DEFAULT']['elastic_search']['port']
+default_user = config['DEFAULT']['elastic_search']['user']
+default_password = config['DEFAULT']['elastic_search']['password']
+default_timeout = config['DEFAULT']['elastic_search']['timeout']
+default_index = config['DEFAULT']['elastic_search']['index']
+default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
+default_session = config['DEFAULT']['test']['session']
 
 htpasswd = HtPasswdAuth(app)
 
@@ -163,7 +173,10 @@ def detect_events():
 # ==================================================================
 # 3. Images
 # ==================================================================
-
+# TODO replace hard coded options
+# this function is not working
+# we must find out what is the expected content
+# have tested twitter2017.json, and it renders a page with broken images
 @app.route('/images')
 def images():
     with open('twitter2015.json') as f:
@@ -188,7 +201,6 @@ def search_for_tweets():
     data = request.form
     app.last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'])
-    # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
     return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
 
 @app.route('/search_for_tweets_state', methods=['POST'])
@@ -196,7 +208,6 @@ def search_for_tweets_state():
     data = request.form
     app.last_searched_tweets = functions.get_tweets_filter_classification_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
     clusters = functions.get_clusters_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
-    # ngrams, tweets_by_bigram = NgramBasedClasifier().bigrams_with_higher_ocurrence(app.last_searched_tweets)
     return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
 
 
@@ -206,7 +217,9 @@ def search_for_tweets_state():
 def bigrams_with_higher_ocurrence():
     data = request.form
     full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'])
-    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(full_searched_tweets)
+
+    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(
+        full_searched_tweets, length=int(data["n-grams-to-generate"]), min_occurrences=int(data['min-tweets-in-ngram']))
     return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets })
 
 # Get Tweets
@@ -370,13 +383,13 @@ def event_image():
         res = True
     return jsonify({"result":res, "image": image})
 
-
+# TODO replace hard coded options
 # Test & Debug
 @app.route('/mark_valid', methods=['POST', 'GET'])
 # @cross_origin()
 def mark_valid():
     data = request.form
-    res = functions.set_all_status("twitter2015", "session_Twitter2015", "proposed")
+    res = functions.set_all_status(default_index, default_session, "proposed")
     return jsonify(res)
 
 
@@ -405,6 +418,7 @@ def mark_cluster():
 @app.route('/mark_tweet', methods=['POST', 'GET'])
 # @cross_origin()
 def mark_tweet():
+    print("MARK TWEET")
     data = request.form
     index = data['index']
     session = data['session']
@@ -430,29 +444,29 @@ def mark_bigram_tweets():
     return jsonify(data)
 
 
-@app.route('/mark_search_tweets', methods=['POST', 'GET'])
+@app.route('/mark_unlabeled_tweets', methods=['POST', 'GET'])
 # @cross_origin()
-def mark_search_tweets():
+def mark_unlabeled_tweets():
     data = request.form
     index = data['index']
     session = data['session']
     word= data['word']
     state = data['state']
-    functions.set_search_status(index, session, state, word)
+    functions.mark_unlabeled_tweets(index, session, state, word)
     return jsonify(data)
 
 
-@app.route('/mark_search_tweets_force', methods=['POST', 'GET'])
-def mark_search_tweets_force():
+@app.route('/mark_all_matching_tweets', methods=['POST', 'GET'])
+def mark_all_matching_tweets():
     data = request.form
     index = data['index']
     session = data['session']
     word= data['word']
     state = data['state']
-    functions.set_search_status_force(index, session, state, word)
+    functions.mark_all_matching_tweets(index, session, state, word)
     return jsonify(data)
 
-
+# TODO replace hard coded options
 @app.route('/delete_field', methods=['POST', 'GET'])
 # @cross_origin()
 def delete_field():
@@ -586,7 +600,7 @@ def get_keywords():
     # res = {"words":words, "count":count}
     return jsonify(res)
 
-
+# TODO replace hard coded options
 @app.route('/get_word2vec', methods=['POST', 'GET'])
 def get_word2vec():
     # data = request.form

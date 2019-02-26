@@ -1,5 +1,5 @@
 # coding: utf-8
-
+import json
 import time
 from elasticsearch import Elasticsearch
 import os
@@ -12,10 +12,20 @@ from pathlib import Path
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
+with open('config.json', 'r') as f:
+    config = json.load(f)
+default_host = config['DEFAULT']['elastic_search']['host']
+default_port = config['DEFAULT']['elastic_search']['port']
+default_user = config['DEFAULT']['elastic_search']['user']
+default_password = config['DEFAULT']['elastic_search']['password']
+default_timeout = config['DEFAULT']['elastic_search']['timeout']
+default_index = config['DEFAULT']['elastic_search']['index']
+default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
 class Es_connector:
-
-    def __init__(self, host='localhost', port=9200, user='elastic', password='elastic', timeout=1000, index="test2", doc_type="tweet"):
+    def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
+    timeout=default_timeout, index=default_index, doc_type=default_doc_type):
     # def __init__(self, host='localhost', port=9200, user='', password='', timeout=1000, index="test2", doc_type="tweet"):
+
 
         # Define config
         self.host = host

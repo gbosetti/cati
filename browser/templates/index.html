@@ -1,1116 +1,1029 @@
 <!doctype html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MABED</title>
-    <link rel="icon" href="static/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css"/>
-    <link title="timeline-styles" rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
-    <!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
-    <link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
-    <link rel="stylesheet" type="text/css" href="static/css/main.css"/>
-    <link rel="stylesheet" type="text/css" href="static/css/tweets.css" />
-    <link rel="stylesheet" type="text/css" href="static/css/style.css" />
-    <link rel="stylesheet" type="text/css" href="static/css/jquery-confirm.css" />
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="static/css/bootstrap4-toggle.min.css">
-    <link rel="stylesheet" type="text/css" href="static/css/spin.css">
-    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
-</head>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>MABED</title>
+		<link rel="icon" href="static/images/favicon.ico">
+		<link rel="stylesheet" type="text/css" href="static/css/mabed.css" />
+		<link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css"/>
+		<link title="timeline-styles" rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+		<!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
+		<link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
+		<link rel="stylesheet" type="text/css" href="static/css/main.css"/>
+		<link rel="stylesheet" type="text/css" href="static/css/tweets.css" />
+		<link rel="stylesheet" type="text/css" href="static/css/style.css" />
+		<link rel="stylesheet" type="text/css" href="static/css/jquery-confirm.css" />
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
+		<link rel="stylesheet" type="text/css" href="static/css/bootstrap4-toggle.min.css">
+		<link rel="stylesheet" type="text/css" href="static/css/spin.css">
+		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+	</head>
+	<body>
+		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+			<div class="container" id="mabed-nav">
+				<a class="navbar-brand" href="#">Home</a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainMABEDnavbar" aria-controls="mainMABEDnavbar" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+				</button>
+				<div class="collapse navbar-collapse" id="mainMABEDnavbar">
+					<ul class="navbar-nav mr-auto">
+						<li class="nav-item" id="nav-mabed">
+							<a class="nav-link" href="#mabed">Detect Events Using MABED</a>
+						</li>
+						<li class="nav-item" id="nav-results">
+							<a class="nav-link" href="#results">Event-detection results</a>
+						</li>
+						<li class="nav-item" id="nav-classification">
+							<a class="nav-link" href="#classification">Tweets classification</a>
+						</li>
+						<li class="nav-item" id="nav-tweets">
+							<a class="nav-link" href="#tweets">Tweet Search</a>
+						</li>
+						<li class="nav-item" id="nav-beta2">
+							<a class="nav-link" href="#beta2">Event-detection Model</a>
+						</li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right">
+						<li class="nav-item" id="nav-events">
+							<a class="nav-link" href="#events"><i class="pixicon-map-pin-1-place-2" style="margin-right:5px;position:relative;top:2px;"></i> Review & Export</a>
+						</li>
+						<li class="nav-item" id="nav-settings">
+							<a class="nav-link" href="#settings"><i class="pixicon-user-male-cog" style="margin-right:5px;position:relative;top:2px;"></i> Settings</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</nav>
+		<div class="">
+			<div id="progress_classification" class="progress" style=" border-radius:0px;" data-toggle="tooltip" data-placement="bottom" title="Confirmed: 0 , Negative: 0, Unlabeled : 0">
+				<div id="classification_confirmed" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+				<div id="classification_negative" class="progress-bar bg-danger" role="progressbar" style="width:0%"></div>
+				<div id="classification_proposed" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
+			</div>
+		</div>
+		<div id="content"></div>
+		<!-- Templates -->
+		<script type="text/template" id="tpl-page-1">
+			<div class="pix-original-1 jarallax pix-padding-v-200 h-100">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 col-xs-12">
+			        <div class="text-center jarallax" data-jarallax-element="-20" data-speed="">
+			          <h7 class="pix-white display-4 font-black pix-no-margin" style="padding: 75px;"><span class="pix_edit_text">Event Detection and Tracking in Twitter</span></h7>
+			          <br>
+			          <a href="#mabed" class="btn btn-lg main-color-bg pix-white fly shadow">
+			            <i class="pixicon-play"></i>
+			            <strong class="">Start</strong>
+			          </a>
+			          <a href="#tweets" class="btn btn-lg btn-line pix-white-line fly">
+			            <i class="pixicon-document"></i>
+			            <strong>Search Tweets</strong>
+			          </a>
+			        </div>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<br>
+			<div class="container">
+			  <div class="row">
+			    <div class="col-12 pix-margin-v-30">
+			      <div class="jumbotron gray-bg bg-lighten-4">
+			        <h1 class="pix-gray darken-4 font-black">About</h1>
+			        <span class="pix_edit_text">MABED (Mention-Anomaly-Based Event Detection) is a statistical method for automatically detecting significant events that most interest Twitter users from the stream of tweets they publish. In contrast with existing methods, it doesn't only focus on the textual content of tweets but also leverages the frequency of social interactions that occur between users (i.e. mentions). MABED also differs from the literature in that it dynamically estimates the period of time during which each event is discussed rather than assuming a predefined fixed duration for all events.</span>
+			        <p class="lead">
+			          <a class="btn btn-lg main-color-bg pix-white fly shadow scale" href="#results" role="button"><strong>Results</strong></a>
+			        </p>
+			      </div>
+			    </div>
+			    <div class="col-12 pix-margin-v-30">
+			      <h3 class="pix-gray darken-4 font-black">References</h3>
+			      <ul>
+			        <li>
+			          Adrien Guille and Cécile Favre (2015) Event detection, tracking, and visualization in Twitter: a mention-anomaly-based approach. Springer Social Network Analysis and Mining, vol. 5, iss. 1, art. 18 [DOI: 10.1007/s13278-015-0258-0]
+			        </li>
+			        <li>
+			          Adrien Guille and Cécile Favre (2014) Mention-Anomaly-Based Event Detection and Tracking in Twitter. In Proceedings of the 2014 IEEE/ACM International Conference on Advances in Social Network Mining and Analysis (ASONAM 2014), pp. 375-382 [DOI: 10.1109/ASONAM.2014.6921613]
+			        </li>
+			      </ul>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-page-2">
+			<br>
+			<div id="timeline_div">
 
-<body>
+			</div>
+			<div class="gray-bg bg-lighten-4 pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container" id="mabed-nav">
+			      <div class="col-12 pix-margin-top-10">
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Event impact</span></h2>
+			        <a href="#" id="reset_impact" class="btn btn-line green-bg pix-gray btn-sm">Reset</a>
+			      </div>
+			      <div class="col-12 pix-margin-top-10">
+			        <div id="chartDiv"></div>
+			      </div>
+			      <div class="col-12 pix-margin-top-10">
+			        <div class="card-columns" id="eventsClusters"></div>
+			      </div>
+			      <div class="col-12 pix-margin-top-10">
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Tweets</span></h2>
+			      </div>
+			      <div class="col-12 loading_text">
+			        <span class="badge badge-secondary">Loading...</span>
+			      </div>
+			      <div class="col-12" id="tweets_result">
+			      </div>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-page-settings">
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Create Session</span></h2>
+			      </div>
+			      <div class="col-6 col-sm-12">
+			        <form id="settings_form">
+			          <div class="form-group">
+			            <label for="session_name">Session name</label>
+			            <input name="s_name" type="text" class="form-control" id="session_name" aria-describedby="session_name_help" placeholder="Enter Session Name">
+			          </div>
+			          <div class="form-group">
+			            <label for="session_name">Session Index</label>
+			              <select name="s_index" class="custom-select" id="session_index">
+			                  <option value="twitter2015">Twitter2015</option>
+			                  <option value="twitter2016">Twitter2016</option>
+			                  <option value="twitter2017" selected>Twitter2017</option>
+			            </select>
+			          </div>
 
-      <a class="navbar-brand" href="#">MABED</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainMABEDnavbar" aria-controls="mainMABEDnavbar" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+			          <div class="pix-margin-v-30">
+			            <button name="save" type="submit" class="btn btn-primary btn-lg btn-flat"><b>Save</b></button>
+			          </div>
+			        </form>
+			      </div>
 
-      <div class="collapse navbar-collapse" id="mainMABEDnavbar">
-        <ul class="navbar-nav mr-auto">
-          <li class="nav-item active" id="nav-home">
-            <a class="nav-link" href="#">Home</a>
-          </li>
-{#          <li class="nav-item dropdown">#}
-{#            <a class="nav-link" href="#mabed" >#}
-{#              MABED#}
-{#            </a>#}
-{#            <div class="dropdown-menu" aria-labelledby="navbarDropdown">#}
-{#              <a class="dropdown-item" href="#results">Results</a>#}
-{#            </div>#}
-{#          </li>#}
-          <li class="nav-item" id="nav-mabed">
-            <a class="nav-link" href="#mabed">Detect Events Using MABED</a>
-          </li>
-            <li class="nav-item" id="nav-results">
-            <a class="nav-link" href="#results">Results</a>
-          </li>
-          <li class="nav-item" id="nav-classification">
-            <a class="nav-link" href="#classification">Classification</a>
-          </li>
-          <li class="nav-item" id="nav-tweets">
-            <a class="nav-link" href="#tweets">Tweet Search</a>
-          </li>
-{#            <li class="nav-item" id="nav-beta">#}
-{#            <a class="nav-link" href="#beta">Beta</a>#}
-{#          </li>#}
-            <li class="nav-item" id="nav-beta2">
-            <a class="nav-link" href="#beta2">Model</a>
-          </li>
-{#            <li class="nav-item dropdown">#}
-{#        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">#}
-{#          New#}
-{#        </a>#}
-{#        <div class="dropdown-menu" aria-labelledby="navbarDropdown">#}
-{#          <a class="dropdown-item" href="#beta">Beta</a>#}
-{#          <a class="dropdown-item" href="#beta2">Beta2</a>#}
-{#        </div>#}
-{#      </li>#}
+			      <div class="col-12 pix-margin-v-30">
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Switch Sessions</span></h2>
+			      </div>
 
-        </ul>
-        <ul class="nav navbar-nav navbar-right">
-            <li class="nav-item" id="nav-events">
-            <a class="nav-link" href="#events"><i class="pixicon-map-pin-1-place-2" style="margin-right:5px;position:relative;top:2px;"></i> Review & Export</a>
-          </li>
-          <li class="nav-item" id="nav-settings">
-            <a class="nav-link" href="#settings"><i class="pixicon-user-male-cog" style="margin-right:5px;position:relative;top:2px;"></i> Settings</a>
-          </li>
-        </ul>
-
-      </div>
-    </div>
-  </nav>
-  <div class="">
-      <div id="progress_classification" class="progress" style=" border-radius:0px;" data-toggle="tooltip" data-placement="bottom" title="Confirmed: 0 , Negative: 0, Unlabeled : 0">
-          <div id="classification_confirmed" class="progress-bar bg-success" role="progressbar" style="width:20%">
-              Confirmed (20000)
-          </div>
-          <div id="classification_negative" class="progress-bar bg-danger" role="progressbar" style="width:30%">
-              Negative (30000)
-          </div>
-          <div id="classification_proposed" class="progress-bar bg-warning" role="progressbar" style="width:50%">
-              Unlabeled (50000)
-          </div>
-      </div>
-  </div>
-
-  <div id="content"></div>
+			      <div class="col-6 col-sm-12">
+			        <form id="session_form">
+			          <div class="input-group">
+			            <select name="id" class="custom-select" id="sessionsList">
+			            </select>
+			            <div class="input-group-append">
+			              <button class="btn btn-outline-success" type="submit">Switch Session</button>
+			            </div>
+			          </div>
+			        </form>
+			      </div>
 
 
-  <!-- Templates -->
-  <script type="text/template" id="tpl-page-1">
-    <div class="pix-original-1 jarallax pix-padding-v-200 h-100">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 col-xs-12">
-            <div class="text-center jarallax" data-jarallax-element="-20" data-speed="">
-              <h6 class="pix-white display-1 font-black pix-no-margin"><span class="pix_edit_text">MABED</span></h6>
-              <div class="d-inline-block pix-white" style="background-color: rgba(0,0,0,0.45);border-radius: 50px;padding: 5px 8px 5px 5px;line-height: 0px;margin-bottom: 10px;"><span class="badge badge-pill badge-primary red-bg align-middle" style="margin-right: 3px; background: linear-gradient(to right, #fe2060 , #4100ff);" >New</span><span class="small-text font-bold align-middle"> Event Detection and Tracking in Twitter</span></div>
-              <h6 class="pix-gray lighten-2 pix-padding-v-20">
-                Say Hi 👋 to MABED!
-              </h6>
-              <a href="#mabed" class="btn btn-lg main-color-bg pix-white fly shadow">
-                <i class="pixicon-play"></i>
-                <strong class="">Start</strong>
-              </a>
-              <a href="#tweets" class="btn btn-lg btn-line pix-white-line fly">
-                <i class="pixicon-document"></i>
-                <strong>Search Tweets</strong>
-              </a>
+			      <div class="col-12 pix-margin-v-30">
+			        <div class="pix-margin-v-50"><hr></div>
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Current Session</span></h2>
+			      </div>
+			      <div class="col-6 col-sm-12">
+			        <div>
+			          Session Name: <span id="cs_name"></span> <br>
+			          Session Index: <span id="cs_index"></span> <br>
+			          Session Document Type: <span id="cs_type"></span> <br>
+			          Session ID: <span id="cs_id"></span> <br>
+			        </div>
+			        <div>
+			          <a href="#" class="btn red-bg pix-white fly" id="deleteSession">
+			          	<strong>Delete Current Session</strong>
+			          </a>
+			        </div>
+			      </div>
+
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-classify-tweets">
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h3 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Classification assistants</span></h3>
+			      </div>
+
+			      <div class="col-6 col-sm-12">
+			          <div class="container">
+			              <div class="row">
+			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
+			                    <li class="nav-item active"><a class="nav-link active" href="#1b" data-toggle="tab">Active Learning</a></li>
+			                    <li class="nav-item"><a class="nav-link" href="#2b" data-toggle="tab">Strategy 2</a></li>
+			                    <li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
+			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>
+			                </ul>
+			              </div>
+			              <div class="row">
+			                <div class="tab-content container clearfix">
+			                    <div class="tab-pane active" id="1b">
+
+			                        <div class="container" style="padding: 2em 0em;">
+
+			                            <!-- Active learning carousel -->
+			                            <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
+
+			                                <div class="carousel-inner">
+			                                    <div class="carousel-item active">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>About</h3>
+
+			                                                <div>
+			                                                    <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
+			                                                    Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
+
+			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
+			                                                        <div class="form-group">
+			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify?</label>
+			                                                            <input class="form-control" type="number" value="10" id="num-tweet-questions">
+			                                                        </div>
+
+			                                                        <div class="form-group">
+			                                                            <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
+			                                                            <div>
+			                                                                <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
+			                                                            </div>
+			                                                        </div>
+			                                                    </div>
+			                                                </div>
+			                                            </div>
+			                                        </div>
+
+			                                        <!-- Carousel navigation -->
+			                                        <nav aria-label="..." style="padding-top: 3em;">
+			                                            <ul class="pagination justify-content-center"> <!-- justify-content-center -->
+			                                                <li class="btn">
+			                                                    <a id="start-automatic-learning" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Start</a>
+			                                                </li>
+			                                                <!--<li class="btn disabled">
+			                                                    <a id="to-learning-stage" class="page-link disabled" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                </li>-->
+			                                            </ul>
+			                                        </nav>
+			                                    </div>
+			                                    <div class="carousel-item">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>Learning stage</h3>
+			                                                <p>Please, mark the tweets below as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>, according to your classification criteria:</p>
+
+			                                                <div class="col-12 pix-margin-top-10">
+			                                                    <div class="card-columns" id="tweet-questions">
+			                                                        <!-- This is filled in the classification.js file -->
+			                                                    </div>
+			                                                </div>
+
+			                                                <!-- Carousel navigation -->
+			                                                <nav aria-label="..." style="padding-top: 3em;">
+			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+			                                                        <li class="disabled">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                        </li>
+			                                                    </ul>
+			                                                </nav>
+			                                            </div>
+			                                        </div>
+			                                    </div>
+			                                    <div class="carousel-item">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>Validation stage</h3>
+			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified. If you believe that the classification is accurate, the process ends. But, it continues to train the algorithm.</p>
+
+			                                                <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
+			                                                    <div id="classif-graph-area"></div>
+			                                                </div>
+			                                                <!-- Carousel navigation -->
+			                                                <nav aria-label="..." style="padding-top: 3em;">
+			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
+			                                                        </li>
+			                                                    </ul>
+			                                                </nav>
+			                                            </div>
+			                                        </div>
+			                                    </div>
+			                                </div>
+
+
+			                            </div>
+			                        </div>
+			                    </div>
+			                    <div class="tab-pane" id="2b">
+			                        <h3>Strategy 2</h3>
+			                        ...
+			                    </div>
+			                    <div class="tab-pane" id="3b">
+			                        <h3>Strategy 3</h3>
+			                        ...
+			                    </div>
+			                    <div class="tab-pane" id="4b">
+			                        <h3>Strategy 4</h3>
+			                        ...
+			                    </div>
+			                </div>
+			          </div>
+			        </div>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-page-tweets">
+
+            <!-- SEARCH FORM -->
+			<div class="gray-bg bg-lighten-4" style="padding-top: 65px; padding-bottom: 1em;">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Tweets Search</span></h2>
+			      </div>
+			      <div class="col-6 col-sm-12">
+			        <form id="tweets_form">
+			          <label for="word">Enter the search string</label>
+			          <a href="#tweets" class="popover-dismiss" data-placement="bottom">
+			            <i class="pixicon-question-circle" style="margin-right:5px;position:relative;top:2px;"></i>
+			          </a>
+			          <div class="input-group mb-3">
+			            <input name="word" type="text" class="form-control" placeholder="Search..." aria-label="" aria-describedby="basic-addon2" value="" style="">
+			            <span class="input-group-append">
+			                <button class="btn btn-outline-secondary border-left-0 border" type="submit" style="border-left: none !important; background: white;">
+			                    <i class="fa fa-search"></i>
+			                </button>
+			            </span>
+			          </div>
+			        </form>
+			      </div>
+			    </div>
+			  </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <br>
-    <div class="container">
-      <div class="row">
-        <div class="col-12 pix-margin-v-30">
-          <div class="jumbotron gray-bg bg-lighten-4">
-            <h1 class="pix-gray darken-4 font-black">About</h1>
-            <span class="pix_edit_text">MABED (Mention-Anomaly-Based Event Detection) is a statistical method for automatically detecting significant events that most interest Twitter users from the stream of tweets they publish. In contrast with existing methods, it doesn't only focus on the textual content of tweets but also leverages the frequency of social interactions that occur between users (i.e. mentions). MABED also differs from the literature in that it dynamically estimates the period of time during which each event is discussed rather than assuming a predefined fixed duration for all events.</span>
-            <p class="lead">
-              <a class="btn btn-lg main-color-bg pix-white fly shadow scale" href="#results" role="button"><strong>Results</strong></a>
-            </p>
-          </div>
-        </div>
-        <div class="col-12 pix-margin-v-30">
-          <h3 class="pix-gray darken-4 font-black">References</h3>
-          <ul>
-            <li>
-              Adrien Guille and Cécile Favre (2015) Event detection, tracking, and visualization in Twitter: a mention-anomaly-based approach. Springer Social Network Analysis and Mining, vol. 5, iss. 1, art. 18 [DOI: 10.1007/s13278-015-0258-0]
-            </li>
-            <li>
-              Adrien Guille and Cécile Favre (2014) Mention-Anomaly-Based Event Detection and Tracking in Twitter. In Proceedings of the 2014 IEEE/ACM International Conference on Advances in Social Network Mining and Analysis (ASONAM 2014), pp. 375-382 [DOI: 10.1109/ASONAM.2014.6921613]
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </script>
-
-  <script type="text/template" id="tpl-page-2">
-    <br>
-    <div id="timeline_div">
-
-    </div>
-    <div class="gray-bg bg-lighten-4 pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-
-          <div class="col-12 pix-margin-top-10">
-            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Event impact</span></h2>
-            <a href="#" id="reset_impact" class="btn btn-line green-bg pix-gray btn-sm">Reset</a>
-          </div>
-          <div class="col-12 pix-margin-top-10">
-            <div id="chartDiv"></div>
-
-          </div>
-
-
-          <div class="col-12 pix-margin-top-10">
-            <div class="card-columns" id="eventsClusters"></div>
-          </div>
-
-
-
-          <div class="col-12 pix-margin-top-10">
-            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Tweets</span></h2>
-          </div>
-          <div class="col-12 loading_text">
-            <span class="badge badge-secondary">Loading...</span>
-          </div>
-          <div class="col-12" id="tweets_results">
-            <span id="res_num">-</span> results (<span id="res_time">-</span> seconds)
-          </div>
-          <div class="col-12" id="tweets_result">
-          </div>
-        </div>
-      </div>
-    </div>
-  </script>
-
-  <script type="text/template" id="tpl-page-settings">
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Create Session</span></h2>
-          </div>
-          <div class="col-6 col-sm-12">
-            <form id="settings_form">
-              <div class="form-group">
-                <label for="session_name">Session name</label>
-                <input name="s_name" type="text" class="form-control" id="session_name" aria-describedby="session_name_help" placeholder="Enter Session Name">
-              </div>
-              <div class="form-group">
-                <label for="session_name">Session Index</label>
-{#                <input name="s_index" type="text" class="form-control" id="session_index" placeholder="Enter Session Index">#}
-                  <select name="s_index" class="custom-select" id="session_index">
-                      <option value="twitter2015">Twitter2015</option>
-                      <option value="twitter2016">Twitter2016</option>
-                      <option value="twitter2017" selected>Twitter2017</option>
-                </select>
-              </div>
-
-              <div class="pix-margin-v-30">
-                <button name="save" type="submit" class="btn btn-primary btn-lg btn-flat"><b>Save</b></button>
-              </div>
-            </form>
-          </div>
-
-          <div class="col-12 pix-margin-v-30">
-            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Switch Sessions</span></h2>
-          </div>
-
-          <div class="col-6 col-sm-12">
-            <form id="session_form">
-              <div class="input-group">
-                <select name="id" class="custom-select" id="sessionsList">
-                </select>
-                <div class="input-group-append">
-                  <button class="btn btn-outline-success" type="submit">Switch Session</button>
+            <!-- SEARCH TABS -->
+            <div class="gray-bg bg-lighten-4">
+			    <div class="" style="border-bottom: 1px solid #dee2e6;">
+                    <div class="container">
+                        <ul id="search-results-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
+                            <li class="nav-item active"><a class="nav-link active" href="#1b" data-toggle="tab">All the results</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#2b" data-toggle="tab">Unlabeled tweets</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Confirmed tweets</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Rejected tweets</a></li>
+                        </ul>
+                    </div>
                 </div>
-              </div>
-            </form>
-          </div>
-
-
-          <div class="col-12 pix-margin-v-30">
-            <div class="pix-margin-v-50"><hr></div>
-            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Current Session</span></h2>
-          </div>
-          <div class="col-6 col-sm-12">
+            </div>
+            <!-- SEARCH RESULTS-->
             <div>
-              Session Name: <span id="cs_name"></span> <br>
-              Session Index: <span id="cs_index"></span> <br>
-              Session Document Type: <span id="cs_type"></span> <br>
-              Session ID: <span id="cs_id"></span> <br>
-            </div>
-            <div>
-              <a href="#" class="btn red-bg pix-white fly" id="deleteSession">
-              	<strong>Delete Current Session</strong>
-              </a>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </script>
-
-
-  <script type="text/template" id="tpl-classify-tweets">
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-
-          <div class="col-12 pix-margin-bottom-30">
-            <h3 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Classification assistants</span></h3>
-          </div>
-
-          <div class="col-6 col-sm-12">
-
-              <div class="container">
-
-                  <div class="row">
-
-                    <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-                        <li class="nav-item active"><a class="nav-link active" href="#1b" data-toggle="tab">Active Learning</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#2b" data-toggle="tab">Strategy 2</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>
-                    </ul>
-                  </div>
-                  <div class="row">
-                    <div class="tab-content container clearfix">
-                        <div class="tab-pane active" id="1b">
-
-                            <div class="container" style="padding: 2em 0em;">
-
-                                <!-- Active learning carousel -->
-                                <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
-
-                                    <div class="carousel-inner">
-                                        <div class="carousel-item active">
-                                            <div class="mt-4 d-flex justify-content-center align-items-center container">
-                                                <div class="col-md-12 col-md-offset-12">
-                                                    <h3>About</h3>
-
-                                                    <div>
-                                                        <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
-                                                        Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
-
-                                                        <div class="card-body mx-auto" style="max-width: 400px;">
-                                                            <div class="form-group">
-                                                                <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify?</label>
-                                                                <input class="form-control" type="number" value="10" id="num-tweet-questions">
-                                                            </div>
-
-                                                            <div class="form-group">
-                                                                <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
-                                                                <div>
-                                                                    <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Carousel navigation -->
-                                            <nav aria-label="..." style="padding-top: 3em;">
-                                                <ul class="pagination justify-content-center"> <!-- justify-content-center -->
-                                                    <li class="btn">
-                                                        <a id="start-automatic-learning" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Start</a>
-                                                    </li>
-                                                    <!--<li class="btn disabled">
-                                                        <a id="to-learning-stage" class="page-link disabled" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
-                                                    </li>-->
-                                                </ul>
-                                            </nav>
-                                        </div>
-                                        <div class="carousel-item">
-                                            <div class="mt-4 d-flex justify-content-center align-items-center container">
-                                                <div class="col-md-12 col-md-offset-12">
-                                                    <h3>Learning stage</h3>
-                                                    <p>Please, mark the tweets below as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>, according to your classification criteria:</p>
-
-                                                    <div class="col-12 pix-margin-top-10">
-                                                        <div class="card-columns" id="tweet-questions">
-                                                            <!-- This is filled in the classification.js file -->
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Carousel navigation -->
-                                                    <nav aria-label="..." style="padding-top: 3em;">
-                                                        <ul class="pagination justify-content-end"> <!-- justify-content-center -->
-                                                            <li class="disabled">
-                                                                <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
-                                                            </li>
-                                                            <li class="">
-                                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
-                                                            </li>
-                                                            <li class="">
-                                                                <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
-                                                            </li>
-                                                        </ul>
-                                                    </nav>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="carousel-item">
-                                            <div class="mt-4 d-flex justify-content-center align-items-center container">
-                                                <div class="col-md-12 col-md-offset-12">
-                                                    <h3>Validation stage</h3>
-                                                    <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified. If you believe that the classification is accurate, the process ends. But, it continues to train the algorithm.</p>
-
-                                                    <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
-                                                        <div id="classif-graph-area"></div>
-                                                    </div>
-                                                    <!-- Carousel navigation -->
-                                                    <nav aria-label="..." style="padding-top: 3em;">
-                                                        <ul class="pagination justify-content-end"> <!-- justify-content-center -->
-                                                            <li class="">
-                                                                <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
-                                                            </li>
-                                                            <li class="">
-                                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
-                                                            </li>
-                                                            <li class="">
-                                                                <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
-                                                            </li>
-                                                        </ul>
-                                                    </nav>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                </div>
-                            </div>
-
-                            <!--
-                                <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="width: 50%; margin: 0 auto; padding: 2em">
-                                    Mark the tweets below as:
-                                    <a href="#" data-cid="" data-state="negative" class="timeline_btn all_tweets_state options_btn_negative">negative</a>
-                                    <a href="#" data-state="confirmed" class="timeline_btn all_tweets_state options_btn_valid">Confirmed</a>
-                                </div>
-
-
-                            -->
-                        </div>
-                        <div class="tab-pane" id="2b">
-                            <h3>Strategy 2</h3>
-                            ...
-                        </div>
-                        <div class="tab-pane" id="3b">
-                            <h3>Strategy 3</h3>
-                            ...
-                        </div>
-                        <div class="tab-pane" id="4b">
-                            <h3>Strategy 4</h3>
-                            ...
-                        </div>
-                    </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </script>
-
-  <script type="text/template" id="tpl-page-tweets">
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Tweets Search</span></h2>
-          </div>
-
-          <div class="col-6 col-sm-12">
-            <form id="tweets_form">
-              <label for="word">Enter the search string</label>
-              <a href="#tweets" class="popover-dismiss" data-placement="bottom">
-                <i class="pixicon-question-circle" style="margin-right:5px;position:relative;top:2px;"></i>
-              </a>
-              <div class="input-group mb-3">
-                <input name="word" type="text" class="form-control" placeholder="Search..." aria-label="" aria-describedby="basic-addon2" value="">
-                <div class="input-group-append">
-                  <button class="btn btn-outline-success" type="submit">Search</button>
-                  <button class="btn btn-outline-warning" id="search_not_labeled">Search Not Labeled</button>
-                </div>
-              </div>
-            </form>
-          </div>
-          <div class="col-12 loading_text">
-            <span class="badge badge-secondary">Loading...</span>
-          </div>
-          <div class="col-12" id="tweets_results">
-            <span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
-          </div>
-
-            <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="display:none;">
-                Mark all <strong>unlabeled</strong> tweets as: <a href="#" data-cid="" data-state="negative" class="timeline_btn all_tweets_state options_btn_negative">negative</a> <a href="#" data-state="confirmed" class="timeline_btn all_tweets_state options_btn_valid">Confirmed</a>
-                <label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>
-                </div>
-
-            <div class="container">
-              <div id="search-accordion" hidden>
-                <div class="card">
-                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
-                  <div id="collapseNgrams" class="collapse show"> <!-- class="collapse show" -->
-                    <div class="card-body">
-
-                       <!-- NGRAMS CLUSTERS RESULTS -->
-                      <div class="col-12 pix-margin-top-10">
-                        <div class="" id="ngrams-search-classif"></div>
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
-
-                <div class="card">
-                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
-                  <div id="collapseImages" class="collapse show">
-                    <div class="card-body">
-
-                        <!-- IMAGE CLUSTERS RESULTS -->
-                        <div class="col-12 pix-margin-top-10">
-                            <div class="card-columns" id="imagesClusters"></div>
-                        </div>
-
-                    </div>
-                  </div>
-                </div>
-
-                <div class="card">
-                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
-                  <div id="collapseIndividual" class="collapse show">
-                    <div class="card-body">
-
-                        <!-- INDIVIDUAL TWEET RESULTS -->
-                        <div class="col-12" id="tweets_result"></div>
-
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-        </div>
-      </div>
-    </div>
-  </script>
-
-  <script type="text/template" id="tpl-item-tweet">
-    <div class="pix-margin-top-10">
-      <div class="media pix-padding-10 white-bg bs_box tweet_box <%= classes %>">
-        <img class="align-self-start mr-3 rounded-circle" src="https://twitter.com/<%= screen_name %>/profile_image?size=original" style="width:60px;height:auto;" alt="">
-        <div class="media-body">
-            <div class="tweet_options">
-                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <b>Options</b>
-              </button>
-              <div class="dropdown-menu dropdown-menu-right">
-{#                <a class="dropdown-item" href="#">Mark all user tweets as Confirmed</a>#}
-{#                <a class="dropdown-item" href="#">Mark all user tweets as Negative</a>#}
-                  <a class="dropdown-item tweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
-              </div>
-
-                <a href="#" class="btn btn-sm tweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
-                    <strong>Confirmed</strong>
-                </a>
-                <a href="#" class="btn btn-sm tweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
-                    <strong>Negative</strong>
-                </a>
-
-            </div>
-          <div>
-            <span class="mt-0 t_name"><%= name %></span>
-            <span class="pix-black secondary-font t_user"><a href="https://twitter.com/<%= screen_name %>" target="_blank">@<%= screen_name %></a></span>
-          </div>
-            <div class="t_state">
-                <%= state %>
-            </div>
-          <a class="t_date" href="<%= link %>" target="_blank"><%= created_at %></a>
-          <p class="pix-black t_text"><%= text %></p>
-          <p><%= images %></p>
-        </div>
-      </div>
-    </div>
-  </script>
-
-  <script type="text/template" id="tpl-page-mabed">
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h3 class="pix-gray darken-4 font-black">Raw dataset analysis</h3>
-          </div>
-
-          <!-- STATS SECTION -->
-          <div class="col-12 col-sm-12 pix-margin-bottom-30">
-            <div class="static_box pix-padding-20 white-bg" id="indexing_stats" >
-
-                <div class="row">
-                  <!-- Left column -->
-                  <div class="col-md-6 col-sm-6 h_field">
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Total tweets <span id="total_tweets" class="badge badge-pill badge-info">...</span>
-                    </li>
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Mentions <span class="badge badge-pill badge-info">...</span>
-                    </li>
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Hashtags <span id="total_hashtags" class="badge badge-pill badge-info">...</span>
-                    </li>
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Emojis <span class="badge badge-pill badge-info">...</span>
-                    </li>
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Emoticons <span class="badge badge-pill badge-info">...</span>
-                    </li>
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        URLs <span id="total_urls" class="badge badge-pill badge-info">...</span>
-                    </li>
-                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                        Images <span id="total_images" class="badge badge-pill badge-info">...</span>
-                    </li>
-                  </div>
-                  <!-- Right column -->
-                  <div class="col-md-6 col-sm-6 h_field">
-                        <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                            Total languages <span id="lang_total" class="badge badge-pill badge-info">...</span>
-                        </li>
-                        <div class="row">
-                            <div class="col-md-6 py-2 col-sm-6 h_field">
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_0">...</span> <span id="lang_count_0" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_1">...</span> <span id="lang_count_1" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_2">...</span> <span id="lang_count_2" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_3">...</span> <span id="lang_count_3" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_4">...</span> <span id="lang_count_4" class="badge badge-pill badge-info">...</span>
-                                </li>
-                            </div>
-                            <div class="col-md-6 py-2 col-sm-6 h_field">
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_5">...</span> <span id="lang_count_5" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_6">...</span> <span id="lang_count_6" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_7">...</span> <span id="lang_count_7" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_8">...</span> <span id="lang_count_8" class="badge badge-pill badge-info">...</span>
-                                </li>
-                                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-                                    <span id="lang_9">...</span> <span id="lang_count_9" class="badge badge-pill badge-info">...</span>
-                                </li>
-                            </div>
-                        </div>
-                  </div>
-                </div>
-            </div>
-          </div>
-
-          <div class="col-12 pix-margin-bottom-30">
-               <h3 class="pix-gray darken-4 font-black">Run MABED</h3>
-          </div>
-
-          <div class="col-12 col-sm-12">
-
-            <!-- MABED SECTION -->
-            <form class="static_box pix-padding-20 white-bg" id="run_mabed">
-              <div class="form-row">
-                <div class="col-md-3 col-sm-12 h_field">
-                  <label for="inputState">Filter</label>
-                  <select name="filter" id="inputState" class="form-control">
-                    <option value="all" selected>All Tweets</option>
-                    <option value="proposed">Proposed</option>
-                    <option value="negative">Negative</option>
-                    <option value="confirmed">Confirmed</option>
-                      <option value="proposedconfirmed">Proposed + Confirmed</option>
-                  </select>
-                </div>
-                <div class="col-md-3 col-sm-12 h_field">
-                  <label for="top_events">Number of top events to detect</label>
-                  <input id="top_events" name="top_events" type="number" class="form-control" placeholder="Default to 10" value="10">
-                </div>
-                <div class="col-md-3 col-sm-12 h_field">
-                  <label for="min_absolute_frequency">Minimum absolute word frequency</label>
-                  <input id="min_absolute_frequency" name="min_absolute_frequency" type="text" class="form-control" placeholder="Default to 10" value="10">
-                </div>
-                <div class="col-md-3 col-sm-12 h_field">
-                  <label for="max_relative_frequency">Maximum absolute word frequency</label>
-                  <input id="max_relative_frequency" name="max_relative_frequency" type="text" class="form-control" placeholder="Default to 0.4" value="0.4">
-                </div>
-                <div class="col-md-3 col-sm-12 h_field">
-                  <label for="time_slice_length">Time-slice length</label>
-                  <div class="input-group mb-3">
-                    <input id="time_slice_length" aria-describedby="basic-addon1" name="time_slice_length" type="text" class="form-control" placeholder="Default to 30" value="30">
-                    <div class="input-group-append">
-                      <span class="input-group-text" id="basic-addon1">minutes</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-3 col-sm-12 h_field">
-                  <label for="p_value">Number of candidate words</label>
-                  <div class="input-group mb-3">
-                    <input id="p_value" name="p_value" aria-describedby="basic-addon2" type="number" class="form-control" placeholder="Default to 10" value="10">
-                    <div class="input-group-append">
-                      <span class="input-group-text" id="basic-addon2">per event</span>
-                    </div>
-                  </div>
-                </div>
-                  <div class="col-md-2 col-sm-12 h_field">
-                  <label for="cluster">Cluster weight</label>
-                  <input id="cluster" name="cluster" type="number" class="form-control" placeholder="Default 2" value="2">
-                </div>
-                <div class="col-md-2 col-sm-12 h_field">
-                  <label for="t_value">Theta</label>
-                  <input id="t_value" name="t_value" type="text" class="form-control" placeholder="Default to 0.6" value="0.6">
-                </div>
-                <div class="col-md-2 col-sm-12 h_field">
-                  <label for="s_value">Sigma</label>
-                  <input id="s_value" name="s_value" type="text" class="form-control" placeholder="Default to 0.6" value="0.6">
-                </div>
-              </div>
-                <button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 col-sm-12 pix-margin-v-30" id="mabed_loading" style="display:none;">
-            <div class="spinner"></div>
-            Loading...
-          </div>
-          <div class="col-12 col-sm-12 pix-margin-v-30">
-            <div id="mabed_result"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </script>
-
-
-  <script type="text/template" id="tpl-page-events">
-      <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-            <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Export</h2>
-          </div>
-{#          <div class="col-12 col-sm-12 pix-margin-v-30">#}
-{#            <table class="table">#}
-{#              <thead>#}
-{#                <tr>#}
-{#                  <th scope="col">Time</th>#}
-{#                  <th scope="col">Main terms</th>#}
-{#                  <th scope="col">Related terms</th>#}
-{#                </tr>#}
-{#              </thead>#}
-{#              <tbody>#}
-{#                <tr>#}
-{#                  <td>2017-12-07 06:00 | 2017-12-11 10:00</td>#}
-{#                  <td>fdl2017</td>#}
-{#                  <td>onlylyon, fetesdeslumieres, fetedeslumieres, prefetrhone, fetelumieres, cluster97</td>#}
-{#                </tr>#}
-{#                <tr>#}
-{#                  <td>2017-12-07 06:00 | 2017-12-11 10:00</td>#}
-{#                  <td>fdl2017</td>#}
-{#                  <td>onlylyon, fetesdeslumieres, fetedeslumieres, prefetrhone, fetelumieres, cluster97</td>#}
-{#                </tr>#}
-{#              <tr>#}
-{#                  <td>2017-12-07 06:00 | 2017-12-11 10:00</td>#}
-{#                  <td>fdl2017</td>#}
-{#                  <td>onlylyon, fetesdeslumieres, fetedeslumieres, prefetrhone, fetelumieres, cluster97</td>#}
-{#                </tr>#}
-{#              </tbody>#}
-{#            </table>#}
-{#          </div>#}
-            <div class="col-12 pix-padding-bottom-60">
-{#                <a href="#" class="btn btn-lg btn-flat btn-success" ><strong>Export events .json File</strong></a>#}
-                <a href="#" class="btn btn-lg btn-flat btn-success export_tweets" ><strong>Export confirmed tweets .json File</strong></a>
-          </div>
-
-            </div>
-          </div>
-            <div class="gray-bg bg-lighten-4 pix-padding-v-65">
                 <div class="container">
-        <div class="row">
-                <div class="col-12 pix-margin-bottom-30">
-                <h2 class="pix-gray darken-4 font-black">Review</h2>
-              </div>
-                <div class="col-12 pix-padding-bottom-30">
-                    <a class="btn btn-lg btn-success pix-white fly shadow scale btn_review" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>
-                    <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_review" data-state="negative" href="#" role="button"><strong>Negative</strong></a>
-                    <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_review" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>
-              </div>
-            <div class="col-12" id="tweets_results">
-            <span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
-          </div>
-                <div class="col-12" id="tweets_result">
-              </div>
-                </div>
 
-            </div>
-          </div>
-          </div>
-  </script>
+			        <div class="mt-4 col-12 loading_text">
+			            <span class="badge badge-secondary">Loading...</span>
+			          </div>
+
+			          <div class="mt-4 col-12" id="tweets_results">
+			            <span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
+			          </div>
+
+			            <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="display:none;">
+			                Mark
+			                <select id="force_all">
+			                      <option value="mark_all_results">all the results</option>
+			                      <option value="mark_unlabeled_results">the unlabeled results</option>
+			                </select>
+			                as:
+			                <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
+			                <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
+			                <!--<label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>-->
+			            </div>
+
+			            <div class="container">
+			              <div id="search-accordion" hidden>
+			                <div class="card">
+			                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
+			                  <div id="collapseNgrams" class="collapse show"> <!-- class="collapse show" -->
+			                    <div class="card-body">
+
+			                       <!-- NGRAMS CLUSTERS RESULTS -->
+			                      <div class="col-12 pix-margin-top-10">
+			                        <div class="" id="ngrams-search-classif"></div>
+			                      </div>
+
+			                    </div>
+			                  </div>
+			                </div>
+
+			                <div class="card">
+			                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
+			                  <div id="collapseImages" class="collapse show">
+			                    <div class="card-body">
+
+			                        <!-- IMAGE CLUSTERS RESULTS -->
+			                        <div class="col-12 pix-margin-top-10">
+			                            <div class="card-columns" id="imagesClusters"></div>
+			                        </div>
+
+			                    </div>
+			                  </div>
+			                </div>
+
+			                <div class="card">
+			                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
+			                  <div id="collapseIndividual" class="collapse show">
+			                    <div class="card-body">
+
+			                        <!-- INDIVIDUAL TWEET RESULTS -->
+			                        <div class="col-12" id="tweets_result"></div>
+
+			                    </div>
+			                  </div>
+			                </div>
+			              </div>
+			            </div>
+			    </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-item-tweet">
+			<div class="pix-margin-top-10">
+			  <div class="media pix-padding-10 white-bg bs_box tweet_box <%= classes %>">
+			    <img class="align-self-start mr-3 rounded-circle" src="https://twitter.com/<%= screen_name %>/profile_image?size=original" style="width:60px;height:auto;" alt="">
+			    <div class="media-body">
+			        <div class="tweet_options">
+			            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			            <b>Options</b>
+			          </button>
+			          <div class="dropdown-menu dropdown-menu-right">
+			              <a class="dropdown-item tweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
+			          </div>
+
+			            <a href="#" class="btn btn-sm tweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
+			                <strong>Confirmed</strong>
+			            </a>
+			            <a href="#" class="btn btn-sm tweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
+			                <strong>Negative</strong>
+			            </a>
+
+			        </div>
+			      <div>
+			        <span class="mt-0 t_name"><%= name %></span>
+			        <span class="pix-black secondary-font t_user"><a href="https://twitter.com/<%= screen_name %>" target="_blank">@<%= screen_name %></a></span>
+			      </div>
+			        <div class="t_state">
+			            <%= state %>
+			        </div>
+			      <a class="t_date" href="<%= link %>" target="_blank"><%= created_at %></a>
+			      <p class="pix-black t_text"><%= text %></p>
+			      <p><%= images %></p>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-page-mabed">
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h3 class="pix-gray darken-4 font-black">Raw dataset analysis</h3>
+			      </div>
+
+			      <!-- STATS SECTION -->
+			      <div class="col-12 col-sm-12 pix-margin-bottom-30">
+			        <div class="static_box pix-padding-20 white-bg" id="indexing_stats" >
+
+			            <div class="row">
+			              <!-- Left column -->
+			              <div class="col-md-6 col-sm-6 h_field">
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    Total tweets <span id="total_tweets" class="badge badge-pill badge-info">...</span>
+			                </li>
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    Mentions <span class="badge badge-pill badge-info">...</span>
+			                </li>
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    Hashtags <span id="total_hashtags" class="badge badge-pill badge-info">...</span>
+			                </li>
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    Emojis <span class="badge badge-pill badge-info">...</span>
+			                </li>
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    Emoticons <span class="badge badge-pill badge-info">...</span>
+			                </li>
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    URLs <span id="total_urls" class="badge badge-pill badge-info">...</span>
+			                </li>
+			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                    Images <span id="total_images" class="badge badge-pill badge-info">...</span>
+			                </li>
+			              </div>
+			              <!-- Right column -->
+			              <div class="col-md-6 col-sm-6 h_field">
+			                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                        Total languages <span id="lang_total" class="badge badge-pill badge-info">...</span>
+			                    </li>
+			                    <div class="row">
+			                        <div class="col-md-6 py-2 col-sm-6 h_field">
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_0">...</span> <span id="lang_count_0" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_1">...</span> <span id="lang_count_1" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_2">...</span> <span id="lang_count_2" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_3">...</span> <span id="lang_count_3" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_4">...</span> <span id="lang_count_4" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                        </div>
+			                        <div class="col-md-6 py-2 col-sm-6 h_field">
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_5">...</span> <span id="lang_count_5" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_6">...</span> <span id="lang_count_6" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_7">...</span> <span id="lang_count_7" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_8">...</span> <span id="lang_count_8" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                            <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+			                                <span id="lang_9">...</span> <span id="lang_count_9" class="badge badge-pill badge-info">...</span>
+			                            </li>
+			                        </div>
+			                    </div>
+			              </div>
+			            </div>
+			        </div>
+			      </div>
+
+			      <div class="col-12 pix-margin-bottom-30">
+			           <h3 class="pix-gray darken-4 font-black">Run MABED</h3>
+			      </div>
+
+			      <div class="col-12 col-sm-12">
+
+			        <!-- MABED SECTION -->
+			        <form class="static_box pix-padding-20 white-bg" id="run_mabed">
+			          <div class="form-row">
+			            <div class="col-md-3 col-sm-12 h_field">
+			              <label for="inputState">Filter</label>
+			              <select name="filter" id="inputState" class="form-control">
+			                <option value="all" selected>All Tweets</option>
+			                <option value="proposed">Proposed</option>
+			                <option value="negative">Negative</option>
+			                <option value="confirmed">Confirmed</option>
+			                  <option value="proposedconfirmed">Proposed + Confirmed</option>
+			              </select>
+			            </div>
+			            <div class="col-md-3 col-sm-12 h_field">
+			              <label for="top_events">Number of top events to detect</label>
+			              <input id="top_events" name="top_events" type="number" class="form-control" placeholder="Default to 10" value="10">
+			            </div>
+			            <div class="col-md-3 col-sm-12 h_field">
+			              <label for="min_absolute_frequency">Minimum absolute word frequency</label>
+			              <input id="min_absolute_frequency" name="min_absolute_frequency" type="text" class="form-control" placeholder="Default to 10" value="10">
+			            </div>
+			            <div class="col-md-3 col-sm-12 h_field">
+			              <label for="max_relative_frequency">Maximum absolute word frequency</label>
+			              <input id="max_relative_frequency" name="max_relative_frequency" type="text" class="form-control" placeholder="Default to 0.4" value="0.4">
+			            </div>
+			            <div class="col-md-3 col-sm-12 h_field">
+			              <label for="time_slice_length">Time-slice length</label>
+			              <div class="input-group mb-3">
+			                <input id="time_slice_length" aria-describedby="basic-addon1" name="time_slice_length" type="text" class="form-control" placeholder="Default to 30" value="30">
+			                <div class="input-group-append">
+			                  <span class="input-group-text" id="basic-addon1">minutes</span>
+			                </div>
+			              </div>
+			            </div>
+			            <div class="col-md-3 col-sm-12 h_field">
+			              <label for="p_value">Number of candidate words</label>
+			              <div class="input-group mb-3">
+			                <input id="p_value" name="p_value" aria-describedby="basic-addon2" type="number" class="form-control" placeholder="Default to 10" value="10">
+			                <div class="input-group-append">
+			                  <span class="input-group-text" id="basic-addon2">per event</span>
+			                </div>
+			              </div>
+			            </div>
+			              <div class="col-md-2 col-sm-12 h_field">
+			              <label for="cluster">Cluster weight</label>
+			              <input id="cluster" name="cluster" type="number" class="form-control" placeholder="Default 2" value="2">
+			            </div>
+			            <div class="col-md-2 col-sm-12 h_field">
+			              <label for="t_value">Theta</label>
+			              <input id="t_value" name="t_value" type="text" class="form-control" placeholder="Default to 0.6" value="0.6">
+			            </div>
+			            <div class="col-md-2 col-sm-12 h_field">
+			              <label for="s_value">Sigma</label>
+			              <input id="s_value" name="s_value" type="text" class="form-control" placeholder="Default to 0.6" value="0.6">
+			            </div>
+			          </div>
+			            <button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
+			        </form>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 col-sm-12 pix-margin-v-30" id="mabed_loading" style="display:none;">
+			        <div class="spinner"></div>
+			        Loading...
+			      </div>
+			      <div class="col-12 col-sm-12 pix-margin-v-30">
+			        <div id="mabed_result"></div>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-page-events">
+			<div class="pix-padding-v-65">
+			<div class="container">
+			  <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			      <h2 class="pix-gray darken-4 font-black">Export</h2>
+			    </div>
+			      <div class="col-12 pix-padding-bottom-60">
+			          <a href="#" class="btn btn-lg btn-flat btn-success export_tweets" ><strong>Export confirmed tweets .json File</strong></a>
+			    </div>
+
+			      </div>
+			    </div>
+			      <div class="gray-bg bg-lighten-4 pix-padding-v-65">
+			          <div class="container">
+			  <div class="row">
+			          <div class="col-12 pix-margin-bottom-30">
+			          <h2 class="pix-gray darken-4 font-black">Review</h2>
+			        </div>
+			          <div class="col-12 pix-padding-bottom-30">
+			              <a class="btn btn-lg btn-success pix-white fly shadow scale btn_review" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>
+			              <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_review" data-state="negative" href="#" role="button"><strong>Negative</strong></a>
+			              <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_review" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>
+			        </div>
+			      <div class="col-12" id="tweets_results">
+			      <span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
+			    </div>
+			          <div class="col-12" id="tweets_result">
+			        </div>
+			          </div>
+
+			      </div>
+			    </div>
+			    </div>
+		</script>
+		<script type="text/template" id="tpl-page-beta">
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 1: Statistics</h2>
+			      </div>
+
+			      <div class="col-12 col-sm-12">
 
 
-
-    <script type="text/template" id="tpl-page-beta">
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 1: Statistics</h2>
-          </div>
-
-          <div class="col-12 col-sm-12">
-
-
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Date</th>
-                      <th scope="col">Main terms</th>
-                      <th scope="col">Related Terms</th>
-                      <th scope="col">Number of Tweets</th>
-                      <th scope="col">Percentage of all tweets</th>
-                        <th scope="col">Analyse this event</th>
-                    </tr>
-                  </thead>
-                  <tbody id="main_table">
-                  </tbody>
-                </table>
-            <hr>
-              <h6><strong>Non detected tweets:</strong> <span id="non_detected_num">Loading...</span></h6>
-              <h6><strong>All tweets:</strong> <span id="all_num">Loading...</span></h6>
-              <h6><strong>Detection percentage:</strong> <span id="percentage_num">Loading...</span></h6>
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Date</th>
+			                  <th scope="col">Main terms</th>
+			                  <th scope="col">Related Terms</th>
+			                  <th scope="col">Number of Tweets</th>
+			                  <th scope="col">Percentage of all tweets</th>
+			                    <th scope="col">Analyse this event</th>
+			                </tr>
+			              </thead>
+			              <tbody id="main_table">
+			              </tbody>
+			            </table>
+			        <hr>
+			          <h6><strong>Non detected tweets:</strong> <span id="non_detected_num">Loading...</span></h6>
+			          <h6><strong>All tweets:</strong> <span id="all_num">Loading...</span></h6>
+			          <h6><strong>Detection percentage:</strong> <span id="percentage_num">Loading...</span></h6>
 
 
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Keyword Detection</h2>
-          </div>
-          <div class="col-12 col-sm-12 pix-margin-v-30">
-            In this step we will use word embedding technique (using word2vec model) on the tweets of each event to generate a list of the top 100 similar keywords.
-              <br>
-              <br>
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Main terms</th>
-{#                      <th scope="col">Related terms</th>#}
-                      <th scope="col">New terms</th>
-                    </tr>
-                  </thead>
-                  <tbody id="keywords">
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Keyword Detection</h2>
+			      </div>
+			      <div class="col-12 col-sm-12 pix-margin-v-30">
+			        In this step we will use word embedding technique (using word2vec model) on the tweets of each event to generate a list of the top 100 similar keywords.
+			          <br>
+			          <br>
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Main terms</th>
+			{#                      <th scope="col">Related terms</th>#}
+			                  <th scope="col">New terms</th>
+			                </tr>
+			              </thead>
+			              <tbody id="keywords">
 
-                  </tbody>
-                </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 3: Calculate the sum of squared errors (SSE)</h2>
-          </div>
+			              </tbody>
+			            </table>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 3: Calculate the sum of squared errors (SSE)</h2>
+			      </div>
 
-          <div class="col-12 col-sm-12">
-            For each event, we calculate SSE for each value of n (the number of top new tokens)<br><br>
-<pre>
-for each n ∈ ℤ : n ∈ [1,20]
-    sse[n] = 0;
-    for each event ∈ events
-        for each tweet ∈ event
-            sse[n] += (tweet_score - mean_score)^2
-</pre>
+			      <div class="col-12 col-sm-12">
+			        For each event, we calculate SSE for each value of n (the number of top new tokens)<br><br>
+			<pre>
+			for each n ∈ ℤ : n ∈ [1,20]
+			sse[n] = 0;
+			for each event ∈ events
+			    for each tweet ∈ event
+			        sse[n] += (tweet_score - mean_score)^2
+			</pre>
 
-               <br>
+			           <br>
 
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Event Main terms</th>
-                      <th scope="col">SSE values</th>
-                    </tr>
-                  </thead>
-                  <tbody id="sse_results">
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Event Main terms</th>
+			                  <th scope="col">SSE values</th>
+			                </tr>
+			              </thead>
+			              <tbody id="sse_results">
 
-                  </tbody>
-                </table>
+			              </tbody>
+			            </table>
 
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 4: Elbow Method</h2>
-          </div>
-          <div class="col-12 col-sm-12 pix-margin-v-30">
-            Optimal number of keywords
-              <br>
-              <br>
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Event Main terms</th>
-                      <th scope="col">Elbow Method Results</th>
-                    </tr>
-                  </thead>
-                  <tbody id="elbow_results">
-{#<td>1</td>#}
-{#<td><div id="chartContainer" style="height: 370px; width: 100%;"></div></td>#}
-                  </tbody>
-                </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 5: Resuts</h2>
-          </div>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 4: Elbow Method</h2>
+			      </div>
+			      <div class="col-12 col-sm-12 pix-margin-v-30">
+			        Optimal number of keywords
+			          <br>
+			          <br>
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Event Main terms</th>
+			                  <th scope="col">Elbow Method Results</th>
+			                </tr>
+			              </thead>
+			              <tbody id="elbow_results">
+			{#<td>1</td>#}
+			{#<td><div id="chartContainer" style="height: 370px; width: 100%;"></div></td>#}
+			              </tbody>
+			            </table>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 5: Resuts</h2>
+			      </div>
 
-          <div class="col-12 col-sm-12">
-            comparison
+			      <div class="col-12 col-sm-12">
+			        comparison
 
-          </div>
-        </div>
-      </div>
-    </div>
-  </script>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script type="text/template" id="tpl-page-beta2">
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 1: Statistics</h2>
+			      </div>
 
-
-
-
-
-  <script type="text/template" id="tpl-page-beta2">
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 1: Statistics</h2>
-          </div>
-
-          <div class="col-12 col-sm-12">
+			      <div class="col-12 col-sm-12">
 
 
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Date</th>
-                      <th scope="col">Main terms</th>
-                      <th scope="col">Related Terms</th>
-                      <th scope="col">Number of Tweets</th>
-                      <th scope="col">Percentage of all tweets</th>
-                      <th scope="col">Analyse this event</th>
-                    </tr>
-                  </thead>
-                  <tbody id="main_table">
-                  </tbody>
-                </table>
-            <hr>
-              <h6><strong>Non detected tweets:</strong> <span id="non_detected_num">Loading...</span></h6>
-              <h6><strong>All tweets:</strong> <span id="all_num">Loading...</span></h6>
-              <h6><strong>Detection percentage:</strong> <span id="percentage_num">Loading...</span></h6>
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Date</th>
+			                  <th scope="col">Main terms</th>
+			                  <th scope="col">Related Terms</th>
+			                  <th scope="col">Number of Tweets</th>
+			                  <th scope="col">Percentage of all tweets</th>
+			                  <th scope="col">Analyse this event</th>
+			                </tr>
+			              </thead>
+			              <tbody id="main_table">
+			              </tbody>
+			            </table>
+			        <hr>
+			          <h6><strong>Non detected tweets:</strong> <span id="non_detected_num">Loading...</span></h6>
+			          <h6><strong>All tweets:</strong> <span id="all_num">Loading...</span></h6>
+			          <h6><strong>Detection percentage:</strong> <span id="percentage_num">Loading...</span></h6>
 
 
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Keyword Detection</h2>
-          </div>
-          <div class="col-12 col-sm-12 pix-margin-v-30">
-            In this step we will use word embedding technique (using word2vec model) on the tweets of each event to generate a list of the top 100 similar keywords.
-              <br>
-              <br>
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Main keywords</th>
-{#                      <th scope="col">Related terms</th>#}
-                      <th scope="col">New keywords</th>
-                    </tr>
-                  </thead>
-                  <tbody id="keywords">
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Keyword Detection</h2>
+			      </div>
+			      <div class="col-12 col-sm-12 pix-margin-v-30">
+			        In this step we will use word embedding technique (using word2vec model) on the tweets of each event to generate a list of the top 100 similar keywords.
+			          <br>
+			          <br>
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Main keywords</th>
+			{#                      <th scope="col">Related terms</th>#}
+			                  <th scope="col">New keywords</th>
+			                </tr>
+			              </thead>
+			              <tbody id="keywords">
 
-                  </tbody>
-                </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 3: Calculate the percentage of intersection</h2>
-          </div>
+			              </tbody>
+			            </table>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 3: Calculate the percentage of intersection</h2>
+			      </div>
 
-          <div class="col-12 col-sm-12">
-            We calculate the percentage of intersection between the event results and the results of each new keyword<br><br>
-              <img src="static/images/step3.png">
-               <br>
-               <br>
+			      <div class="col-12 col-sm-12">
+			        We calculate the percentage of intersection between the event results and the results of each new keyword<br><br>
+			          <img src="static/images/step3.png">
+			           <br>
+			           <br>
 
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Event Main terms</th>
-                      <th scope="col">percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody id="sse_results">
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Event Main terms</th>
+			                  <th scope="col">percentage</th>
+			                </tr>
+			              </thead>
+			              <tbody id="sse_results">
 
-                  </tbody>
-                </table>
+			              </tbody>
+			            </table>
 
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65 gray-bg bg-lighten-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 4: Elbow Method</h2>
-          </div>
-          <div class="col-12 col-sm-12 pix-margin-v-30">
-            Optimal number of keywords
-              <br>
-              <br>
-              <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Event Main terms</th>
-                      <th scope="col">Elbow Method Results</th>
-                    </tr>
-                  </thead>
-                  <tbody id="elbow_results">
-{#<td>1</td>#}
-{#<td><div id="chartContainer" style="height: 370px; width: 100%;"></div></td>#}
-                  </tbody>
-                </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pix-padding-v-65">
-      <div class="container">
-        <div class="row">
-          <div class="col-12 pix-margin-bottom-30">
-            <h2 class="pix-gray darken-4 font-black">Step 5: Resuts</h2>
-          </div>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 4: Elbow Method</h2>
+			      </div>
+			      <div class="col-12 col-sm-12 pix-margin-v-30">
+			        Optimal number of keywords
+			          <br>
+			          <br>
+			          <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Event Main terms</th>
+			                  <th scope="col">Elbow Method Results</th>
+			                </tr>
+			              </thead>
+			              <tbody id="elbow_results">
+			{#<td>1</td>#}
+			{#<td><div id="chartContainer" style="height: 370px; width: 100%;"></div></td>#}
+			              </tbody>
+			            </table>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+			<div class="pix-padding-v-65">
+			  <div class="container">
+			    <div class="row">
+			      <div class="col-12 pix-margin-bottom-30">
+			        <h2 class="pix-gray darken-4 font-black">Step 5: Resuts</h2>
+			      </div>
 
-          <div class="col-12 col-sm-12" id="step5">
-</div>
-            <br>
-            <br>
-            <div class="col-12 col-sm-12">
-             <table class="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Value</th>
-                      <th scope="col">Words</th>
-                      <th scope="col">Tweets count</th>
-                      <th scope="col">Reviewed Tweets count</th>
-                      <th scope="col">Confirmed tweets count</th>
-                      <th scope="col">Confirmed Percentage</th>
-                      <th scope="col">New Confirmed Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody id="step5_table">
-                  </tbody>
-                </table>
-                </div>
-        </div>
-      </div>
-    </div>
-  </script>
-
-  <script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
-  <script src="https://unpkg.com/popper.js/dist/umd/popper.min.js"></script>
-  <script src="static/js/vendor/jquery-1.10.2.min.js"></script>
-  <script src="static/js/vendor/bootstrap.min.js"></script>
-  <script src="http://underscorejs.org/underscore-min.js"></script>
-  <script src="static/js/vendor/backbone.js"></script>
-  <script src="static/js/vendor/jquery-confirm.min.js"></script>
-  <script src="static/plugins/canvasjs/canvasjs.min.js"></script>
-  <script src="static/plugins/d3/d3.min.js"></script>
-  <script src="static/plugins/d3/nv.d3.min.js"></script>
-  <script src="static/plugins/d3/d3.layout.cloud.v1-2-5.min.js"></script>
-  <script src="static/js/App.js"></script>
-  <script src="static/js/views/home.js"></script>
-  <script src="static/js/views/client.js"></script>
-  <script src="static/js/views/settings.js"></script>
-  <script src="static/js/views/mabed.js"></script>
-  <script src="static/js/views/classification.js"></script>
-
-  <script src="static/js/views/visualizations/BubbleChart.js"></script>
-  <script src="static/js/views/visualizations/BarChart.js"></script>
-  <script src="static/js/views/tweets.js"></script>
-  <script src="static/js/views/events.js"></script>
-  <script src="static/js/views/beta.js"></script>
-  <script src="static/js/views/beta2.js"></script>
-  <script src="static/js/models/event.js"></script>
-  <script src="static/js/collections/events.js"></script>
-
-  <script src="static/js/vendor/jarallax.min.js"></script>
-  <script src="static/js/vendor/jarallax-element.min.js"></script>
-  <script src="static/js/vendor/jarallax-video.min.js"></script>
-  <script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
-  <script src="static/js/vendor/plotly-latest.min.js"></script>
-
-  <script>
-      window.onload = function() {
-        app.init();
-      }
-    </script>
-</body>
-
+			      <div class="col-12 col-sm-12" id="step5">
+			</div>
+			        <br>
+			        <br>
+			        <div class="col-12 col-sm-12">
+			         <table class="table">
+			              <thead>
+			                <tr>
+			                  <th scope="col">Value</th>
+			                  <th scope="col">Words</th>
+			                  <th scope="col">Tweets count</th>
+			                  <th scope="col">Reviewed Tweets count</th>
+			                  <th scope="col">Confirmed tweets count</th>
+			                  <th scope="col">Confirmed Percentage</th>
+			                  <th scope="col">New Confirmed Percentage</th>
+			                </tr>
+			              </thead>
+			              <tbody id="step5_table">
+			              </tbody>
+			            </table>
+			            </div>
+			    </div>
+			  </div>
+			</div>
+		</script>
+		<script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+		<script src="https://unpkg.com/popper.js/dist/umd/popper.min.js"></script>
+		<script src="static/js/vendor/jquery-1.10.2.min.js"></script>
+		<script src="static/js/vendor/bootstrap.min.js"></script>
+		<script src="http://underscorejs.org/underscore-min.js"></script>
+		<script src="static/js/vendor/backbone.js"></script>
+		<script src="static/js/vendor/jquery-confirm.min.js"></script>
+		<script src="static/plugins/canvasjs/canvasjs.min.js"></script>
+		<script src="static/plugins/d3/d3.min.js"></script>
+		<script src="static/plugins/d3/nv.d3.min.js"></script>
+		<script src="static/plugins/d3/d3.layout.cloud.v1-2-5.min.js"></script>
+		<script src="static/js/App.js"></script>
+		<script src="static/js/views/home.js"></script>
+		<script src="static/js/views/client.js"></script>
+		<script src="static/js/views/settings.js"></script>
+		<script src="static/js/views/mabed.js"></script>
+		<script src="static/js/views/classification.js"></script>
+		<script src="static/js/views/visualizations/BubbleChart.js"></script>
+		<script src="static/js/views/visualizations/BarChart.js"></script>
+		<script src="static/js/views/visualizations/MultiPieChart.js"></script>
+		<script src="static/js/views/tweets.js"></script>
+		<script src="static/js/views/events.js"></script>
+		<script src="static/js/views/beta.js"></script>
+		<script src="static/js/views/beta2.js"></script>
+		<script src="static/js/models/event.js"></script>
+		<script src="static/js/collections/events.js"></script>
+		<script src="static/js/vendor/jarallax.min.js"></script>
+		<script src="static/js/vendor/jarallax-element.min.js"></script>
+		<script src="static/js/vendor/jarallax-video.min.js"></script>
+		<script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
+		<script src="static/js/vendor/plotly-latest.min.js"></script>
+		<script>
+			window.onload = function() {
+			  app.init();
+			}
+		</script>
+	</body>
 </html>
