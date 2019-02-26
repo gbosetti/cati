@@ -15,6 +15,7 @@ app.views.settings = Backbone.View.extend({
         this.delegateEvents();
         this.all_sessions();
         this.show_seesion_info();
+        app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
