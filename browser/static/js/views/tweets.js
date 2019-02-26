@@ -76,12 +76,16 @@ app.views.tweets = Backbone.View.extend({
       $('#tweets_results').fadeOut('slow');
       $('.loading_text').fadeIn('slow');
 
-      this.displayResultsArea();
-      var data = this.getSearchFormData();
-      this.requestTweets(data);
-      this.requestBigrams(data.concat(this.bigrams.formData));
-
+      this.searchForTweets();
       return false;
+    },
+    searchForTweets: function(){
+
+        this.displayResultsArea();
+        var data = this.getSearchFormData();
+        this.requestTweets(data);
+        this.requestBigrams(data.concat(this.bigrams.formData));
+        app.views.mabed.prototype.getClassificationStats();
     },
     search_not_labeled: function(e){
         e.preventDefault();
@@ -785,28 +789,7 @@ app.views.tweets = Backbone.View.extend({
 
         var callback = (response)=>{
             jc.close();
-
-            /*var simulatedEvent = {preventDefault: function(){return false}, currentTarget: document.querySelector(".tweet_state") };
-            this.tweet_state(simulatedEvent);*/
-            
-            $.confirm({
-                theme: 'pix-default-modal',
-                title: 'Changing tweets state',
-                boxWidth: '600px',
-                useBootstrap: false,
-                backgroundDismiss: false,
-                content: 'Please click the search button again to refresh the result!',
-                defaultButtons: false,
-                buttons: {
-                    cancel: {
-                        text: 'OK',
-                        btnClass: 'btn-cancel',
-                        action: function(e){
-                            app.views.mabed.prototype.getClassificationStats();
-                        }
-                    }
-                }
-            });
+            this.searchForTweets();
         };
 
         var matchingStrategy = document.getElementById('force_all').value;
