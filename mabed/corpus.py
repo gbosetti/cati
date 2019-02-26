@@ -33,6 +33,7 @@ class Corpus:
 
         # identify features
         with open(source_file_path, 'r') as input_file:
+            print("Reading from ", input_file)
             csv_reader = csv.reader(input_file, delimiter=self.separator)
             header = next(csv_reader)
             text_column_index = header.index('text')
@@ -53,6 +54,8 @@ class Corpus:
                         if frequency is None:
                             frequency = 0
                         word_frequency[word] = frequency + 1
+
+            print("word_frequency", word_frequency)
             # sort words w.r.t frequency
             vocabulary = list(word_frequency.items())
             vocabulary.sort(key=lambda x: x[1], reverse=True)

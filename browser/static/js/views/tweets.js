@@ -77,7 +77,6 @@ app.views.tweets = Backbone.View.extend({
       $('.loading_text').fadeIn('slow');
 
       this.displayResultsArea();
-
       var data = this.getSearchFormData();
       this.requestTweets(data);
       this.requestBigrams(data.concat(this.bigrams.formData));
@@ -110,7 +109,6 @@ app.views.tweets = Backbone.View.extend({
 
         var self = this;
         $.post(app.appURL+'search_for_tweets_state', data, function(response){
-
             self.display_tweets(response, t0, data[0].value);
         }, 'json').fail(self.cnxError);
 
@@ -120,6 +118,7 @@ app.views.tweets = Backbone.View.extend({
     },
     displayResultsArea: function(){
         document.querySelector("#search-accordion").hidden = false;
+        document.querySelector("#search-results-tabs-area").hidden = false;
     },
     requestTweets: function(data){
 
@@ -141,7 +140,7 @@ app.views.tweets = Backbone.View.extend({
         var containerId = "ngrams-search-classif";
         this.showLoadingMessage(containerId, 677);
         var self = this;
-        console.log("requestBigrams's data", data);
+        //console.log("requestBigrams's data", data);
 
         this.bigrams.formData = data;
 
@@ -350,11 +349,9 @@ app.views.tweets = Backbone.View.extend({
         var graphArea = $("#" + containedId);
             graphArea.html("");
 
-        this.renderBigramsGrid(containedId);
+        this.renderBigramsGrid(containedId, graphHeight);
         var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
-
-        console.log("bigrams", bigrams);
 
         setTimeout(() => { this.renderBigramsChart("#bigrams-graph-area", bigrams, tweets, graphHeight); }, 0);
         setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
@@ -423,8 +420,8 @@ app.views.tweets = Backbone.View.extend({
 
         new BarChart("#bigrams-stats", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(data)
     },
-    renderBigramsGrid: function(containedId){
-        var grid = `<div class="row">
+    renderBigramsGrid: function(containedId, graphHeight){
+        var grid = `<div class="row" style="height: ${graphHeight}px;">
                         <div class="col-3" id="bigrams-stats"></div>
                         <div class="col-9" id="bigrams-graph-area"></div>
                     </div>
