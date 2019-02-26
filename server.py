@@ -206,9 +206,10 @@ def search_for_tweets():
 @app.route('/search_for_tweets_state', methods=['POST'])
 def search_for_tweets_state():
     data = request.form
-    app.last_searched_tweets = functions.get_tweets_classification_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
+    app.last_searched_tweets = functions.get_tweets_filter_classification_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
     clusters = functions.get_clusters_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
     return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
+
 
 # Get Tweets
 @app.route('/bigrams_with_higher_ocurrence', methods=['POST'])
@@ -220,6 +221,15 @@ def bigrams_with_higher_ocurrence():
     full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(
         full_searched_tweets, length=int(data["n-grams-to-generate"]), min_occurrences=int(data['min-tweets-in-ngram']))
     return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets })
+
+# Get Tweets
+@app.route('/bigrams_with_higher_ocurrence_filter_state', methods=['POST'])
+# @cross_origin()
+def bigrams_with_higher_ocurrence_filter_state():
+    data = request.form
+    full_searched_tweets_filtered = functions.get_full_matching_tweets_filter_state(index=data['index'], word=data['word'], session_name = data['session'], state=data['state'])
+    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(full_searched_tweets_filtered)
+    return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets_filtered })
 
 
 # Get Tweets

@@ -362,6 +362,31 @@ class Functions:
         return my_connector.search_size(query, total_matches)
         # return {"results": res["hits"]["hits"] }
 
+    def get_full_matching_tweets_filter_state(self, index,word,session_name, state, host="localhost", port="9200"):
+        session = "session_"+session_name
+        my_connector = Es_connector(index=index)
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": {
+                        "term": {
+                            "text": word
+                        }
+                    },
+                    "filter": {"term": {session: state}}
+                }
+            }
+        }
+
+        try:
+            total_matches = my_connector.count(query)["count"]
+            return my_connector.search_size(query, total_matches)
+        except RequestError as e:
+            print(e)
+            print("params :", session, state, word)
+            return '...'
+
     def get_tweets(self, index="test3", word=""):
         my_connector = Es_connector(index=index)
         # res = my_connector.search({
@@ -400,7 +425,7 @@ class Functions:
         })
         return res
 
-    def get_tweets_classification_state(self, index, session_name, word, state):
+    def get_tweets_filter_classification_state(self, index, session_name, word, state):
         my_connector = Es_connector(index=index)
         session = "session_"+session_name
         res = my_connector.init_paginatedSearch({
