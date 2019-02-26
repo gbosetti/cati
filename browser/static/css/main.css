@@ -1066,7 +1066,7 @@
 }
 
 .loading_text { display: none; }
-#tweets_results { color: #aaa;font-size: 15px;display: none; }
+.tweets_results { color: #aaa;font-size: 15px;display: none; }
 
 .spinner {
   width: 40px;

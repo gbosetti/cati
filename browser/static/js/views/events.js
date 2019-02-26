@@ -30,7 +30,7 @@ app.views.events = Backbone.View.extend({
 		return false;
 	},
 	load_tweets: function(state){
-		$('#tweets_results').fadeOut('slow');
+		$('#.').fadeOut('slow');
 		  $('.loading_text').fadeIn('slow');
 		  var t0 = performance.now();
 		  var data = [];
@@ -117,9 +117,9 @@ app.views.events = Backbone.View.extend({
     },
     display_tweets: function(response, t0, word){
         var html = this.get_tweets_html(response, '');
-        $('#tweets_result').html(html);
+        $('.individual_tweets_result').html(html);
         $('.loading_text').fadeOut('slow');
-        $('#tweets_results').fadeIn('slow');
+        $('.tweets_results').fadeIn('slow');
         if(t0){
             var t1 = performance.now();
             var time = (t1 - t0) / 1000;

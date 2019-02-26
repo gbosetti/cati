@@ -201,6 +201,7 @@ def search_for_tweets():
     data = request.form
     app.last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'])
+    print("search_by_label:", data["search_by_label"])
     return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
 
 @app.route('/search_for_tweets_state', methods=['POST'])

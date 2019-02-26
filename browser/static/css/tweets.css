@@ -18,36 +18,36 @@
 }
 
 
-#bigrams-graph-area g.arc:hover path {
+.bigrams-graph-area g.arc:hover path {
     stroke: gray;
     stroke-width: 1;
 }
 
-#bigrams-graph-area .node {
+.bigrams-graph-area .node {
   cursor: pointer
 }
 
-#bigrams-graph-area .node {
+.bigrams-graph-area .node {
   cursor: pointer
 }
 
-#bigrams-graph-area {
+.bigrams-graph-area {
   cursor: move
 }
 
-#bigrams-graph-area svg:hover {
+.bigrams-graph-area svg:hover {
     outline: thin dotted #c7c7c7;
 }
 
-#bigrams-controls{
+.bigrams-controls{
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.54);
 }
 
-#bigrams-controls .toggle {
+.bigrams-controls .toggle {
     width: 100% !important;
 }
 
-#bigrams-stats svg{
+.bigrams-stats svg{
     display: block;
     margin: 0px auto;
 }

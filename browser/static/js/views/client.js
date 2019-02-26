@@ -46,7 +46,7 @@ app.views.client = Backbone.View.extend({
 				timeline.on('change', function(data) {
 						var ev = app.eventsCollection.get({ cid: data.unique_id }).toJSON();
 						 self.load_impact(ev.main_term);
-						$('#tweets_results').fadeOut('slow');
+						$('.tweets_results').fadeOut('slow');
 			      $('.loading_text').fadeIn('slow');
 			      var t0 = performance.now();
 					$.post(app.appURL+'event_tweets', {obj: JSON.stringify(ev), index: app.session.s_index}, function(response){
@@ -104,7 +104,7 @@ app.views.client = Backbone.View.extend({
 			e.preventDefault();
 			var self = this;
 			var word = $(e.currentTarget).data("value");
-			$('#tweets_results').fadeOut('slow');
+			$('.tweets_results').fadeOut('slow');
 			$('.loading_text').fadeIn('slow');
 			var t0 = performance.now();
 			$.post(app.appURL+'tweets', {word:word, index: app.session.s_index}, function(response){
@@ -274,9 +274,9 @@ app.views.client = Backbone.View.extend({
                 });
                 $('#eventsClusters').html(chtml);
             }
-			$('#tweets_result').html(html);
+			$('.individual_tweets_result').html(html);
 			$('.loading_text').fadeOut('slow');
-			$('#tweets_results').fadeIn('slow');
+			$('.tweets_results').fadeIn('slow');
 			if(t0) {
                 var t1 = performance.now();
                 var time = (t1 - t0) / 1000;
@@ -390,7 +390,7 @@ app.views.client = Backbone.View.extend({
 	    var state = $(e.currentTarget).data("state");
 	    var session = 'session_'+app.session.s_name;
 	    var self = this;
-	    $('#tweets_results').fadeOut('slow');
+	    $('.tweets_results').fadeOut('slow');
 	  $('.loading_text').fadeIn('slow');
 	  var t0 = performance.now();
 	    $.post(app.appURL+'event_filter_tweets', {obj: JSON.stringify(ev), index: app.session.s_index, state:state, session: session}, function(response){

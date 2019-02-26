@@ -36,7 +36,7 @@ class BarChart{
   
   createDrawingArea(selector){
   
-  	return d3.select(selector)
+  	return d3.select($(selector)[0]) //So we can use more expressive power of JQUERY (e.g. the :visible selector)
       .append("svg")
       .attr("width", this.width + this.margin.left + this.margin.right)
       .attr("height", this.height + this.margin.top + this.margin.bottom)

@@ -25,8 +25,7 @@ class MultiPieChart{
 
   createSvg(width, height){
 
-  	var svg = d3
-      .select(this.domSelector)
+  	var svg = d3.select($(this.domSelector)[0]) //So you we use more expressive power of JQUERY (e.g. the :visible selector)
       .append("svg")
       //.attr("style", "outline: thin dotted #e2e2e2;")
       .attr("width", width)

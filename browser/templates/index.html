@@ -137,7 +137,7 @@
 			      <div class="col-12 loading_text">
 			        <span class="badge badge-secondary">Loading...</span>
 			      </div>
-			      <div class="col-12" id="tweets_result">
+			      <div class="col-12 individual_tweets_result">
 			      </div>
 			    </div>
 			  </div>
@@ -391,10 +391,10 @@
 			    <div class="" style="border-bottom: 1px solid #dee2e6;">
                     <div class="container">
                         <ul id="search-results-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
-                            <li class="nav-item active"><a class="nav-link active" href="#all-search-results" data-toggle="tab">All the results</a></li>
-                            <li class="nav-item"><a class="nav-link" href="#unlabeled-results" data-toggle="tab">Unlabeled tweets</a></li>
-                            <li class="nav-item"><a class="nav-link" href="#confirmed-results" data-toggle="tab">Confirmed tweets</a></li>
-                            <li class="nav-item"><a class="nav-link" href="#rejected-results" data-toggle="tab">Rejected tweets</a></li>
+                            <li class="nav-item active"><a class="nav-link active" tag="all" href="#all-search-results" target="#all-search-results"data-toggle="tab">All the results</a></li>
+                            <li class="nav-item"><a class="nav-link" tag="proposed" href="#unlabeled-results" target="#unlabeled-results" data-toggle="tab">Unlabeled tweets</a></li>
+                            <li class="nav-item"><a class="nav-link" tag="confirmed" href="#confirmed-results" target="#confirmed-results" data-toggle="tab">Confirmed tweets</a></li>
+                            <li class="nav-item"><a class="nav-link" tag="negative" href="#rejected-results" target="#rejected-results" data-toggle="tab">Rejected tweets</a></li>
                         </ul>
                     </div>
                 </div>
@@ -404,87 +404,16 @@
                 <div class="tab-content container clearfix">
 
 					<!-- ALL RESULTS -->
-					<div class="tab-pane active" id="all-search-results">
-
-						<div class="mt-4 col-12 loading_text">
-							<span class="badge badge-secondary">Loading...</span>
-						  </div>
-
-						  <div class="mt-4 col-12" id="tweets_results">
-							<span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
-						  </div>
-
-							<div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="display:none;">
-								Mark
-								<select id="force_all">
-									  <option value="mark_all_results">all the results</option>
-									  <option value="mark_unlabeled_results">the unlabeled results</option>
-								</select>
-								as:
-								<a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
-								<a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
-								<!--<label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>-->
-							</div>
-
-							<div class="container">
-							  <div id="search-accordion" hidden>
-								<div class="card">
-								  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
-								  <div id="collapseNgrams" class="collapse show"> <!-- class="collapse show" -->
-									<div class="card-body">
-
-									   <!-- NGRAMS CLUSTERS RESULTS -->
-									  <div class="col-12 pix-margin-top-10">
-										<div class="" id="ngrams-search-classif"></div>
-									  </div>
-
-									</div>
-								  </div>
-								</div>
-
-								<div class="card">
-								  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
-								  <div id="collapseImages" class="collapse show">
-									<div class="card-body">
-
-										<!-- IMAGE CLUSTERS RESULTS -->
-										<div class="col-12 pix-margin-top-10">
-											<div class="card-columns" id="imagesClusters"></div>
-										</div>
-
-									</div>
-								  </div>
-								</div>
-
-								<div class="card">
-								  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
-								  <div id="collapseIndividual" class="collapse show">
-									<div class="card-body">
-
-										<!-- INDIVIDUAL TWEET RESULTS -->
-										<div class="col-12" id="tweets_result"></div>
-
-									</div>
-								  </div>
-								</div>
-							  </div>
-							</div>
-					</div>
+					<div class="tab-pane active" id="all-search-results"></div>
 
 					<!-- UNLABELED RESULTS -->
-					<div class="tab-pane active" id="unlabeled-results">
-
-					</div>
+					<div class="tab-pane active" id="unlabeled-results"></div>
 
 					<!-- POSITIVE RESULTS -->
-					<div class="tab-pane active" id="confirmed-results">
-
-					</div>
+					<div class="tab-pane active" id="confirmed-results"></div>
 
 					<!-- NEGATIVE RESULTS -->
-					<div class="tab-pane active" id="rejected-results">
-
-					</div>
+					<div class="tab-pane active" id="rejected-results"></div>
 			    </div>
 			</div>
 		</script>
@@ -712,10 +641,10 @@
 			              <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_review" data-state="negative" href="#" role="button"><strong>Negative</strong></a>
 			              <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_review" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>
 			        </div>
-			      <div class="col-12" id="tweets_results">
-			      <span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
-			    </div>
-			          <div class="col-12" id="tweets_result">
+			      <div class="col-12 tweets_results">
+			      	<span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)
+				  </div>
+			          <div class="col-12 individual_tweets_result">
 			        </div>
 			          </div>
 

@@ -9,7 +9,7 @@ app.views.tweets = Backbone.View.extend({
         'click .btn_filter': 'filter_tweets',
         'click .massive_tagging_to_state': 'massive_tagging_to_state',
         'click #search_not_labeled': 'search_not_labeled',
-        'change #top-bubbles-to-display': 'updateTopBubblesToDisplay'
+        'change .top-bubbles-to-display': 'updateTopBubblesToDisplay'
     },
     initialize: function() {
 
@@ -73,7 +73,7 @@ app.views.tweets = Backbone.View.extend({
           return false;
       }
 
-      $('#tweets_results').fadeOut('slow');
+      $('.tweets_results').fadeOut('slow');
       $('.loading_text').fadeIn('slow');
 
       this.searchForTweets();
@@ -81,13 +81,87 @@ app.views.tweets = Backbone.View.extend({
     },
     searchForTweets: function(){
 
-        this.displayResultsArea();
-        var data = this.getSearchFormData();
+        this.showResultsArea();
+        //this.clearAllResultsTabs();
+        var tabData = this.getCurrentSearchTabData();
+        this.renderAccordionInTab(tabData.target, tabData.label);
+
+        var data = this.getSearchFormData().concat([{name: "search_by_label", value: tabData.label }]);
         this.requestTweets(data);
         this.requestBigrams(data.concat(this.bigrams.formData));
+
         app.views.mabed.prototype.getClassificationStats();
     },
-    search_not_labeled: function(e){
+    clearAllResultsTabs: function(){
+        document.querySelectorAll("#search-results-tabs li a").forEach(elem => {
+            $(elem.target).html("");
+        });
+    },
+    renderAccordionInTab: function(tab, label){
+
+        $(tab).html(`<div class="mt-4 col-12 loading_text">
+                        <span class="badge badge-secondary">Loading...</span>
+                    </div>
+
+                    <div class="mt-4 col-12 tweets_results"><span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)</div>
+
+                    <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="display:none;">
+                        Mark
+                        <select id="force_all">
+                              <option value="mark_all_results">all the results</option>
+                              <option value="mark_unlabeled_results">the unlabeled results</option>
+                        </select>
+                        as:
+                        <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
+                        <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
+                        <!--<label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>-->
+                    </div>
+
+                    <div class="container">
+                      <div id="search-accordion">
+                            <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
+                                  <div id="collapseNgrams" class="collapse show"> <!-- class="collapse show" -->
+                                    <div class="card-body">
+
+                                       <!-- NGRAMS CLUSTERS RESULTS -->
+                                      <div class="col-12 pix-margin-top-10">
+                                        <div class="ngrams-search-classif"></div>
+                                      </div>
+
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
+                                  <div id="collapseImages" class="collapse show">
+                                    <div class="card-body">
+
+                                        <!-- IMAGE CLUSTERS RESULTS -->
+                                        <div class="col-12 pix-margin-top-10">
+                                            <div class="card-columns imagesClusters"></div>
+                                        </div>
+
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
+                                  <div id="collapseIndividual" class="collapse show">
+                                    <div class="card-body">
+
+                                        <!-- INDIVIDUAL TWEET RESULTS -->
+                                        <div class="col-12 individual_tweets_result"></div>
+
+                                    </div>
+                                  </div>
+                            </div>
+                      </div>
+                    </div>`);
+    },
+    /*search_not_labeled: function(e){
         e.preventDefault();
         if(!app.session){
             $.confirm({
@@ -105,7 +179,7 @@ app.views.tweets = Backbone.View.extend({
             });
             return false;
         }
-        $('#tweets_results').fadeOut('slow');
+        $('.tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
         this.displayResultsArea();
         var t0 = performance.now();
@@ -122,30 +196,53 @@ app.views.tweets = Backbone.View.extend({
         self.requestBigramsFiltered(data.concat(this.bigrams.formData));
 
         return false;
-    },
-    displayResultsArea: function(){
-        document.querySelector("#search-accordion").hidden = false;
+    },*/
+    showResultsArea: function(){
+
+        if(document.querySelector("#search-results-tabs-area").hidden == false)
+            return;
+
         document.querySelector("#search-results-tabs-area").hidden = false;
+
+        var self = this;
+        $('#search-results-tabs-area .nav-item a').on( 'click', function () {
+            $( '#search-results-tabs-area' ).find( 'li.active' ).removeClass( 'active' );
+            $( this ).parent( 'li' ).addClass( 'active' );
+
+            //If the tab is empty, run a query
+            var html = $(this.target).html();
+            if( html && html.trim().length > 0 ){
+                console.log("CONTAINING SOMETHING")
+            }
+            else { console.log("EMPTY"); self.searchForTweets(); }
+        });
+    },
+    getCurrentSearchTabData: function(){
+        var tab = document.querySelector("#search-results-tabs li.active a");
+        return {
+            label: tab.getAttribute("tag"),
+            target: document.querySelector(tab.target)
+        };
     },
     requestTweets: function(data){
 
         var t0 = performance.now();
 
         //First clean the previous results
-        $('#imagesClusters').html("");
-        this.showLoadingMessage('imagesClusters', 400);
+        $('.imagesClusters').html("");
+        this.showLoadingMessage('.imagesClusters', 400);
 
-        $('#tweets_result').html("");
-        this.showLoadingMessage('tweets_result', 400);
+        $('.individual_tweets_result').html("");
+        this.showLoadingMessage('.individual_tweets_result', 400);
 
         var self = this;
         $.post(app.appURL+'search_for_tweets', data, function(response){
-            self.displayPaginatedResults(response, t0, data[0].value);
+            self.displayPaginatedResults(response, t0, data[0].value, data.find(row => row.name == "search_by_label").value);
         }, 'json').fail(self.cnxError);
     },
     requestBigrams: function(data){
-        var containerId = "ngrams-search-classif";
-        this.showLoadingMessage(containerId, 677);
+        var containerSelector = ".ngrams-search-classif";
+        this.showLoadingMessage(containerSelector, 677);
         var self = this;
         //console.log("requestBigrams's data", data);
 
@@ -154,8 +251,8 @@ app.views.tweets = Backbone.View.extend({
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
             //check if there are any bigrams
             if($.isEmptyObject(response.bigrams))
-                self.showNoBigramsFound(containerId);
-            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
+                self.showNoBigramsFound(containerSelector);
+            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerSelector, 500);
 
         }, 'json').fail(function(err){
             this.clearNgramsGraph();
@@ -164,11 +261,11 @@ app.views.tweets = Backbone.View.extend({
         });
     },
     clearNgramsGraph: function(){
-        $("#bigrams-graph-area").html("");
+        $(".bigrams-graph-area").html("");
     },
     requestBigramsFiltered: function(data){
         var containerId = "ngrams-search-classif";
-        this.showLoadingMessage(containerId, 677);
+        this.showLoadingMessage("#" + containerId, 677);
         var self = this;
         console.log("requestBigrams's data", data);
 
@@ -177,8 +274,8 @@ app.views.tweets = Backbone.View.extend({
         $.post(app.appURL+'bigrams_with_higher_ocurrence_filter_state', data, (response) => {
             //check if there are any bigrams
             if($.isEmptyObject(response.bigrams))
-                self.showNoBigramsFound(containerId);
-            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerId, 500);
+                self.showNoBigramsFound("#" + containerId);
+            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, "#" + containerId, 500);
 
         }, 'json').fail(function(err){
             this.clearNgramsGraph();
@@ -186,12 +283,12 @@ app.views.tweets = Backbone.View.extend({
             self.cnxError(err);
         });
     },
-    showNoBigramsFound: function(containedId){
-        $("#" + containedId).html("Sorry, no bigrams were found.");
+    showNoBigramsFound: function(containerSelector){
+        $(containerSelector).html("Sorry, no bigrams were found.");
     },
-    showLoadingMessage: function(containerId, height){
+    showLoadingMessage: function(containerSelector, height){
 
-        $("#" + containerId).html("");
+        $(containerSelector).html("");
         var spinner = document.createElement("div");
             spinner.className = "loader";
 
@@ -204,7 +301,7 @@ app.views.tweets = Backbone.View.extend({
             spinnerFrame.style["padding-top"] = "150px";
             spinnerFrame.appendChild(spinner);
 
-        document.querySelector("#" + containerId).appendChild(spinnerFrame);
+        document.querySelector(containerSelector).appendChild(spinnerFrame);
     },
     cnxError: function(err) {
         $('.loading_text').fadeOut('slow');
@@ -365,38 +462,38 @@ app.views.tweets = Backbone.View.extend({
 
         return false;
     },
-    displayPaginatedResults: function(response, t0, word){
+    displayPaginatedResults: function(response, t0, word, label){
         var html = this.get_tweets_html(response, '');
-        this.showImageClusters(response.clusters, word);
+        this.showImageClusters(response.clusters, word, '.imagesClusters');
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0);
     },
-    showBigramsClassification: function(bigrams, tweets, containedId, graphHeight){
+    showBigramsClassification: function(bigrams, tweets, containerSelector, graphHeight){
 
-        var graphArea = $("#" + containedId);
+        var graphArea = $(containerSelector);
             graphArea.html("");
 
-        this.renderBigramsGrid(containedId, graphHeight);
+        this.renderBigramsGrid(containerSelector, graphHeight);
         var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
-        setTimeout(() => { this.renderBigramsChart("#bigrams-graph-area", bigrams, tweets, graphHeight); }, 0);
+        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area", bigrams, tweets, graphHeight); }, 0);
         setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
         this.updateBigramsControls(bigrams);
     },
     updateBigramsControls: function(bigrams){
 
         var len = Object.keys(bigrams).length;
-        $("#top-bubbles-to-display").attr({"max": len});
-        $("#top-bubbles-to-display").val(len);
+        $(".top-bubbles-to-display").attr({"max": len});
+        $(".top-bubbles-to-display").val(len);
         //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
 
-        $("#n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
-        $("#min-tweets-in-ngram").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
+        $(".n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
+        $(".min-tweets-in-ngram").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart("#bigrams-graph-area", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
+        this.renderBigramsChart(".bigrams-graph-area", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
     },
     renderBigramsChart: function(domSelector, bigrams, tweets, graphHeight, maxBubblesToShow){
 
@@ -418,7 +515,15 @@ app.views.tweets = Backbone.View.extend({
             return [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
         });
 
-        var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
+        console.log(domSelector + " width: " + $("#search-accordion .card").width());
+        console.log(domSelector + " width: " + $(".card").width());
+        console.log(domSelector + " width: " + $("#search-accordion").width());
+        console.log(domSelector + " width: ", $("#search-accordion"));
+        console.log(domSelector + " width: ", $("#search-accordion")[0].getBoundingClientRect());
+
+        console.log("bigrams-controls: ", $(".bigrams-controls").width());
+
+        var chart = new MultiPieChart(domSelector+":visible", $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
             for (var bigram in bigrams) {
                 if (bigram == event.label){
@@ -445,28 +550,28 @@ app.views.tweets = Backbone.View.extend({
               { label: "Bigrams", confirmed: bigrams_confirmed, negative: bigrams_negative, unlabeled: bigrams_unlabeled }
             ];
 
-        new BarChart("#bigrams-stats", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(data)
+        new BarChart(".bigrams-stats:visible", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(data)
     },
-    renderBigramsGrid: function(containedId, graphHeight){
+    renderBigramsGrid: function(containerSelector, graphHeight){
         var grid = `<div class="row" style="height: ${graphHeight}px;">
-                        <div class="col-3" id="bigrams-stats"></div>
-                        <div class="col-9" id="bigrams-graph-area"></div>
+                        <div class="col-3 bigrams-stats"></div>
+                        <div class="col-9 bigrams-graph-area"></div>
                     </div>
                     <div class="row">
                         <div class="col-12 col-sm-12">
-                                <form id="bigrams-controls" class="static_box pix-padding-20 white-bg">
+                                <form class="static_box pix-padding-20 white-bg bigrams-controls">
                                     <div class="form-row">
                                         <div class="col-md-2">
-                                            <label for="n-grams-to-generate">N-gram length</label>
-                                            <input id="n-grams-to-generate" name="n-grams-to-generate" type="number" class="form-control" value="2">
+                                            <label>N-gram length</label>
+                                            <input name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2">
                                         </div>
                                         <div class="col-md-2">
-                                            <label for="min-tweets-in-bigram">Min tweets by n-gram</label>
-                                            <input id="min-tweets-in-ngram" name="min-tweets-in-ngram" type="number" class="form-control" value="20">
+                                            <label>Min tweets by n-gram</label>
+                                            <input name="min-tweets-in-ngram" type="number" class="form-control min-tweets-in-ngram" value="20">
                                         </div>
                                         <div class="col-md-2">
-                                            <label for="top-bubbles-to-display">Max bubbles to show</label>
-                                            <input id="top-bubbles-to-display" name="top-bubbles-to-display" type="number" class="form-control" value="10" min="1" max="10">
+                                            <label>Max bubbles to show</label>
+                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="10" min="1" max="10">
                                         </div>
                                         <div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
@@ -482,7 +587,7 @@ app.views.tweets = Backbone.View.extend({
                                         </div>-->
                                     </div>
                                     <div class="mt-4 form-row">
-                                        <button id="regenerate-bigrams" class="btn  btn-default" style="width:100%">
+                                        <button class="btn  btn-default regenerate-bigrams" style="width:100%">
                                             <i class="fa fa-refresh" aria-hidden="true"></i>
                                             <strong>Refresh</strong>
                                         </button>
@@ -490,16 +595,16 @@ app.views.tweets = Backbone.View.extend({
                                 </form>
                             </div>
                         </div>`;
-        $("#" + containedId).html(grid);
+        $(containerSelector).html(grid);
         $("input[data-toggle='toggle']").bootstrapToggle();
 
-        $("#bigrams-controls").on("click", "#regenerate-bigrams", () => {
+        $(".bigrams-controls").on("click", ".regenerate-bigrams", () => {
             this.bigrams.formData = this.getBigramsFormData();
             this.requestBigrams(this.getSearchFormData().concat(this.bigrams.formData));
         })
     },
     getBigramsFormData: function(){
-        return $('#bigrams-controls').serializeArray();
+        return $('.bigrams-controls').serializeArray();
     },
     getBigramsDefaultFormData: function(){
         return [
@@ -556,11 +661,11 @@ app.views.tweets = Backbone.View.extend({
     },
     showIndividualTweets: function(html){
 
-        $('#tweets_result').html(html);
+        $('.individual_tweets_result').html(html);
         $('.loading_text').fadeOut('slow');
-        $('#tweets_results').fadeIn('slow');
+        $('.tweets_results').fadeIn('slow');
     },
-    showImageClusters: function(clusters, word){
+    showImageClusters: function(clusters, word, clustersAreaSelector){
         var cbtn = "", chtml = "", state_btns="";
 
         if(clusters){
@@ -588,7 +693,7 @@ app.views.tweets = Backbone.View.extend({
                     '</div>'+
                 '</div>';
             });
-            $('#imagesClusters').html(chtml);
+            $(clustersAreaSelector).html(chtml);
         }
 
         $('.state_btns').show();
@@ -749,7 +854,7 @@ app.views.tweets = Backbone.View.extend({
 	},
     filter_tweets: function(e){
         e.preventDefault();
-        $('#tweets_results').fadeOut('slow');
+        $('.tweets_results').fadeOut('slow');
         $('.loading_text').fadeIn('slow');
         var state = $(e.currentTarget).data("state");
         var t0 = performance.now();
