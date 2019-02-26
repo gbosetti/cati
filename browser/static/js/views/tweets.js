@@ -783,8 +783,12 @@ app.views.tweets = Backbone.View.extend({
             }
         });
 
-        var callback = function(response){
+        var callback = (response)=>{
             jc.close();
+
+            /*var simulatedEvent = {preventDefault: function(){return false}, currentTarget: document.querySelector(".tweet_state") };
+            this.tweet_state(simulatedEvent);*/
+            
             $.confirm({
                 theme: 'pix-default-modal',
                 title: 'Changing tweets state',
