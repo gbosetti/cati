@@ -490,7 +490,7 @@ app.views.tweets = Backbone.View.extend({
                             </div>
                         </div>`;
         $("#" + containedId).html(grid);
-        $("input[data-toggle='toggle'").bootstrapToggle();
+        $("input[data-toggle='toggle']").bootstrapToggle();
 
         $("#bigrams-controls").on("click", "#regenerate-bigrams", () => {
             this.bigrams.formData = this.getBigramsFormData();
