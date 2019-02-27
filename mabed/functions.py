@@ -108,13 +108,13 @@ class Functions:
                     "aggs": {
                         "distinct_img": {
                             "terms": {
-                                "field": "extended_entities.media.id_str",
+                                "field": "extended_entities.media.id_str.keyword",
                                 "size": 1
                             }
                         },
                         "count": {
                             "cardinality": {
-                                "field": "extended_entities.media.id_str"
+                                "field": "extended_entities.media.id_str.keyword"
                             }
                         }
                     }
