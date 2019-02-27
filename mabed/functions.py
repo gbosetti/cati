@@ -319,87 +319,26 @@ class Functions:
     # Tweets
     # ==================================================================
 
-    def get_full_matching_tweets(self, index="test3", word="", host="localhost", port="9200"):
+    def get_full_matching_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", host="localhost", port="9200"):
 
-        # print("...", index, " ... ", word)
-        # elastic = Es_connector([{'host': host, 'port': port}])
-        # # scan_iter = elasticsearch.helpers.scan(elastic, index=index, doc_type="tweet", query={"query": {"match_all": {}}})
-        # # scan_iter = elasticsearch.helpers.scan(elastic,
-        # #      query={
-        # #         "simple_query_string": {
-        # #              "fields": ["text"],
-        # #              "query": word
-        # #         }
-        # #      },
-        # #      index=index,
-        # #      doc_type="tweet"
-        # # );
-        # scan_iter = elasticsearch.helpers.scan(elastic,
-        #      query={"query": {"match": {"text": word}}},
-        #      index=index,
-        #      doc_type="books"
-        # );
-        #
-        # # tweets = list(enumerate(scan_iter))
-        # tweets = []
-        # for tweet in scan_iter:
-        #     tweets.append(tweet)
-        # return tweets
         my_connector = Es_connector(index=index)
-
         query = {
             "query": {
-                "simple_query_string": {
-                    "fields": [
-                        "text"
-                    ],
-                    "query": word
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
                 }
             }
         }
 
         total_matches = my_connector.count(query)["count"]
         return my_connector.search_size(query, total_matches)
-        # return {"results": res["hits"]["hits"] }
 
-    def get_full_matching_tweets_filter_state(self, index,word,session_name, state, host="localhost", port="9200"):
-        session = "session_"+session_name
-        my_connector = Es_connector(index=index)
-
-        query = {
-            "query": {
-                "bool": {
-                    "must": {
-                        "term": {
-                            "text": word
-                        }
-                    },
-                    "filter": {"term": {session: state}}
-                }
-            }
-        }
-
-        try:
-            total_matches = my_connector.count(query)["count"]
-            return my_connector.search_size(query, total_matches)
-        except RequestError as e:
-            print(e)
-            print("params :", session, state, word)
-            return '...'
 
     def get_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
         my_connector = Es_connector(index=index)
-        # res = my_connector.init_paginatedSearch({
-        #     "query": {
-        #         "simple_query_string": {
-        #             "fields": [
-        #                 "text"
-        #             ],
-        #             "query": word
-        #         }
-        #     }
-        # })
-        print(session, label, {session: label})
         res = my_connector.init_paginatedSearch({
             "query": {
                 "bool": {
@@ -760,55 +699,16 @@ class Functions:
     # Clusters
     # ==================================================================
 
-    def get_clusters(self, index="test3", word=""):
+    def get_clusters(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
         my_connector = Es_connector(index=index)
         res = my_connector.search({
             "size": 1,
             "query": {
-                "simple_query_string": {
-                    "fields": [
-                        "text"
-                    ],
-                    "query": word
-                }
-            },
-            "aggs": {
-                "group_by_cluster": {
-                    "terms": {
-                        "field": "imagesCluster",
-                        "size": 9999
-                    }
-                }
-            }
-        })
-        # print("Clusters")
-        # print(res['aggregations']['group_by_cluster']['buckets'])
-        clusters = res['aggregations']['group_by_cluster']['buckets']
-        with open(index + '.json') as f:
-            data = json.load(f)
-        for cluster in clusters:
-            # print(cluster['key'])
-            images = data['duplicates'][cluster['key']]
-            # print(images[0])
-            cluster['image'] = images[0]
-            cluster['size'] = len(images)
-        # print(clusters)
-        return clusters
-
-# like get_clusters but can query for states
-    def get_clusters_state(self, index, session_name, word, state):
-        session = "session_"+session_name
-        my_connector = Es_connector(index=index)
-        res = my_connector.search({
-            "size": 1,
-            "query": {
-                "bool":{
-                    "must": {
-                        "match": {
-                            "text": word
-                        }
-                    },
-                    "filter": {"term": {session: state}}
+                "bool": {
+                    "must": [
+                        {"match": {"text": word }},
+                        {"match": {session: label}}
+                    ]
                 }
             },
             "aggs": {

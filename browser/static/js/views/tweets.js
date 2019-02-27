@@ -139,7 +139,7 @@ app.views.tweets = Backbone.View.extend({
                                     <div class="card-body">
 
                                         <!-- IMAGE CLUSTERS RESULTS -->
-                                        <div class="col-12 pix-margin-top-10">
+                                        <div class="col-12 pix-margin-top-10 images-clusters-container">
                                             <div class="card-columns imagesClusters"></div>
                                         </div>
 
@@ -227,7 +227,13 @@ app.views.tweets = Backbone.View.extend({
         $(".bigrams-graph-area:visible").html("");
     },
     showNoBigramsFound: function(containerSelector){
-        $(containerSelector).html("Sorry, no bigrams were found.");
+        $(containerSelector).html("Sorry, no bigrams were found under this criteria.");
+    },
+    showNoTweetsFound: function(containerSelector){
+        $(containerSelector).html("Sorry, no tweets were found under this criteria.");
+    },
+    showNoImageClustersFound: function(containerSelector){
+        $(containerSelector).html("Sorry, no image clusters were found under this criteria.");
     },
     showLoadingMessage: function(containerSelector, height){
 
@@ -407,9 +413,8 @@ app.views.tweets = Backbone.View.extend({
     },
     displayPaginatedResults: function(response, t0, word, label){
         var html = this.get_tweets_html(response, '');
-        this.showImageClusters(response.clusters, word, '.imagesClusters');
+        this.showImageClusters(response.clusters, word, '.imagesClusters:visible:last');
         this.showIndividualTweets(html, t0);
-        console.log(response);
         this.showResultsStats(response.tweets.total, t0);
     },
     showBigramsClassification: function(bigrams, tweets, containerSelector, graphHeight){
@@ -595,13 +600,18 @@ app.views.tweets = Backbone.View.extend({
     },
     showIndividualTweets: function(html){
 
-        $('.individual_tweets_result:visible:last').html(html);
+        if(html.trim().length > 0) {
+            $('.individual_tweets_result:visible:last').html(html);
+        }
+        else this.showNoTweetsFound('.individual_tweets_result:visible:last');
+
         $('.loading_text').fadeOut('slow');
         $('.tweets_results').fadeIn('slow');
     },
     showImageClusters: function(clusters, word, clustersAreaSelector){
         var cbtn = "", chtml = "", state_btns="";
 
+        console.log("clusters", clusters);
         if(clusters){
             $.each(clusters, function(i, cluster){
                 if(i>=20){return false;}
@@ -627,8 +637,14 @@ app.views.tweets = Backbone.View.extend({
                     '</div>'+
                 '</div>';
             });
+        }
+
+
+
+        if(chtml.trim().length > 0) {
             $(clustersAreaSelector).html(chtml);
         }
+        else this.showNoImageClustersFound(".images-clusters-container:visible:last");
 
         $('.state_btns:visible').show();
     },
