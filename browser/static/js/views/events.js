@@ -117,9 +117,9 @@ app.views.events = Backbone.View.extend({
     },
     display_tweets: function(response, t0, word){
         var html = this.get_tweets_html(response, '');
-        $('.individual_tweets_result').html(html);
-        $('.loading_text').fadeOut('slow');
-        $('.tweets_results').fadeIn('slow');
+        $('.individual_tweets_result:visible:last').html(html);
+        $('.loading_text:visible:last').fadeOut('slow');
+        $('.tweets_results:visible:last').fadeIn('slow');
         if(t0){
             var t1 = performance.now();
             var time = (t1 - t0) / 1000;

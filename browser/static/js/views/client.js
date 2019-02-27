@@ -273,7 +273,7 @@ app.views.client = Backbone.View.extend({
                 });
                 $('#eventsClusters').html(chtml);
             }
-			$('.individual_tweets_result').html(html);
+			$('.individual_tweets_result:visible:last').html(html);
 			$('.loading_text').fadeOut('slow');
 			$('.tweets_results').fadeIn('slow');
 			if(t0) {

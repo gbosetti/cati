@@ -193,11 +193,11 @@ app.views.tweets = Backbone.View.extend({
         var t0 = performance.now();
 
         //First clean the previous results
-        $('.imagesClusters:visible').html("");
-        this.showLoadingMessage('.imagesClusters:visible', 400);
+        $('.imagesClusters:visible:last').html("");
+        this.showLoadingMessage('.imagesClusters:visible:last', 400);
 
-        $('.individual_tweets_result:visible').html("");
-        this.showLoadingMessage('.individual_tweets_result:visible', 400);
+        $('.individual_tweets_result:visible:last').html("");
+        this.showLoadingMessage('.individual_tweets_result:visible:last', 400);
 
         var self = this;
         $.post(app.appURL+'search_for_tweets', data, function(response){
@@ -595,7 +595,7 @@ app.views.tweets = Backbone.View.extend({
     },
     showIndividualTweets: function(html){
 
-        $('.individual_tweets_result').html(html);
+        $('.individual_tweets_result:visible:last').html(html);
         $('.loading_text').fadeOut('slow');
         $('.tweets_results').fadeIn('slow');
     },
