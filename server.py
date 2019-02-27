@@ -202,6 +202,14 @@ def search_for_tweets():
     return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "keywords": data['word'] })
 
 # Get Tweets
+@app.route('/get_dataset_date_range', methods=['POST'])
+# @cross_origin()
+def get_dataset_date_range():
+    data = request.form
+    range = functions.get_dataset_date_range(index=data["index"])
+    return jsonify(range)
+
+# Get Tweets
 @app.route('/bigrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
 def bigrams_with_higher_ocurrence():

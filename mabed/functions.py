@@ -600,18 +600,32 @@ class Functions:
     def get_cluster_tweets(self, index="test3", cid=0):
         my_connector = Es_connector(index=index)
         query = {
-            # "_source": [
-            #     "id_str",
-            #     "imagesCluster",
-            #     "session_Twitter2015",
-            #     "extended_entities"
-            # ],
             "query": {
                 "term": {"imagesCluster": cid}
             }
         }
         res = my_connector.search(query)
         return res
+
+    def get_dataset_date_range(self, index="test3"):
+
+        try:
+            my_connector = Es_connector(index=index)
+            res = my_connector.search({
+                "size": 0,
+                "query": {
+                    "match_all": {}
+                },
+                "aggs": {
+                    "min_timestamp": {"min": {"field": "@timestamp"}},
+                    "max_timestamp": {"max": {"field": "@timestamp"}}
+                }
+            })
+            return res["aggregations"]
+
+        except RequestError:
+            print("Error: try creating the keyword field")  #TODO
+            return {}
 
     def get_event_image(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
