@@ -199,7 +199,7 @@ def search_for_tweets():
     data = request.form
     last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
-    return jsonify({"tweets": last_searched_tweets, "clusters": clusters })
+    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "keywords": data['word'] })
 
 # Get Tweets
 @app.route('/bigrams_with_higher_ocurrence', methods=['POST'])

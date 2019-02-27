@@ -104,7 +104,7 @@ app.views.tweets = Backbone.View.extend({
                         <span class="badge badge-secondary">Loading...</span>
                     </div>
 
-                    <div class="mt-4 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)</div>
+                    <div class="mt-4 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds) matching <span class="res_keywords">"«»"</span></div>
 
                     <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="">
                         Mark
@@ -415,7 +415,7 @@ app.views.tweets = Backbone.View.extend({
         var html = this.get_tweets_html(response, '');
         this.showImageClusters(response.clusters, word, '.imagesClusters:visible:last');
         this.showIndividualTweets(html, t0);
-        this.showResultsStats(response.tweets.total, t0);
+        this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
     showBigramsClassification: function(bigrams, tweets, containerSelector, graphHeight){
 
@@ -589,7 +589,7 @@ app.views.tweets = Backbone.View.extend({
             return { "matrix": matrix, "xLabels": xLabels, "yLabels": yLabels };
         }catch(err){console.log(err)}
     },
-    showResultsStats: function(total, t0){
+    showResultsStats: function(total, t0, keywords){
 
         if(t0){
             var time = (performance.now() - t0) / 1000;
@@ -597,6 +597,9 @@ app.views.tweets = Backbone.View.extend({
             $('.res_time:visible:last').html(roundedString);
         }
         $('.res_num:visible:last').html(total);
+        console.log($('.res_keywords:visible:last'));
+        console.log("«" + keywords + "»");
+        $('.res_keywords:visible:last')[0].textContent = "«" + keywords + "»";
     },
     showIndividualTweets: function(html){
 
