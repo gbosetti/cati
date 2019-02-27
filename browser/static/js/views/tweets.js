@@ -409,6 +409,7 @@ app.views.tweets = Backbone.View.extend({
         var html = this.get_tweets_html(response, '');
         this.showImageClusters(response.clusters, word, '.imagesClusters');
         this.showIndividualTweets(html, t0);
+        console.log(response);
         this.showResultsStats(response.tweets.total, t0);
     },
     showBigramsClassification: function(bigrams, tweets, containerSelector, graphHeight){
@@ -586,12 +587,11 @@ app.views.tweets = Backbone.View.extend({
     showResultsStats: function(total, t0){
 
         if(t0){
-            var t1 = performance.now();
-            var time = (t1 - t0) / 1000;
+            var time = (performance.now() - t0) / 1000;
             var roundedString = time.toFixed(2);
-            $('.res_num').html(total);
-            $('.res_time').html(roundedString);
+            $('.res_time:visible:last').html(roundedString);
         }
+        $('.res_num:visible:last').html(total);
     },
     showIndividualTweets: function(html){
 

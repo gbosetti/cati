@@ -193,24 +193,13 @@ def images():
 # ==================================================================
 
 # Get Tweets
-app.last_searched_tweets = []
-
 @app.route('/search_for_tweets', methods=['POST'])
 # @cross_origin()
 def search_for_tweets():
     data = request.form
-    app.last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'])
+    last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'])
-    print("search_by_label:", data["search_by_label"])
-    return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
-
-@app.route('/search_for_tweets_state', methods=['POST'])
-def search_for_tweets_state():
-    data = request.form
-    app.last_searched_tweets = functions.get_tweets_filter_classification_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
-    clusters = functions.get_clusters_state(index=data['index'], session_name=data['session'], word=data['word'], state=data['state'])
-    return jsonify({"tweets": app.last_searched_tweets, "clusters": clusters })
-
+    return jsonify({"tweets": last_searched_tweets, "clusters": clusters })
 
 # Get Tweets
 @app.route('/bigrams_with_higher_ocurrence', methods=['POST'])

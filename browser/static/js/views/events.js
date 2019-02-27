@@ -127,7 +127,6 @@ app.views.events = Backbone.View.extend({
             $('.res_num').html(response.tweets.total);
             $('.res_time').html(roundedString);
         }
-
     },
 	tweet_state: function(e){
 		e.preventDefault();

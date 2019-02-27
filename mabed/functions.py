@@ -387,59 +387,30 @@ class Functions:
             print("params :", session, state, word)
             return '...'
 
-    def get_tweets(self, index="test3", word=""):
+    def get_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
         my_connector = Es_connector(index=index)
-        # res = my_connector.search({
-        #         "query": {
-        #             "simple_query_string": {
-        #               "fields": [
+        # res = my_connector.init_paginatedSearch({
+        #     "query": {
+        #         "simple_query_string": {
+        #             "fields": [
         #                 "text"
-        #               ],
-        #               "query": word
-        #             }
-        #           }
-        #         })
-
-        # res = my_connector.bigSearch(
-        #     {
-        #         "_source": ["text", "id_str", "extended_entities", "user", "created_at", "link"],
-        #         "query": {
-        #             "simple_query_string": {
-        #               "fields": [
-        #                 "text"
-        #               ],
-        #               "query": word
-        #             }
-        #           }
-        #     })
-
-        res = my_connector.init_paginatedSearch({
-            "query": {
-                "simple_query_string": {
-                    "fields": [
-                        "text"
-                    ],
-                    "query": word
-                }
-            }
-        })
-        return res
-
-    def get_tweets_filter_classification_state(self, index, session_name, word, state):
-        my_connector = Es_connector(index=index)
-        session = "session_"+session_name
+        #             ],
+        #             "query": word
+        #         }
+        #     }
+        # })
+        print(session, label, {session: label})
         res = my_connector.init_paginatedSearch({
             "query": {
                 "bool": {
-                    "must": {
-                        "match": {
-                            "text": word
-                        }
-                    },
-                    "filter": {"term": {session: state}}
+                    "must": [
+                        {"match": {"text": word }},
+                        {"match": {session: label}}
+                    ]
                 }
             }
         })
+
         return res
 
     def get_tweets_scroll(self, index, sid, scroll_size):
