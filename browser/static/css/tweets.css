@@ -1,19 +1,19 @@
-#search-accordion .card .card-header {
+.search-accordion .card .card-header {
     background-color: #677079;
     cursor: pointer;
 }
-#search-accordion .card .card-header a {
+.search-accordion .card .card-header a {
     color: white !important;
 }
-#search-accordion .card .card-header a:after,
-#search-accordion .card .card-header a.collapsed:after{
+.search-accordion .card .card-header a:after,
+.search-accordion .card .card-header a.collapsed:after{
     font-family: FontAwesome;
     content: "\f053";
     position: absolute;
     top: 14px;
     right:25px;
 }
-#search-accordion .card .card-header a.collapsed:after{
+.#search-accordion .card .card-header a.collapsed:after{
     content: "\f078";
 }
 

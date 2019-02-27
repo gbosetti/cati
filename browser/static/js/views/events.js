@@ -124,8 +124,8 @@ app.views.events = Backbone.View.extend({
             var t1 = performance.now();
             var time = (t1 - t0) / 1000;
             var roundedString = time.toFixed(2);
-            $('#res_num').html(response.tweets.total);
-            $('#res_time').html(roundedString);
+            $('.res_num').html(response.tweets.total);
+            $('.res_time').html(roundedString);
         }
 
     },

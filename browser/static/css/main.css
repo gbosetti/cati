@@ -1065,7 +1065,7 @@
   color: #34bf49;
 }
 
-.loading_text { display: none; }
+.loading_text {  }
 .tweets_results { color: #aaa;font-size: 15px;display: none; }
 
 .spinner {

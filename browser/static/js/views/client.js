@@ -268,7 +268,6 @@ app.views.client = Backbone.View.extend({
                         '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
                         '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
                         cbtn +
-
                         '</div>' +
                         '</div>';
                 });
@@ -281,8 +280,8 @@ app.views.client = Backbone.View.extend({
                 var t1 = performance.now();
                 var time = (t1 - t0) / 1000;
                 var roundedString = time.toFixed(2);
-                $('#res_num').html(response.tweets.total);
-                $('#res_time').html(roundedString);
+                $('.res_num').html(response.tweets.total);
+                $('.res_time').html(roundedString);
             }
 
 		},

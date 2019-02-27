@@ -26,7 +26,7 @@ app.views.tweets = Backbone.View.extend({
         $(document).on("click","body .tweet_state",function(e){
 			self.tweet_state(e);
 		});
-		$(document).on("click","#search-accordion .card-header",function(e){
+		$(document).on("click",".search-accordion .card-header",function(e){
 			if(e.target.tagName.toLocaleLowerCase() == "div")
 			    e.target.querySelector("a").click();
 		});
@@ -82,6 +82,7 @@ app.views.tweets = Backbone.View.extend({
     searchForTweets: function(){
 
         this.showResultsArea();
+        $('.loading_text').fadeIn('slow');
         //this.clearAllResultsTabs();
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
@@ -103,22 +104,21 @@ app.views.tweets = Backbone.View.extend({
                         <span class="badge badge-secondary">Loading...</span>
                     </div>
 
-                    <div class="mt-4 col-12 tweets_results"><span id="res_num">0</span> results (<span id="res_time">0.1</span> seconds)</div>
+                    <div class="mt-4 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)</div>
 
-                    <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="display:none;">
+                    <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="">
                         Mark
-                        <select id="force_all">
+                        <select class="force_all">
                               <option value="mark_all_results">all the results</option>
                               <option value="mark_unlabeled_results">the unlabeled results</option>
                         </select>
                         as:
                         <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
                         <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
-                        <!--<label><input type="checkbox" id="force_all" value=""> <span style="position:relative;top:2px;left:3px;">Apply to all the matching tweets (not only on this page)</span></label>-->
                     </div>
 
                     <div class="container">
-                      <div id="search-accordion">
+                      <div class="search-accordion">
                             <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
                                   <div id="collapseNgrams" class="collapse show"> <!-- class="collapse show" -->
@@ -161,42 +161,6 @@ app.views.tweets = Backbone.View.extend({
                       </div>
                     </div>`);
     },
-    /*search_not_labeled: function(e){
-        e.preventDefault();
-        if(!app.session){
-            $.confirm({
-                title: 'Error',
-                boxWidth: '800px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "Error! please select a session from the settings page.",
-                buttons: {
-                    cancel: {
-                        text: 'CLOSE',
-                        btnClass: 'btn-primary',
-                    }
-                }
-            });
-            return false;
-        }
-        $('.tweets_results').fadeOut('slow');
-        $('.loading_text').fadeIn('slow');
-        this.displayResultsArea();
-        var t0 = performance.now();
-        var data = this.getSearchFormData();
-        data.push({name: "index", value: app.session.s_index});
-        data.push({name: "session", value: app.session.s_name});
-        data.push({name: "state", value: "proposed"});
-
-        var self = this;
-        $.post(app.appURL+'search_for_tweets_state', data, function(response){
-            self.display_tweets(response, t0, data[0].value);
-        }, 'json').fail(self.cnxError);
-
-        self.requestBigramsFiltered(data.concat(this.bigrams.formData));
-
-        return false;
-    },*/
     showResultsArea: function(){
 
         if(document.querySelector("#search-results-tabs-area").hidden == false)
@@ -229,11 +193,11 @@ app.views.tweets = Backbone.View.extend({
         var t0 = performance.now();
 
         //First clean the previous results
-        $('.imagesClusters').html("");
-        this.showLoadingMessage('.imagesClusters', 400);
+        $('.imagesClusters:visible').html("");
+        this.showLoadingMessage('.imagesClusters:visible', 400);
 
-        $('.individual_tweets_result').html("");
-        this.showLoadingMessage('.individual_tweets_result', 400);
+        $('.individual_tweets_result:visible').html("");
+        this.showLoadingMessage('.individual_tweets_result:visible', 400);
 
         var self = this;
         $.post(app.appURL+'search_for_tweets', data, function(response){
@@ -241,11 +205,10 @@ app.views.tweets = Backbone.View.extend({
         }, 'json').fail(self.cnxError);
     },
     requestBigrams: function(data){
-        var containerSelector = ".ngrams-search-classif";
+
+        var containerSelector = ".ngrams-search-classif:visible:last";
         this.showLoadingMessage(containerSelector, 677);
         var self = this;
-        //console.log("requestBigrams's data", data);
-
         this.bigrams.formData = data;
 
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
@@ -261,27 +224,7 @@ app.views.tweets = Backbone.View.extend({
         });
     },
     clearNgramsGraph: function(){
-        $(".bigrams-graph-area").html("");
-    },
-    requestBigramsFiltered: function(data){
-        var containerId = "ngrams-search-classif";
-        this.showLoadingMessage("#" + containerId, 677);
-        var self = this;
-        console.log("requestBigrams's data", data);
-
-        this.bigrams.formData = data;
-
-        $.post(app.appURL+'bigrams_with_higher_ocurrence_filter_state', data, (response) => {
-            //check if there are any bigrams
-            if($.isEmptyObject(response.bigrams))
-                self.showNoBigramsFound("#" + containerId);
-            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, "#" + containerId, 500);
-
-        }, 'json').fail(function(err){
-            this.clearNgramsGraph();
-            console.log(err);
-            self.cnxError(err);
-        });
+        $(".bigrams-graph-area:visible").html("");
     },
     showNoBigramsFound: function(containerSelector){
         $(containerSelector).html("Sorry, no bigrams were found.");
@@ -301,7 +244,7 @@ app.views.tweets = Backbone.View.extend({
             spinnerFrame.style["padding-top"] = "150px";
             spinnerFrame.appendChild(spinner);
 
-        document.querySelector(containerSelector).appendChild(spinnerFrame);
+        $(containerSelector).append(spinnerFrame);
     },
     cnxError: function(err) {
         $('.loading_text').fadeOut('slow');
@@ -470,30 +413,29 @@ app.views.tweets = Backbone.View.extend({
     },
     showBigramsClassification: function(bigrams, tweets, containerSelector, graphHeight){
 
-        var graphArea = $(containerSelector);
-            graphArea.html("");
+        $(containerSelector).html("");
 
         this.renderBigramsGrid(containerSelector, graphHeight);
         var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
-        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area", bigrams, tweets, graphHeight); }, 0);
+        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", bigrams, tweets, graphHeight); }, 0);
         setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
         this.updateBigramsControls(bigrams);
     },
     updateBigramsControls: function(bigrams){
 
         var len = Object.keys(bigrams).length;
-        $(".top-bubbles-to-display").attr({"max": len});
-        $(".top-bubbles-to-display").val(len);
+        $(".top-bubbles-to-display:visible").attr({"max": len});
+        $(".top-bubbles-to-display:visible").val(len);
         //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
 
-        $(".n-grams-to-generate").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
-        $(".min-tweets-in-ngram").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
+        $(".n-grams-to-generate:visible").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
+        $(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart(".bigrams-graph-area", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
+        this.renderBigramsChart(".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
     },
     renderBigramsChart: function(domSelector, bigrams, tweets, graphHeight, maxBubblesToShow){
 
@@ -515,15 +457,7 @@ app.views.tweets = Backbone.View.extend({
             return [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
         });
 
-        console.log(domSelector + " width: " + $("#search-accordion .card").width());
-        console.log(domSelector + " width: " + $(".card").width());
-        console.log(domSelector + " width: " + $("#search-accordion").width());
-        console.log(domSelector + " width: ", $("#search-accordion"));
-        console.log(domSelector + " width: ", $("#search-accordion")[0].getBoundingClientRect());
-
-        console.log("bigrams-controls: ", $(".bigrams-controls").width());
-
-        var chart = new MultiPieChart(domSelector+":visible", $(domSelector).width(), graphHeight);
+        var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
             for (var bigram in bigrams) {
                 if (bigram == event.label){
@@ -573,16 +507,16 @@ app.views.tweets = Backbone.View.extend({
                                             <label>Max bubbles to show</label>
                                             <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="10" min="1" max="10">
                                         </div>
-                                        <div class="col-md-2">
+                                        <!--<div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
                                             <div class="">
                                                 <input type="checkbox" name="remove-stopwords" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked>
                                             </div>
                                         </div>
-                                        <!--<div class="col-md-2">
+                                        <div class="col-md-2">
                                             <label for="stem-words">Stem words</label>
                                             <div class="">
-                                                <div class="toggle btn btn-success" data-toggle="toggle" style="width: 113px; height: 37px;"><input id="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked=""><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div>
+                                                <div class="toggle btn btn-success" data-toggle="toggle" style="width: 113px; height: 37px;"><input name="stem-words" type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" checked=""><div class="toggle-group"><label class="btn btn-success toggle-on">Confirmed</label><label class="btn btn-danger active toggle-off">Negative</label><span class="toggle-handle btn btn-light"></span></div></div>
                                             </div>
                                         </div>-->
                                     </div>
@@ -598,7 +532,7 @@ app.views.tweets = Backbone.View.extend({
         $(containerSelector).html(grid);
         $("input[data-toggle='toggle']").bootstrapToggle();
 
-        $(".bigrams-controls").on("click", ".regenerate-bigrams", () => {
+        $(".regenerate-bigrams:visible").on("click", () => {
             this.bigrams.formData = this.getBigramsFormData();
             this.requestBigrams(this.getSearchFormData().concat(this.bigrams.formData));
         })
@@ -655,8 +589,8 @@ app.views.tweets = Backbone.View.extend({
             var t1 = performance.now();
             var time = (t1 - t0) / 1000;
             var roundedString = time.toFixed(2);
-            $('#res_num').html(total);
-            $('#res_time').html(roundedString);
+            $('.res_num').html(total);
+            $('.res_time').html(roundedString);
         }
     },
     showIndividualTweets: function(html){
@@ -696,7 +630,7 @@ app.views.tweets = Backbone.View.extend({
             $(clustersAreaSelector).html(chtml);
         }
 
-        $('.state_btns').show();
+        $('.state_btns:visible').show();
     },
     tweet_state: function(e){
 		e.preventDefault();
@@ -897,7 +831,7 @@ app.views.tweets = Backbone.View.extend({
             this.searchForTweets();
         };
 
-        var matchingStrategy = document.getElementById('force_all').value;
+        var matchingStrategy = document.querySelector('.force_all').value;
 
         if (matchingStrategy == "mark_all_results"){
             $.post(app.appURL+'mark_all_matching_tweets', data, callback, 'json');
