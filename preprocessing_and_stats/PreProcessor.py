@@ -9,7 +9,8 @@ nltk.download('stopwords')
 # from nltk.stem.snowball import FrenchStemmer
 # from nltk.stem.snowball import SnowballStemmer
 from nltk.tokenize import TweetTokenizer
-
+from mabed.es_connector import Es_connector
+from classification.ngram_based_classifier import NgramBasedClasifier
 
 class PreProcessor:
 
@@ -232,3 +233,24 @@ class PreProcessor:
 
         # Return the first n most frequent words
         return processed_tweets
+
+
+    def putDocumentProperty(self, **kwargs):
+
+        try:
+            query = {
+                "properties": {
+                    kwargs["prop"]: {
+                        "type": kwargs["prop_type"]
+                    }
+                }
+            }
+            Es_connector().es.indices.put_mapping(
+                index=kwargs["index"],
+                doc_type="tweet",
+                body=query
+            )
+            print("Successfully putting ", kwargs["prop"], " property into the index")
+        except Exception as e:
+            print('Error on putDocumentProperty: ' + str(e))
+

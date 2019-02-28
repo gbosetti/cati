@@ -8,6 +8,9 @@ from mabed.es_connector import Es_connector
 
 class NgramBasedClasifier:
 
+    def __init__(self):
+        self.logs = []
+
     def get_n_grams(self, text, length=2):
         n_grams = zip(*[text[i:] for i in range(length)])
         # n_grams = list(nltk.bigrams(text))
@@ -62,14 +65,41 @@ class NgramBasedClasifier:
         top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
         min_occurrences = kwargs.get('min_occurrences', 20)
 
-        try:
-            for tweet in tweets:
+        for tweet in tweets:
+            try:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
-                bigrams = list(self.get_n_grams(clean_text, length))
+                ngrams = list(self.get_n_grams(clean_text, length))
                 # print("     N-grams:", bigrams)
+                ngrams_as_text = self.get_ngrams_as_plain_text(ngrams)
+                self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=ngrams_as_text, index=kwargs["index"])
 
-        except Exception as e:
-            print('Error: ' + str(e))
+            except Exception as e:
+                print('Error: ' + str(e))
+
+
+    def get_ngrams_as_plain_text(self, ngrams):
+
+        full_ngrams_text = ""
+        for ngram in ngrams:
+            single_ngram_text = ""
+            for term in ngram:
+                single_ngram_text = single_ngram_text + term + "-"
+
+            single_ngram_text = single_ngram_text[:-1]
+            full_ngrams_text = full_ngrams_text + single_ngram_text + " "
+
+        full_ngrams_text.strip()
+
+        return full_ngrams_text
+        #
+        # for k, v in ngrams:
+        #
+        #     ngram_text = ""
+        #     for term in k:
+        #         ngram_text = ngram_text + term + "-"
+        #     ngram_text = ngram_text.strip()
+        #
+        # return ngram_text
 
 
     def generate_ngrams_for_index(self, **kwargs):
@@ -95,10 +125,17 @@ class NgramBasedClasifier:
                 res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
                 scroll_size = res2["scroll_size"]
                 processed += scroll_size
-                tweets=res2["results"]
-                self.gerenate_ngrams_for_tweets(tweets)
-                print("PAGE ", i, " (processed=", processed, " - ", processed*100/total ,")")
+                tweets = res2["results"]
+                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"])
 
+                # For backend & client-side logging
+                curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(round(processed*100/total, 2)) + "% done)")
+                self.logs.append(curr_log)
+                self.logs = self.logs[:10]
+                print(curr_log)
+
+            # Clean it at the end so the clien knows when to end asking for more logs
+            self.logs = []
 
             return True
 
@@ -106,6 +143,37 @@ class NgramBasedClasifier:
             print('Error: ' + str(e))
             return False
 
+    def get_current_backend_logs(self):
+        return self.logs
+
+    def updatePropertyValue(self, **kwargs):
+
+        # query = {
+        #     "script": {
+        #         "lang": "painless",
+        #         "source": "ctx._source." + kwargs["property_name"] + " = params.ngrams",
+        #         "params": {
+        #             "ngrams": kwargs["property_value"]
+        #         }
+        #     },
+        #     "query": {
+        #         "match": {
+        #             "_id": kwargs["tweet_id"]
+        #         }
+        #     }
+        # }
+        # Es_connector().es.update_by_query(body=query, doc_type='tweet', index=kwargs["index"])
+
+        # tweet["_id"]   ["_source"]["id"]["$oid"]
+        tweet = kwargs["tweet"]
+        Es_connector().es.update(
+            index=kwargs["index"],
+            doc_type="tweet",
+            id=tweet["_id"],
+            body={"doc": {
+                kwargs["property_name"]: kwargs["property_value"]
+            }}
+        )
 
     def get_stopwords_for_langs(self, langs):
 

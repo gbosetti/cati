@@ -140,15 +140,30 @@ app.views.settings = Backbone.View.extend({
     },
     regenerateNgrams: function(evt){
 
-        console.log("Requesting data");
         var data = [
             {name: "index", value: app.session.s_index},
-            {name: "ngrams_length", value: "2"}
+            {name: "ngrams_length", value: "2"},
+            {name: "to_property", value: "2grams"}
         ];
-        console.log(data);
-        $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
-            console.log("generate_bigrams_for_index response: ", response);
-        }, 'json');
+
+        setTimeout(() => {
+            $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
+                console.log("generate_bigrams_for_index response: ", response);
+            }, 'json');
+         }, 0); //New thread
+
+        setTimeout(() => {
+            var i = 0;
+            var askForLogs = setInterval(function(){
+                $.get(app.appURL+'get_current_backend_logs', function(response){
+                    $('#logs').val(response.reverse().join("\r\n"));
+                }, 'json');
+                if(response.length == 0)
+                    i++;
+                if(i>7)
+                    clearInterval(askForLogs);
+            }, 7000);
+        }, 0); //New thread
     },
     deleteSession: function(e){
       e.preventDefault();

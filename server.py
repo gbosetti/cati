@@ -221,13 +221,26 @@ def bigrams_with_higher_ocurrence():
     return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets })
 
 
+ngram_classifier = NgramBasedClasifier()
+
 # Get Tweets
 @app.route('/generate_ngrams_for_index', methods=['POST'])
 # @cross_origin()
 def generate_ngrams_for_index():
     data = request.form
-    return NgramBasedClasifier().generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]))
+    preproc = PreProcessor()
+    propName = data['to_property']
 
+    preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+    return ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+
+# Get Tweets
+@app.route('/get_current_backend_logs', methods=['GET'])
+# @cross_origin()
+def get_current_backend_logs():
+    last_logs = ngram_classifier.get_current_backend_logs()
+    print("LAST LOGS", last_logs)
+    return jsonify(last_logs)
 
 # Get Tweets
 @app.route('/tweets_filter', methods=['POST'])
