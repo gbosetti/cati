@@ -869,6 +869,7 @@ app.views.tweets = Backbone.View.extend({
         }else if(matchingStrategy == "mark_unlabeled_results"){
             $.post(app.appURL+'mark_unlabeled_tweets', data, callback, 'json');
         }
+        app.views.mabed.prototype.getClassificationStats();
 
         return false;
     }
