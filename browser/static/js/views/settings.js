@@ -3,7 +3,8 @@ app.views.settings = Backbone.View.extend({
     events: {
         'submit #settings_form': 'create_session',
         'submit #session_form': 'switchSession',
-        'click #deleteSession': 'deleteSession'
+        'click #deleteSession': 'deleteSession',
+        'click #regenerate-ngrams': 'regenerateNgrams',
     },
     initialize: function() {
         this.render();
@@ -136,6 +137,18 @@ app.views.settings = Backbone.View.extend({
           $('#sessionsList').html(html);
           self.show_seesion_info();
       }, 'json');
+    },
+    regenerateNgrams: function(evt){
+
+        console.log("Requesting data");
+        var data = [
+            {name: "index", value: app.session.s_index},
+            {name: "ngrams_length", value: "2"}
+        ];
+        console.log(data);
+        $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
+            console.log("generate_bigrams_for_index response: ", response);
+        }, 'json');
     },
     deleteSession: function(e){
       e.preventDefault();

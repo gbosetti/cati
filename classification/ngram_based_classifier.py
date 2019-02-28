@@ -3,6 +3,7 @@ import nltk
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 from collections import Counter
+from mabed.es_connector import Es_connector
 
 
 class NgramBasedClasifier:
@@ -53,6 +54,58 @@ class NgramBasedClasifier:
 
         except Exception as e:
             print('Error: ' + str(e))
+
+
+    def gerenate_ngrams_for_tweets(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
+
+        length = int(kwargs.get('length', 2))
+        top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
+        min_occurrences = kwargs.get('min_occurrences', 20)
+
+        try:
+            for tweet in tweets:
+                clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
+                bigrams = list(self.get_n_grams(clean_text, length))
+                # print("     N-grams:", bigrams)
+
+        except Exception as e:
+            print('Error: ' + str(e))
+
+
+    def generate_ngrams_for_index(self, **kwargs):
+
+        try:
+            # Get the data for performinga paginated search
+            my_connector = Es_connector(index=kwargs["index"])
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "match_all": {}
+                }
+            })
+            sid = res["sid"]
+            scroll_size = res["scroll_size"]
+            total=int(res["total"])
+            print("Total: ", total)
+
+            # Analyse and process page by page
+            i=0
+            processed = 0
+            while scroll_size > 0:
+                i+=1
+                res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+                scroll_size = res2["scroll_size"]
+                processed += scroll_size
+                tweets=res2["results"]
+                self.gerenate_ngrams_for_tweets(tweets)
+                print("PAGE ", i, " (processed=", processed, " - ", processed*100/total ,")")
+
+
+            return True
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return False
+
 
     def get_stopwords_for_langs(self, langs):
 

@@ -222,6 +222,14 @@ def bigrams_with_higher_ocurrence():
 
 
 # Get Tweets
+@app.route('/generate_ngrams_for_index', methods=['POST'])
+# @cross_origin()
+def generate_ngrams_for_index():
+    data = request.form
+    return NgramBasedClasifier().generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]))
+
+
+# Get Tweets
 @app.route('/tweets_filter', methods=['POST'])
 # @cross_origin()
 def tweets_filter():
