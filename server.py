@@ -36,6 +36,7 @@ default_timeout = config['DEFAULT']['elastic_search']['timeout']
 default_index = config['DEFAULT']['elastic_search']['index']
 default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
 default_session = config['DEFAULT']['test']['session']
+default_index_list = config['DEFAULT']['elastic_search']['index_list']
 
 htpasswd = HtPasswdAuth(app)
 
@@ -891,6 +892,16 @@ def get_results():
     # percentage = 100 * (count / all_count)
     # res = {'count': count}
     return jsonify({'results':results, 'elbow':sse_points2, 'newlist': newlist, 'step5':step5})
+
+
+# ==================================================================
+# Indexes
+# ==================================================================
+
+# Get available indexes
+@app.route('/available_indexes', methods=['GET'])
+def available_indexes():
+    return jsonify(default_index_list);
 
 # ==================================================================
 # 7. Sessions
