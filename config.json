@@ -7,7 +7,8 @@
       "password": "elastic",
       "timeout": 1000,
       "index": "test2",
-      "doc_type": "tweet"
+      "doc_type": "tweet",
+      "index_list": ["twitter2017"]
     },
     "test": {
       "session": "session_twitter2017"
