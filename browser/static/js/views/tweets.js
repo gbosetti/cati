@@ -451,8 +451,14 @@ app.views.tweets = Backbone.View.extend({
         var docName = "tweet";
         $.post(app.appURL+'get_mapping_spec', this.getSearchFormData().concat([{name: "doc", value: docName}]), function(response){
 
+            if(response == undefined || Object.keys(response).length == 0){
+                $(".n-grams-to-generate:visible")[0].disabled = true;
+                return;
+            }
+
             var props = response[Object.keys(response)[0]].mappings[docName].properties;
             var sel = $(".n-grams-to-generate:visible")[0];
+                sel.disabled = false;
 
             for (var propName in props) {
                 if(propName.endsWith("grams")){
