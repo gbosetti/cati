@@ -964,6 +964,14 @@ def get_session():
     return jsonify({"result": status, "body": res})
 
 
+# Get Session
+@app.route('/get_mapping_spec', methods=['POST'])
+# @cross_origin()
+def get_mapping_spec():
+    data = request.form
+    return jsonify(functions.get_mapping_spec(data["index"], "tweet"))
+
+
 # Update session results
 @app.route('/update_session_results', methods=['POST'])
 # @cross_origin()

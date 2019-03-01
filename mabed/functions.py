@@ -56,6 +56,10 @@ class Functions:
             return '...'
 
 
+    def get_mapping_spec(self, index, doc):
+
+        return Es_connector(index=index, doc_type=doc).es.indices.get_mapping(index=index, doc_type=doc)
+
     def get_total_urls(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)

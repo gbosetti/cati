@@ -37,7 +37,6 @@ app.views.tweets = Backbone.View.extend({
 
         var data = this.getSearchFormData();
         $.post(app.appURL+'get_dataset_date_range', data, function(response){
-            console.log(response);
             $("#search-start-date")[0].valueAsDate = new Date(response.min_timestamp.value);
             $("#search-end-date")[0].valueAsDate = new Date(response.max_timestamp.value);
         }, 'json').fail(self.cnxError);
@@ -223,10 +222,10 @@ app.views.tweets = Backbone.View.extend({
         this.bigrams.formData = data;
 
         $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
-            //check if there are any bigrams
+            //check if there are any ngrams
             if($.isEmptyObject(response.bigrams))
                 self.showNoBigramsFound(containerSelector);
-            else self.showBigramsClassification(response.bigrams, response.tweets.hits.hits, containerSelector, 500);
+            else self.showNgramsClassification(response.bigrams, response.tweets.hits.hits, containerSelector, 500);
 
         }, 'json').fail(function(err){
             this.clearNgramsGraph();
@@ -428,27 +427,45 @@ app.views.tweets = Backbone.View.extend({
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
-    showBigramsClassification: function(bigrams, tweets, containerSelector, graphHeight){
+    showNgramsClassification: function(ngrams, tweets, containerSelector, graphHeight){
 
         $(containerSelector).html("");
 
         this.renderBigramsGrid(containerSelector, graphHeight);
-        var tweetsInAllBigrams = Array.from(new Set(Object.entries(bigrams).map(bigram => { return bigram[1] }).flat()));
+        var tweetsInAllBigrams = Array.from(new Set(Object.entries(ngrams).map(bigram => { return bigram[1] }).flat()));
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
-        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", bigrams, tweets, graphHeight); }, 0);
+        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, tweets, graphHeight); }, 0);
         setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
-        this.updateBigramsControls(bigrams);
+        this.updateBigramsControls(ngrams);
     },
-    updateBigramsControls: function(bigrams){
+    updateBigramsControls: function(ngrams){
 
-        var len = Object.keys(bigrams).length;
+        var len = Object.keys(ngrams).length;
         $(".top-bubbles-to-display:visible").attr({"max": len});
         $(".top-bubbles-to-display:visible").val(len);
         //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
-
-        $(".n-grams-to-generate:visible").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
         $(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
+
+        //Updating the bigram's control
+        var docName = "tweet";
+        $.post(app.appURL+'get_mapping_spec', this.getSearchFormData().concat([{name: "doc", value: docName}]), function(response){
+
+            var props = response[Object.keys(response)[0]].mappings[docName].properties;
+            var sel = $(".n-grams-to-generate:visible")[0];
+
+            for (var propName in props) {
+                if(propName.endsWith("grams")){
+
+                    var opt = document.createElement("option");
+                        opt.value = propName.match(/\d+/)[0];
+                        opt.text = propName;
+                        sel.add(opt);
+                }
+            }
+
+            $(".n-grams-to-generate:visible").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
+        }, 'json');
     },
     updateTopBubblesToDisplay: function(evt){
 
@@ -514,7 +531,7 @@ app.views.tweets = Backbone.View.extend({
                                     <div class="form-row">
                                         <div class="col-md-2">
                                             <label>N-gram length</label>
-                                            <input name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2">
+                                            <select name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2"></select>
                                         </div>
                                         <div class="col-md-2">
                                             <label>Min tweets by n-gram</label>
@@ -608,8 +625,6 @@ app.views.tweets = Backbone.View.extend({
             $('.res_time:visible:last').html(roundedString);
         }
         $('.res_num:visible:last').html(total);
-        console.log($('.res_keywords:visible:last'));
-        console.log("«" + keywords + "»");
         $('.res_keywords:visible:last')[0].textContent = "«" + keywords + "»";
     },
     showIndividualTweets: function(html){
@@ -625,7 +640,6 @@ app.views.tweets = Backbone.View.extend({
     showImageClusters: function(clusters, word, clustersAreaSelector){
         var cbtn = "", chtml = "", state_btns="";
 
-        console.log("clusters", clusters);
         if(clusters){
             $.each(clusters, function(i, cluster){
                 if(i>=20){return false;}
@@ -719,11 +733,10 @@ app.views.tweets = Backbone.View.extend({
 
         var tweetIds = relatedTweets.map(tweet => { return tweet._id });
 
-    	var data = [];
-		data.push({name: "index", value: app.session.s_index});
-		data.push({name: "session", value: 'session_'+app.session.s_name});
-		data.push({name: "label", value: label});
-		data.push({name: "tweet_ids", value: JSON.stringify(tweetIds)});
+    	var data = this.getSearchFormData().concat([
+    	    {name: "label", value: label},
+    	    {name: "tweet_ids", value: JSON.stringify(tweetIds)}
+    	]);
 
 		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
 
