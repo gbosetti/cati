@@ -240,15 +240,19 @@ def generate_ngrams_for_index():
     preproc = PreProcessor()
     propName = data['to_property']
 
+    start_time = datetime.datetime.now()
+    print("Starting at: ", start_time)
     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
-    return ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+    res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+    print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
+    return res
 
 # Get Tweets
 @app.route('/get_current_backend_logs', methods=['GET'])
 # @cross_origin()
 def get_current_backend_logs():
     last_logs = ngram_classifier.get_current_backend_logs()
-    print("LAST LOGS", last_logs)
+    # return a flag indicating when to stop asking for more logs (e.g. when the ending time is not set)
     return jsonify(last_logs)
 
 # Get Tweets

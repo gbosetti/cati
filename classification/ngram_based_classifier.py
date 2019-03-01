@@ -139,27 +139,36 @@ class NgramBasedClasifier:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
                 ngrams = list(self.get_n_grams(clean_text, length))
                 # print("     N-grams:", bigrams)
-                ngrams_as_text = self.get_ngrams_as_plain_text(ngrams)
-                self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=ngrams_as_text, index=kwargs["index"])
+                full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
+                self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
 
             except Exception as e:
                 print('Error: ' + str(e))
 
 
-    def get_ngrams_as_plain_text(self, ngrams):
+    def format_single_tweet_ngrams(self, ngrams):
 
-        full_ngrams_text = ""
+        # full_ngrams_text = ""
+        # for ngram in ngrams:
+        #     single_ngram_text = ""
+        #     for term in ngram:
+        #         single_ngram_text = single_ngram_text + term + "-"
+        #
+        #     single_ngram_text = single_ngram_text[:-1]
+        #     full_ngrams_text = full_ngrams_text + single_ngram_text + " "
+        #
+        # full_ngrams_text.strip()
+
+        full_tweet_ngrams = []
         for ngram in ngrams:
             single_ngram_text = ""
             for term in ngram:
                 single_ngram_text = single_ngram_text + term + "-"
 
-            single_ngram_text = single_ngram_text[:-1]
-            full_ngrams_text = full_ngrams_text + single_ngram_text + " "
+            single_ngram_text = single_ngram_text[:-1]  #remove the last - of the single ngram
+            full_tweet_ngrams.append(single_ngram_text)
 
-        full_ngrams_text.strip()
-
-        return full_ngrams_text
+        return full_tweet_ngrams
         #
         # for k, v in ngrams:
         #
