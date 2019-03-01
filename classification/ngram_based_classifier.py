@@ -25,7 +25,76 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
-    def bigrams_with_higher_ocurrence(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
+    def get_ngrams_with_categories(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+
+        my_connector = Es_connector(index=index)
+        res = my_connector.search({
+            "query": {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
+                }
+            }
+        })
+
+        print("SEARCHING", res)
+        return res
+
+    def get_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+
+        my_connector = Es_connector(index=index)
+        res = my_connector.search({
+             "size": 0,
+             "query": {
+                 "bool": {
+                     "must": [
+                         {"match": {"text": word}},
+                         {"match": {session: label}}
+                     ]
+                 }
+             },
+             "aggs": {
+                 "query_classification": {
+                     "terms": {
+                         "field": session+".keyword",
+                         "size": 10
+                     }
+                 },
+                 "count": {
+                     "cardinality": {
+                         "field": session+".keyword"
+                     }
+                 }
+             }
+        })
+        query_classification = res['aggregations']['query_classification']['buckets']
+
+        return [
+            {
+                "label": "Query",
+                "confirmed": self.get_classif_doc_count("confirmed", query_classification),
+                "negative": self.get_classif_doc_count("negative", query_classification),
+                "unlabeled": self.get_classif_doc_count("proposed", query_classification)
+            },
+            {
+                "label": "Bigrams",
+                "confirmed": 0,
+                "negative": 0,
+                "unlabeled": 0
+            }
+        ]
+
+    def get_classif_doc_count(self, tag, classification):
+        category = list(filter(lambda item: item["key"] == tag, classification))
+        print(tag, category, len(category))
+        if len(category) > 0:
+            return category[0]["doc_count"]
+        else:
+            return 0
+
+    def ngrams_with_higher_ocurrence(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
 
         length = kwargs.get('length', 2)
         top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)

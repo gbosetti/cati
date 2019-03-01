@@ -210,19 +210,27 @@ def get_dataset_date_range():
     range = functions.get_dataset_date_range(index=data["index"])
     return jsonify(range)
 
-# Get Tweets
-@app.route('/bigrams_with_higher_ocurrence', methods=['POST'])
-# @cross_origin()
-def bigrams_with_higher_ocurrence():
-    data = request.form
-    full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
-
-    full_bigrams_with_assoc_tweets = NgramBasedClasifier().bigrams_with_higher_ocurrence(
-        full_searched_tweets, length=int(data["n-grams-to-generate"]), min_occurrences=int(data['min-tweets-in-ngram']))
-    return jsonify({"bigrams": full_bigrams_with_assoc_tweets, "tweets": full_searched_tweets })
-
 
 ngram_classifier = NgramBasedClasifier()
+
+# Get Tweets
+@app.route('/ngrams_with_higher_ocurrence', methods=['POST'])
+# @cross_origin()
+def ngrams_with_higher_ocurrence():
+    data = request.form
+
+    # bigrams_with_categories = ngram_classifier.get_ngrams_with_categories(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+    full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+
+    full_bigrams_with_assoc_tweets = ngram_classifier.ngrams_with_higher_ocurrence(
+        full_searched_tweets, length=int(data["n-grams-to-generate"]), min_occurrences=int(data['min-tweets-in-ngram']))
+
+    return jsonify({
+        "bigrams": full_bigrams_with_assoc_tweets,
+        "tweets": full_searched_tweets,
+        "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+    })
+
 
 # Get Tweets
 @app.route('/generate_ngrams_for_index', methods=['POST'])

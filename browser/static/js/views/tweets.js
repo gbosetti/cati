@@ -221,11 +221,12 @@ app.views.tweets = Backbone.View.extend({
         var self = this;
         this.bigrams.formData = data;
 
-        $.post(app.appURL+'bigrams_with_higher_ocurrence', data, (response) => {
+        $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
             //check if there are any ngrams
+            console.log("Classification", response.classiffication);
             if($.isEmptyObject(response.bigrams))
                 self.showNoBigramsFound(containerSelector);
-            else self.showNgramsClassification(response.bigrams, response.tweets.hits.hits, containerSelector, 500);
+            else self.showNgramsClassification(response.classiffication, response.bigrams, response.tweets.hits.hits, containerSelector, 500);
 
         }, 'json').fail(function(err){
             this.clearNgramsGraph();
@@ -427,7 +428,7 @@ app.views.tweets = Backbone.View.extend({
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
-    showNgramsClassification: function(ngrams, tweets, containerSelector, graphHeight){
+    showNgramsClassification: function(classifficationData, ngrams, tweets, containerSelector, graphHeight){
 
         $(containerSelector).html("");
 
@@ -436,7 +437,7 @@ app.views.tweets = Backbone.View.extend({
         var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
         setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, tweets, graphHeight); }, 0);
-        setTimeout(() => { this.renderBigramsStats(filteredTweetsInBigrams, tweets); }, 0); //In a new thread
+        setTimeout(() => { this.renderBigramsStats(classifficationData); }, 0); //In a new thread
         this.updateBigramsControls(ngrams);
     },
     updateBigramsControls: function(ngrams){
@@ -509,9 +510,9 @@ app.views.tweets = Backbone.View.extend({
         };
         chart.draw(dta);
     },
-    renderBigramsStats: function(filteredTweetsInBigrams, tweets){
+    renderBigramsStats: function(classifficationData){
 
-        var query_confirmed = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
+        /*var query_confirmed = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
         var query_negative = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
         var query_unlabeled = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
 
@@ -522,9 +523,11 @@ app.views.tweets = Backbone.View.extend({
         var data = [
               { label: "Query", confirmed: query_confirmed, negative: query_negative, unlabeled: query_unlabeled },
               { label: "Bigrams", confirmed: bigrams_confirmed, negative: bigrams_negative, unlabeled: bigrams_unlabeled }
-            ];
+            ];*/
 
-        new BarChart(".bigrams-stats:visible", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(data)
+        console.log("infor data", classifficationData);
+
+        new BarChart(".bigrams-stats:visible", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(classifficationData)
     },
     renderBigramsGrid: function(containerSelector, graphHeight){
         var grid = `<div class="row" style="height: ${graphHeight}px;">
