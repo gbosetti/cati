@@ -16,6 +16,7 @@ app.views.settings = Backbone.View.extend({
         this.all_sessions();
         this.show_seesion_info();
         this.all_indexes();
+        app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
@@ -100,6 +101,7 @@ app.views.settings = Backbone.View.extend({
               app.eventsCollection.reset();
               localStorage.removeItem('events');
             }
+          app.views.mabed.prototype.getClassificationStats();
           }
       }, 'json');
       return false;
