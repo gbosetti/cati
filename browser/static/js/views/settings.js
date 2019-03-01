@@ -15,7 +15,7 @@ app.views.settings = Backbone.View.extend({
         this.delegateEvents();
         this.all_sessions();
         this.show_seesion_info();
-        this.all_indexes();
+        this.update_available_indexes_list();
 
         return this;
     },
@@ -138,7 +138,7 @@ app.views.settings = Backbone.View.extend({
           self.show_seesion_info();
       }, 'json');
     },
-    all_indexes: function(){
+    update_available_indexes_list: function(){
         let self = this;
 
         $.get(app.appURL+'available_indexes', null,function (response) {
