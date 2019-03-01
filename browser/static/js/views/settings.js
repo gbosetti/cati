@@ -16,6 +16,8 @@ app.views.settings = Backbone.View.extend({
         this.delegateEvents();
         this.all_sessions();
         this.show_seesion_info();
+        this.all_indexes();
+        app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
@@ -100,6 +102,7 @@ app.views.settings = Backbone.View.extend({
               app.eventsCollection.reset();
               localStorage.removeItem('events');
             }
+          app.views.mabed.prototype.getClassificationStats();
           }
       }, 'json');
       return false;
@@ -164,6 +167,26 @@ app.views.settings = Backbone.View.extend({
                     clearInterval(askForLogs);
             }, 7000);
         }, 0); //New thread
+    },
+    all_indexes: function(){
+        let self = this;
+
+        $.get(app.appURL+'available_indexes', function (response) {
+            //clear index list
+            let selector = document.querySelector('#session_index');
+            while (selector.firstChild) {
+                selector.removeChild(selector.firstChild);
+            }
+
+            //add fields
+            for(let i = 0; i< response.length; i++){
+                let index_name = response[i];
+                let option = document.createElement('option');
+                option.setAttribute('value',index_name);
+                option.appendChild(document.createTextNode(index_name));
+                document.querySelector('#session_index').appendChild(option);
+           }
+        },'json');
     },
     deleteSession: function(e){
       e.preventDefault();
