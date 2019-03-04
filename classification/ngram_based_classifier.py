@@ -3,9 +3,13 @@ import nltk
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 from collections import Counter
+from mabed.es_connector import Es_connector
 
 
 class NgramBasedClasifier:
+
+    def __init__(self):
+        self.logs = []
 
     def get_n_grams(self, text, length=2):
         n_grams = zip(*[text[i:] for i in range(length)])
@@ -21,7 +25,132 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
-    def bigrams_with_higher_ocurrence(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
+    def get_ngrams_with_categories(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+
+        my_connector = Es_connector(index=index)
+        return my_connector.search({
+            "query": {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
+                }
+            }
+        })
+
+    def generate_ngrams(self, **kwargs):
+
+        try:
+            my_connector = Es_connector(index=kwargs["index"])
+
+            return my_connector.search({
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": kwargs["word"]}},
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
+                },
+                "aggs": {
+                    "ngrams_count": {
+                        "terms": {
+                            "field": kwargs["n_size"] + "grams",
+                            "size": kwargs["results_size"]
+                        },
+                        "aggs": {
+                            "status": {
+                                "terms": {
+                                    "field": kwargs["session"]
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return {}
+
+
+    def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[]):
+        my_connector = Es_connector(index=index)
+        res = my_connector.search({
+            "size": 0,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
+                }
+            },
+            "aggs": {
+                "query_classification": {
+                    "terms": {
+                        "field": session + ".keyword"
+                    }
+                }
+            }
+        })
+        return res['aggregations']['query_classification']['buckets']
+
+    def get_bigrams_related_classification_data(self, matching_ngrams=[]):
+
+        # Counting the matching bigrams results by category
+        total_ngrams = matching_ngrams["hits"]["total"]
+        confirmed_ngrams = 0
+        negative_ngrams = 0
+        unlabeled_ngrams = 0
+        accum_total_ngrams = 0
+
+        for ngram in matching_ngrams['aggregations']['ngrams_count']['buckets']:
+            curr_confirmed = self.get_classif_doc_count("confirmed", ngram["status"]["buckets"])
+            confirmed_ngrams += curr_confirmed
+
+            curr_negative = self.get_classif_doc_count("negative", ngram["status"]["buckets"])
+            negative_ngrams += curr_negative
+
+            curr_unlabeled = self.get_classif_doc_count("proposed", ngram["status"]["buckets"])
+            unlabeled_ngrams += curr_unlabeled
+
+            accum_total_ngrams += curr_confirmed + curr_negative + curr_unlabeled
+
+        return (confirmed_ngrams / accum_total_ngrams) * total_ngrams, \
+               (negative_ngrams / accum_total_ngrams) * total_ngrams, \
+               (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
+
+    def get_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[]):
+
+        query_classification = self.get_search_related_classification_data(index, word, session, label, matching_ngrams)
+        confirmed_ngrams, negative_ngrams, unlabeled_ngrams = self.get_bigrams_related_classification_data(matching_ngrams)
+
+        return [
+            {
+                "label": "Query",
+                "confirmed": self.get_classif_doc_count("confirmed", query_classification),
+                "negative": self.get_classif_doc_count("negative", query_classification),
+                "unlabeled": self.get_classif_doc_count("proposed", query_classification)
+            },
+            {
+                "label": "Ngrams",
+                "confirmed": confirmed_ngrams,
+                "negative": negative_ngrams,
+                "unlabeled": unlabeled_ngrams
+            }
+        ]
+
+    def get_classif_doc_count(self, tag, classification):
+        category = list(filter(lambda item: item["key"] == tag, classification))
+        if len(category) > 0:
+            return category[0]["doc_count"]
+        else:
+            return 0
+
+    def ngrams_with_higher_ocurrence(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
 
         length = kwargs.get('length', 2)
         top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
@@ -53,6 +182,90 @@ class NgramBasedClasifier:
 
         except Exception as e:
             print('Error: ' + str(e))
+
+
+    def gerenate_ngrams_for_tweets(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
+
+        length = int(kwargs.get('length', 2))
+        top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
+        min_occurrences = kwargs.get('min_occurrences', 20)
+
+        for tweet in tweets:
+            try:
+                clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
+                ngrams = list(self.get_n_grams(clean_text, length))
+                # print("     N-grams:", bigrams)
+                full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
+                self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
+
+            except Exception as e:
+                print('Error: ' + str(e))
+
+
+    def format_single_tweet_ngrams(self, ngrams):
+
+        # full_ngrams_text = ""
+        # for ngram in ngrams:
+        #     single_ngram_text = ""
+        #     for term in ngram:
+        #         single_ngram_text = single_ngram_text + term + "-"
+        #
+        #     single_ngram_text = single_ngram_text[:-1]
+        #     full_ngrams_text = full_ngrams_text + single_ngram_text + " "
+        #
+        # full_ngrams_text.strip()
+
+        full_tweet_ngrams = []
+        for ngram in ngrams:
+            single_ngram_text = ""
+            for term in ngram:
+                single_ngram_text = single_ngram_text + term + "-"
+
+            single_ngram_text = single_ngram_text[:-1]  #remove the last - of the single ngram
+            full_tweet_ngrams.append(single_ngram_text)
+
+        return full_tweet_ngrams
+        #
+        # for k, v in ngrams:
+        #
+        #     ngram_text = ""
+        #     for term in k:
+        #         ngram_text = ngram_text + term + "-"
+        #     ngram_text = ngram_text.strip()
+        #
+        # return ngram_text
+
+    def get_current_backend_logs(self):
+        return self.logs
+
+    def updatePropertyValue(self, **kwargs):
+
+        # query = {
+        #     "script": {
+        #         "lang": "painless",
+        #         "source": "ctx._source." + kwargs["property_name"] + " = params.ngrams",
+        #         "params": {
+        #             "ngrams": kwargs["property_value"]
+        #         }
+        #     },
+        #     "query": {
+        #         "match": {
+        #             "_id": kwargs["tweet_id"]
+        #         }
+        #     }
+        # }
+        # Es_connector().es.update_by_query(body=query, doc_type='tweet', index=kwargs["index"])
+
+        # tweet["_id"]   ["_source"]["id"]["$oid"]
+        tweet = kwargs["tweet"]
+        Es_connector().es.update(
+            index=kwargs["index"],
+            doc_type="tweet",
+            id=tweet["_id"],
+            body={"doc": {
+                kwargs["property_name"]: kwargs["property_value"]
+            }}
+        )
 
     def get_stopwords_for_langs(self, langs):
 

@@ -12,10 +12,13 @@
 
 /* collapse navbar*/
 #progress_classification .progress-bar {
-  height: 25px;
   font-size: 12px;
   border-radius: 0px;
   text-shadow: 1px 1px 1px #000;
+}
+
+#progress_classification{
+  height: 40px;
 }
 
 

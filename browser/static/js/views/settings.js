@@ -3,7 +3,8 @@ app.views.settings = Backbone.View.extend({
     events: {
         'submit #settings_form': 'create_session',
         'submit #session_form': 'switchSession',
-        'click #deleteSession': 'deleteSession'
+        'click #deleteSession': 'deleteSession',
+        'click #regenerate-ngrams': 'regenerateNgrams',
     },
     initialize: function() {
         this.render();
@@ -16,6 +17,8 @@ app.views.settings = Backbone.View.extend({
         this.all_sessions();
         this.show_seesion_info();
         this.update_available_indexes_list();
+        this.all_indexes();
+        app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
@@ -100,6 +103,7 @@ app.views.settings = Backbone.View.extend({
               app.eventsCollection.reset();
               localStorage.removeItem('events');
             }
+          app.views.mabed.prototype.getClassificationStats();
           }
       }, 'json');
       return false;
@@ -138,10 +142,37 @@ app.views.settings = Backbone.View.extend({
           self.show_seesion_info();
       }, 'json');
     },
+    regenerateNgrams: function(evt){
+
+        var data = [
+            {name: "index", value: app.session.s_index},
+            {name: "ngrams_length", value: "2"},
+            {name: "to_property", value: "2grams"}
+        ];
+
+        setTimeout(() => {
+            $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
+                console.log("generate_bigrams_for_index response: ", response);
+            }, 'json');
+         }, 0); //New thread
+
+        setTimeout(() => {
+            var i = 0;
+            var askForLogs = setInterval(function(){
+                $.get(app.appURL+'get_current_backend_logs', function(response){
+                    $('#logs').val(response.reverse().join("\r\n"));
+                }, 'json');
+                if(response.length == 0)
+                    i++;
+                if(i>7)
+                    clearInterval(askForLogs);
+            }, 7000);
+        }, 0); //New thread
+    },
     update_available_indexes_list: function(){
         let self = this;
 
-        $.get(app.appURL+'available_indexes', null,function (response) {
+        $.get(app.appURL+'available_indexes', function (response) {
             //clear index list
             let selector = document.querySelector('#session_index');
             while (selector.firstChild) {

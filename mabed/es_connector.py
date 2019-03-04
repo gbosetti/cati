@@ -98,6 +98,7 @@ class Es_connector:
         return res
 
     def update_field(self,id, field, value):
+        print("UPDATING DOC ID: ", id)
         res = self.es.update(
             index=self.index,
             doc_type=self.doc_type,
