@@ -102,9 +102,7 @@ app.views.tweets = Backbone.View.extend({
         ]);
         this.requestTweets(data);
 
-        this.requestBigrams(data.concat(this.bigrams.formData).concat([
-            {name: "results_size", value: 5 }
-        ]));
+        this.requestBigrams(data.concat(this.bigrams.formData));
 
         app.views.mabed.prototype.getClassificationStats();
     },
@@ -434,7 +432,6 @@ app.views.tweets = Backbone.View.extend({
     showNgramsClassification: function(classifficationData, ngrams, containerSelector, graphHeight){
 
         $(containerSelector).html("");
-
         this.renderBigramsGrid(containerSelector, graphHeight);
         //var tweetsInAllBigrams = Array.from(new Set(Object.entries(ngrams).map(bigram => { return bigram[1] }).flat()));
         //var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
@@ -450,7 +447,7 @@ app.views.tweets = Backbone.View.extend({
         $(".top-bubbles-to-display:visible").attr({"max": len});
         $(".top-bubbles-to-display:visible").val(len);
         //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
-        $(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
+        //$(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
 
         //Updating the bigram's control
         var docName = "tweet";
@@ -484,7 +481,7 @@ app.views.tweets = Backbone.View.extend({
     },
     filterElemByKey: function(key, collection){
         var res = collection.filter(item => {return item.key == key});
-        return (res && res[0] && [0].doc_count)? res[0].doc_count : 0;
+        return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
     },
     renderBigramsChart: function(domSelector, ngrams, graphHeight, maxBubblesToShow){
 
@@ -495,7 +492,7 @@ app.views.tweets = Backbone.View.extend({
 
         formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
             return [
-                ngram.key,
+                ngram.key.split(/-+/).join(" "),
                 [
                     this.filterElemByKey("confirmed", ngram.status.buckets),
                     this.filterElemByKey("negative", ngram.status.buckets),
@@ -549,13 +546,13 @@ app.views.tweets = Backbone.View.extend({
                                             <label>N-gram length</label>
                                             <select name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2"></select>
                                         </div>
-                                        <div class="col-md-2">
+                                        <!--<div class="col-md-2">
                                             <label>Min tweets by n-gram</label>
                                             <input name="min-tweets-in-ngram" type="number" class="form-control min-tweets-in-ngram" value="20">
-                                        </div>
+                                        </div>-->
                                         <div class="col-md-2">
                                             <label>Max bubbles to show</label>
-                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="10" min="1" max="10">
+                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1" max="20">
                                         </div>
                                         <!--<div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
@@ -593,9 +590,8 @@ app.views.tweets = Backbone.View.extend({
     getBigramsDefaultFormData: function(){
         return [
             {name: "n-grams-to-generate", value: "2"},
-            {name: "top-bubbles-to-display", value: "10"},
-            {name: "min-tweets-in-ngram", value: "20"},
-            {name: "remove-stopwords", value: "true"}
+            {name: "top-bubbles-to-display", value: "20"}
+            //{name: "remove-stopwords", value: "true"},   also min-tweets-in-ngram
         ];
     },
     getSearchFormData: function(){

@@ -25,20 +25,6 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
-    def get_ngrams_with_categories(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
-
-        my_connector = Es_connector(index=index)
-        return my_connector.search({
-            "query": {
-                "bool": {
-                    "must": [
-                        {"match": {"text": word}},
-                        {"match": {session: label}}
-                    ]
-                }
-            }
-        })
-
     def generate_ngrams(self, **kwargs):
 
         try:
@@ -150,40 +136,6 @@ class NgramBasedClasifier:
         else:
             return 0
 
-    def ngrams_with_higher_ocurrence(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
-
-        length = kwargs.get('length', 2)
-        top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
-        min_occurrences = kwargs.get('min_occurrences', 20)
-
-        try:
-            full_bigrams = {}
-            res = tweets["hits"]["hits"]
-            for tweet in res:
-                clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
-                bigrams = Counter(self.get_n_grams(clean_text, length)).most_common(None) #We don't filter at this point but at the end
-
-                # print("N-grams", bigrams)
-
-                for k, v in bigrams:
-
-                    ngram_text=""
-                    for term in k:
-                        ngram_text = ngram_text + term + " "
-                    ngram_text = ngram_text.strip()
-                    # print("N-gram: ", ngram_text, " - ", k)
-
-                    try:
-                        full_bigrams[ngram_text].append(tweet["_id"])  # .add for {}
-                    except KeyError:  # If the collection doesn't have the entry yet
-                        full_bigrams[ngram_text] = [tweet["_id"]]  # Use an array otherwise it will be expensive to convert to json
-
-            return {k: full_bigrams[k] for k in full_bigrams if len(full_bigrams[k]) > min_occurrences}  # Removing bigrams with a low ocurrence (associated num of tweets)
-
-        except Exception as e:
-            print('Error: ' + str(e))
-
-
     def gerenate_ngrams_for_tweets(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
 
         length = int(kwargs.get('length', 2))
@@ -194,7 +146,6 @@ class NgramBasedClasifier:
             try:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
                 ngrams = list(self.get_n_grams(clean_text, length))
-                # print("     N-grams:", bigrams)
                 full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
                 self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
 
@@ -203,17 +154,6 @@ class NgramBasedClasifier:
 
 
     def format_single_tweet_ngrams(self, ngrams):
-
-        # full_ngrams_text = ""
-        # for ngram in ngrams:
-        #     single_ngram_text = ""
-        #     for term in ngram:
-        #         single_ngram_text = single_ngram_text + term + "-"
-        #
-        #     single_ngram_text = single_ngram_text[:-1]
-        #     full_ngrams_text = full_ngrams_text + single_ngram_text + " "
-        #
-        # full_ngrams_text.strip()
 
         full_tweet_ngrams = []
         for ngram in ngrams:
@@ -240,23 +180,6 @@ class NgramBasedClasifier:
 
     def updatePropertyValue(self, **kwargs):
 
-        # query = {
-        #     "script": {
-        #         "lang": "painless",
-        #         "source": "ctx._source." + kwargs["property_name"] + " = params.ngrams",
-        #         "params": {
-        #             "ngrams": kwargs["property_value"]
-        #         }
-        #     },
-        #     "query": {
-        #         "match": {
-        #             "_id": kwargs["tweet_id"]
-        #         }
-        #     }
-        # }
-        # Es_connector().es.update_by_query(body=query, doc_type='tweet', index=kwargs["index"])
-
-        # tweet["_id"]   ["_source"]["id"]["$oid"]
         tweet = kwargs["tweet"]
         Es_connector().es.update(
             index=kwargs["index"],
