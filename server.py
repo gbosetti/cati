@@ -218,17 +218,22 @@ ngram_classifier = NgramBasedClasifier()
 # @cross_origin()
 def ngrams_with_higher_ocurrence():
     data = request.form
-
     # bigrams_with_categories = ngram_classifier.get_ngrams_with_categories(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
-    full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+    # full_searched_tweets = functions.get_full_matching_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+    #
+    # full_bigrams_with_assoc_tweets = ngram_classifier.ngrams_with_higher_ocurrence(
+    #     full_searched_tweets, length=int(data["n-grams-to-generate"]), min_occurrences=int(data['min-tweets-in-ngram']))
 
-    full_bigrams_with_assoc_tweets = ngram_classifier.ngrams_with_higher_ocurrence(
-        full_searched_tweets, length=int(data["n-grams-to-generate"]), min_occurrences=int(data['min-tweets-in-ngram']))
-
+    matching_ngrams = ngram_classifier.generate_ngrams(index=data['index'], word=data['word'], session=data['session'],
+                                                       label=data['search_by_label'], results_size=data['results_size'],
+                                                       n_size=data['n-grams-to-generate'])
     return jsonify({
-        "bigrams": full_bigrams_with_assoc_tweets,
-        "tweets": full_searched_tweets,
-        "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+        # "bigrams": full_bigrams_with_assoc_tweets,
+        # "tweets": full_searched_tweets,
+        "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
+        "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'],
+                                                                    session=data['session'],
+                                                                    label=data['search_by_label'], matching_ngrams=matching_ngrams),
     })
 
 

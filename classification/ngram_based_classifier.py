@@ -28,7 +28,7 @@ class NgramBasedClasifier:
     def get_ngrams_with_categories(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
 
         my_connector = Es_connector(index=index)
-        res = my_connector.search({
+        return my_connector.search({
             "query": {
                 "bool": {
                     "must": [
@@ -39,37 +39,94 @@ class NgramBasedClasifier:
             }
         })
 
-        print("SEARCHING", res)
-        return res
+    def generate_ngrams(self, **kwargs):
 
-    def get_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+        try:
+            my_connector = Es_connector(index=kwargs["index"])
 
+            return my_connector.search({
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": kwargs["word"]}},
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
+                },
+                "aggs": {
+                    "ngrams_count": {
+                        "terms": {
+                            "field": kwargs["n_size"] + "grams",
+                            "size": kwargs["results_size"]
+                        },
+                        "aggs": {
+                            "status": {
+                                "terms": {
+                                    "field": kwargs["session"]
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return {}
+
+
+    def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[]):
         my_connector = Es_connector(index=index)
         res = my_connector.search({
-             "size": 0,
-             "query": {
-                 "bool": {
-                     "must": [
-                         {"match": {"text": word}},
-                         {"match": {session: label}}
-                     ]
-                 }
-             },
-             "aggs": {
-                 "query_classification": {
-                     "terms": {
-                         "field": session+".keyword",
-                         "size": 10
-                     }
-                 },
-                 "count": {
-                     "cardinality": {
-                         "field": session+".keyword"
-                     }
-                 }
-             }
+            "size": 0,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
+                }
+            },
+            "aggs": {
+                "query_classification": {
+                    "terms": {
+                        "field": session + ".keyword"
+                    }
+                }
+            }
         })
-        query_classification = res['aggregations']['query_classification']['buckets']
+        return res['aggregations']['query_classification']['buckets']
+
+    def get_bigrams_related_classification_data(self, matching_ngrams=[]):
+
+        # Counting the matching bigrams results by category
+        total_ngrams = matching_ngrams["hits"]["total"]
+        confirmed_ngrams = 0
+        negative_ngrams = 0
+        unlabeled_ngrams = 0
+        accum_total_ngrams = 0
+
+        for ngram in matching_ngrams['aggregations']['ngrams_count']['buckets']:
+            curr_confirmed = self.get_classif_doc_count("confirmed", ngram["status"]["buckets"])
+            confirmed_ngrams += curr_confirmed
+
+            curr_negative = self.get_classif_doc_count("negative", ngram["status"]["buckets"])
+            negative_ngrams += curr_negative
+
+            curr_unlabeled = self.get_classif_doc_count("proposed", ngram["status"]["buckets"])
+            unlabeled_ngrams += curr_unlabeled
+
+            accum_total_ngrams += curr_confirmed + curr_negative + curr_unlabeled
+
+        return (confirmed_ngrams / accum_total_ngrams) * total_ngrams, \
+               (negative_ngrams / accum_total_ngrams) * total_ngrams, \
+               (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
+
+    def get_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[]):
+
+        query_classification = self.get_search_related_classification_data(index, word, session, label, matching_ngrams)
+        confirmed_ngrams, negative_ngrams, unlabeled_ngrams = self.get_bigrams_related_classification_data(matching_ngrams)
 
         return [
             {
@@ -79,16 +136,15 @@ class NgramBasedClasifier:
                 "unlabeled": self.get_classif_doc_count("proposed", query_classification)
             },
             {
-                "label": "Bigrams",
-                "confirmed": 0,
-                "negative": 0,
-                "unlabeled": 0
+                "label": "Ngrams",
+                "confirmed": confirmed_ngrams,
+                "negative": negative_ngrams,
+                "unlabeled": unlabeled_ngrams
             }
         ]
 
     def get_classif_doc_count(self, tag, classification):
         category = list(filter(lambda item: item["key"] == tag, classification))
-        print(tag, category, len(category))
         if len(category) > 0:
             return category[0]["doc_count"]
         else:
@@ -178,48 +234,6 @@ class NgramBasedClasifier:
         #     ngram_text = ngram_text.strip()
         #
         # return ngram_text
-
-
-    def generate_ngrams_for_index(self, **kwargs):
-
-        try:
-            # Get the data for performinga paginated search
-            my_connector = Es_connector(index=kwargs["index"])
-            res = my_connector.init_paginatedSearch({
-                "query": {
-                    "match_all": {}
-                }
-            })
-            sid = res["sid"]
-            scroll_size = res["scroll_size"]
-            total=int(res["total"])
-            print("Total: ", total)
-
-            # Analyse and process page by page
-            i=0
-            processed = 0
-            while scroll_size > 0:
-                i+=1
-                res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
-                scroll_size = res2["scroll_size"]
-                processed += scroll_size
-                tweets = res2["results"]
-                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"])
-
-                # For backend & client-side logging
-                curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(round(processed*100/total, 2)) + "% done)")
-                self.logs.append(curr_log)
-                self.logs = self.logs[:10]
-                print(curr_log)
-
-            # Clean it at the end so the clien knows when to end asking for more logs
-            self.logs = []
-
-            return True
-
-        except Exception as e:
-            print('Error: ' + str(e))
-            return False
 
     def get_current_backend_logs(self):
         return self.logs
