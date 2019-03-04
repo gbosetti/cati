@@ -8,8 +8,7 @@ app.views.tweets = Backbone.View.extend({
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
         'click .massive_tagging_to_state': 'massive_tagging_to_state',
-        'click #search_not_labeled': 'search_not_labeled',
-        'change .top-bubbles-to-display': 'updateTopBubblesToDisplay'
+        'click #search_not_labeled': 'search_not_labeled'
     },
     initialize: function() {
 
@@ -101,7 +100,6 @@ app.views.tweets = Backbone.View.extend({
             {name: "search_by_label", value: tabData.label }
         ]);
         this.requestTweets(data);
-
         this.requestBigrams(data.concat(this.bigrams.formData));
 
         app.views.mabed.prototype.getClassificationStats();
@@ -580,8 +578,15 @@ app.views.tweets = Backbone.View.extend({
         $("input[data-toggle='toggle']").bootstrapToggle();
 
         $(".regenerate-bigrams:visible").on("click", () => {
+
             this.bigrams.formData = this.getBigramsFormData();
-            this.requestBigrams(this.getSearchFormData().concat(this.bigrams.formData));
+            var tabData = this.getCurrentSearchTabData();
+
+            var data = this.getSearchFormData().concat([
+                {name: "search_by_label", value: tabData.label }
+            ]).concat(this.bigrams.formData);
+
+            this.requestBigrams(data);
         })
     },
     getBigramsFormData: function(){
