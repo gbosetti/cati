@@ -440,7 +440,7 @@ app.views.tweets = Backbone.View.extend({
         //var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
         setTimeout(() => { this.renderBigramsStats(classifficationData); }, 0); //In a new thread
-        //setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
+        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
 
         this.updateBigramsControls(ngrams);
     },
@@ -480,39 +480,44 @@ app.views.tweets = Backbone.View.extend({
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart(".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
+        this.renderBigramsChart(".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
     },
-    renderBigramsChart: function(domSelector, bigrams, graphHeight, maxBubblesToShow){
+    filterElemByKey: function(key, collection){
+        var res = collection.filter(item => {return item.key == key});
+        return (res && res[0] && [0].doc_count)? res[0].doc_count : 0;
+    },
+    renderBigramsChart: function(domSelector, ngrams, graphHeight, maxBubblesToShow){
 
         this.clearNgramsGraph();
-
         //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
-        this.bigrams.bigrams = bigrams;
-        this.bigrams.tweets = tweets;
+        this.bigrams.bigrams = ngrams;
         this.bigrams.graphHeight = graphHeight;
 
-        var bigramsAsFilteredOrderedArray = maxBubblesToShow? Object.entries(bigrams).sort(function(a, b){return (new Set(a[1]).size > new Set(b[1]).size? -1 : 1) }).splice(0,maxBubblesToShow) : Object.entries(bigrams);
-        var dta = bigramsAsFilteredOrderedArray.map(bigram => {
-
-            var bigramMatchingTweets = tweets.filter(tweet => { return bigram[1].includes(tweet["_id"]) });
-            var bigram_confirmed = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
-            var bigram_negative = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
-            var bigram_unlabeled = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
-
-            return [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+        formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+            return [
+                ngram.key,
+                [
+                    this.filterElemByKey("confirmed", ngram.status.buckets),
+                    this.filterElemByKey("negative", ngram.status.buckets),
+                    this.filterElemByKey("proposed", ngram.status.buckets)
+                ]
+            ]
         });
+
+        console.log("formatted_ngrams", formatted_ngrams);
 
         var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
-            for (var bigram in bigrams) {
+            console.log("evt", event);
+            /*for (var bigram in ngrams) {
                 if (bigram == event.label){
-                    var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
+                    var matchingTweets = tweets.filter(tweet => { return ngrams[bigram].includes(tweet["_id"]) });
                     this.showBigramTweets("Tweets associated to the bigram «" + event.label + "»", matchingTweets);
                     return true;
                 }
-            }
+            }*/
         };
-        chart.draw(dta);
+        chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
     renderBigramsStats: function(classifficationData){
 
