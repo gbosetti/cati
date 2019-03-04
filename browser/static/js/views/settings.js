@@ -17,7 +17,6 @@ app.views.settings = Backbone.View.extend({
         this.all_sessions();
         this.show_seesion_info();
         this.update_available_indexes_list();
-        this.all_indexes();
         app.views.mabed.prototype.getClassificationStats();
 
         return this;
