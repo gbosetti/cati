@@ -14,13 +14,17 @@ __email__ = "odehfiras@gmail.com"
 
 with open('config.json', 'r') as f:
     config = json.load(f)
-default_host = config['DEFAULT']['elastic_search']['host']
-default_port = config['DEFAULT']['elastic_search']['port']
-default_user = config['DEFAULT']['elastic_search']['user']
-default_password = config['DEFAULT']['elastic_search']['password']
-default_timeout = config['DEFAULT']['elastic_search']['timeout']
-default_index = config['DEFAULT']['elastic_search']['index']
-default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
+
+default_source = config['default']
+for source in config['elastic_search_sources']:
+    if source['index'] == default_source:
+        default_host = source['host']
+        default_port = source['port']
+        default_user = source['user']
+        default_password = source['password']
+        default_timeout = source['timeout']
+        default_index = source['index']
+        default_doc_type = source['doc_type']
 class Es_connector:
     def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
     timeout=default_timeout, index=default_index, doc_type=default_doc_type):
