@@ -99,8 +99,15 @@ app.views.tweets = Backbone.View.extend({
         var data = this.getSearchFormData().concat([
             {name: "search_by_label", value: tabData.label }
         ]);
-        this.requestTweets(data);
-        this.requestBigrams(data.concat(this.bigrams.formData));
+
+        var query = data.filter(item => {return item.name == "word"})[0].value;
+        if(query && query.trim() != ""){
+            console.log("Simple")
+            this.requestTweets(data);
+            this.requestBigrams(data.concat(this.bigrams.formData.concat([{name: "full_search", value: "False" }])));
+        } else {
+            this.requestBigrams(data.concat(this.bigrams.formData).concat([{name: "full_search", value: "True" }]));
+        }
 
         app.views.mabed.prototype.getClassificationStats();
     },
@@ -220,7 +227,7 @@ app.views.tweets = Backbone.View.extend({
         var containerSelector = ".ngrams-search-classif:visible:last";
         this.showLoadingMessage(containerSelector, 677);
         var self = this;
-        this.bigrams.formData = data;
+        this.bigrams.formData = this.getFormDataFrom(data);
 
         $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
             //check if there are any ngrams
@@ -591,6 +598,12 @@ app.views.tweets = Backbone.View.extend({
     },
     getBigramsFormData: function(){
         return $('.bigrams-controls').serializeArray();
+    },
+    getFormDataFrom: function(data){
+        return [
+            {name: "n-grams-to-generate", value: data.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
+            {name: "top-bubbles-to-display", value: data.filter(item => {return item.name == "top-bubbles-to-display"})[0].value }
+        ];
     },
     getBigramsDefaultFormData: function(){
         return [

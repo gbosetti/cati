@@ -30,16 +30,23 @@ class NgramBasedClasifier:
         try:
             my_connector = Es_connector(index=kwargs["index"])
 
-            return my_connector.search({
-                "size": 0,
-                "query": {
+            if kwargs.get('full_search', False):
+                query = {
+                    "match_all": {}
+                }
+            else:
+                query = {
                     "bool": {
                         "must": [
                             {"match": {"text": kwargs["word"]}},
                             {"match": {kwargs["session"]: kwargs["label"]}}
                         ]
                     }
-                },
+                }
+
+            return my_connector.search({
+                "size": 0,
+                "query": query,
                 "aggs": {
                     "ngrams_count": {
                         "terms": {
@@ -62,18 +69,26 @@ class NgramBasedClasifier:
             return {}
 
 
-    def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[]):
-        my_connector = Es_connector(index=index)
-        res = my_connector.search({
-            "size": 0,
-            "query": {
+    def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[], full_search=False):
+
+        if full_search:
+            query = {
+                "match_all": {}
+            }
+        else:
+            query = {
                 "bool": {
                     "must": [
                         {"match": {"text": word}},
                         {"match": {session: label}}
                     ]
                 }
-            },
+            }
+
+        my_connector = Es_connector(index=index)
+        res = my_connector.search({
+            "size": 0,
+            "query": query,
             "aggs": {
                 "query_classification": {
                     "terms": {
@@ -109,10 +124,11 @@ class NgramBasedClasifier:
                (negative_ngrams / accum_total_ngrams) * total_ngrams, \
                (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
 
-    def get_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[]):
+    def get_classification_data(self, **kwargs):
 
-        query_classification = self.get_search_related_classification_data(index, word, session, label, matching_ngrams)
-        confirmed_ngrams, negative_ngrams, unlabeled_ngrams = self.get_bigrams_related_classification_data(matching_ngrams)
+        query_classification = self.get_search_related_classification_data(kwargs["index"], kwargs["word"], kwargs["session"], kwargs["label"], kwargs["matching_ngrams"], kwargs['full_search'])
+
+        confirmed_ngrams, negative_ngrams, unlabeled_ngrams = self.get_bigrams_related_classification_data(kwargs["matching_ngrams"])
 
         return [
             {
