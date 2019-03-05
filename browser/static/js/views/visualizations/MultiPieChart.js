@@ -8,6 +8,7 @@ class MultiPieChart{
     this.width = width;
     this.height = height;
     this.radius = Math.min(width, height) / 2;
+    //this.zoomAndMoveEnabled = true;
   }
 
   createLayout(data){
@@ -30,8 +31,11 @@ class MultiPieChart{
       .attr("width", width)
       .attr("height", height)
       .attr("class", "bubble")
-      .call(d3.behavior.zoom().on("zoom", function () {
-    		svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+      .call(d3.behavior.zoom().on("zoom", (evt) => {
+            //if(d3.event.sourceEvent.target.tagName.toLocaleLowerCase() == "svg"){
+    		svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+    		//}
+    		//else svg.on('.zoom', null);
       }))
       .append("g").attr("id", "draggable-area");
 
@@ -133,18 +137,23 @@ while (word = words.pop()) {
   }
 
   mouseMove(data, ele){
-
+    d3.event.preventDefault(); d3.event.stopPropagation();
+    //this.zoomAndMoveEnabled = false;
     return this.tooltip.style("top", (d3.event.pageY-10)+"px")
     	.style("left",(d3.event.pageX+10)+"px");
   }
 
   mouseOut(data, elem) {
+    d3.event.preventDefault(); d3.event.stopPropagation();
+    //this.zoomAndMoveEnabled = true;
     d3.select(elem).style("transform", "scale(1,1)");
     return this.tooltip.style("visibility", "hidden");
   }
 
   mouseOver(data, elem){
 
+    d3.event.preventDefault(); d3.event.stopPropagation();
+    //this.zoomAndMoveEnabled = false;
     this.tooltip.html(
     	data.label +
       "<br>" + (data.data * 100 / data.totalCount).toFixed(1) + "% " +
@@ -190,7 +199,8 @@ while (word = words.pop()) {
           return word.substring(0, maxCharacters) + ending;
       });
       return splittedWords.join(" ");
-    }).call(this.wrap, 200);
+    })
+    .call(this.wrap, 200);
   }
 
   onBubbleClick(e){

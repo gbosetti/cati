@@ -23,6 +23,10 @@
     stroke-width: 1;
 }
 
+.bigrams-graph-area g text {
+    cursor: text;
+}
+
 .bigrams-graph-area .node {
   cursor: pointer
 }
