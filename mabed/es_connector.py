@@ -30,15 +30,34 @@ class Es_connector:
     timeout=default_timeout, index=default_index, doc_type=default_doc_type):
     # def __init__(self, host='localhost', port=9200, user='', password='', timeout=1000, index="test2", doc_type="tweet"):
 
+        available = False
+        if index == default_index:
+            # Define config
+            self.host = default_host
+            self.port = default_port
+            self.user = default_user
+            self.password = default_password
+            self.timeout = default_timeout
+            self.index = default_index
+            self.doc_type = default_doc_type
+            available = True
+        else:
+            for source in config['elastic_search_sources']:
+                if source['index'] == index:
+                    # Define config
+                    self.host = source['host']
+                    self.port = source['port']
+                    self.user = source['user']
+                    self.password = source['password']
+                    self.timeout = source['timeout']
+                    self.index = source['index']
+                    self.doc_type = source['doc_type']
+                    available = True
+        if not available:
+            # We can just throw an error instead
+            # Or have elastic search throw it
+            return {}
 
-        # Define config
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.timeout = timeout
-        self.index = index
-        self.doc_type = doc_type
         self.size = 500
         self.body = {"query": {"match_all": {}}}
         self.result = []
@@ -49,6 +68,7 @@ class Es_connector:
             http_auth=(self.user, self.password),
             port=self.port,
             timeout=self.timeout,
+            # TODO: use SSL
             use_ssl=False
         )
 
