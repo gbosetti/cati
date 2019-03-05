@@ -8,7 +8,6 @@ class MultiPieChart{
     this.width = width;
     this.height = height;
     this.radius = Math.min(width, height) / 2;
-    this.currentBubbleWidth = 100;
   }
 
   createLayout(data){
@@ -57,14 +56,14 @@ class MultiPieChart{
 while (word = words.pop()) {
             line.push(word);
             tspan.text(line.join(" "));
-            if (tspan.node().getComputedTextLength() > this.currentBubbleWidth) {
+            //if (tspan.node().getComputedTextLength() > this.currentBubbleWidth) {
               line.pop();
               tspan.text(line.join(" "));
               line = [word];
               var customY = y-tspanHeight;
               tspan.attr("y", customY);
               tspan = text.append("tspan").attr("x", 0).attr("y", customY ).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
-            }
+            //}
           }
         });
   }
@@ -76,7 +75,7 @@ while (word = words.pop()) {
         var svg = this.createSvg(this.width, this.height);
         var nodes = this.generateNodes(svg, layout, data);
         this.tooltip = this.createTooltip();
-        var arc = this.generateBubbles(nodes, this.tooltip);
+        this.generateBubbles(nodes, this.tooltip);
         this.generateBubbleNames(nodes);
   }
 
@@ -184,7 +183,7 @@ while (word = words.pop()) {
     .style("text-anchor", "middle")
     .style("font-size", function(d) { return d.r / 3; })
     .text(function(d) {
-      this.currentBubbleWidth = d.r / 5;
+      //this.currentBubbleWidth = d.r / 5;
 
       var splittedWords = d[0].split(/\s+/).map(word => {
           var ending = word.length > maxCharacters ? "…": "";

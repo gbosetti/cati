@@ -8,8 +8,7 @@ app.views.tweets = Backbone.View.extend({
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
         'click .massive_tagging_to_state': 'massive_tagging_to_state',
-        'click #search_not_labeled': 'search_not_labeled',
-        'change .top-bubbles-to-display': 'updateTopBubblesToDisplay'
+        'click #search_not_labeled': 'search_not_labeled'
     },
     initialize: function() {
 
@@ -100,11 +99,15 @@ app.views.tweets = Backbone.View.extend({
         var data = this.getSearchFormData().concat([
             {name: "search_by_label", value: tabData.label }
         ]);
-        this.requestTweets(data);
 
-        this.requestBigrams(data.concat(this.bigrams.formData).concat([
-            {name: "results_size", value: 5 }
-        ]));
+        var query = data.filter(item => {return item.name == "word"})[0].value;
+        if(query && query.trim() != ""){
+            console.log("Simple")
+            this.requestTweets(data);
+            this.requestBigrams(data.concat(this.bigrams.formData.concat([{name: "full_search", value: "False" }])));
+        } else {
+            this.requestBigrams(data.concat(this.bigrams.formData).concat([{name: "full_search", value: "True" }]));
+        }
 
         app.views.mabed.prototype.getClassificationStats();
     },
@@ -224,7 +227,7 @@ app.views.tweets = Backbone.View.extend({
         var containerSelector = ".ngrams-search-classif:visible:last";
         this.showLoadingMessage(containerSelector, 677);
         var self = this;
-        this.bigrams.formData = data;
+        this.bigrams.formData = this.getFormDataFrom(data);
 
         $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
             //check if there are any ngrams
@@ -434,13 +437,12 @@ app.views.tweets = Backbone.View.extend({
     showNgramsClassification: function(classifficationData, ngrams, containerSelector, graphHeight){
 
         $(containerSelector).html("");
-
         this.renderBigramsGrid(containerSelector, graphHeight);
         //var tweetsInAllBigrams = Array.from(new Set(Object.entries(ngrams).map(bigram => { return bigram[1] }).flat()));
         //var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
         setTimeout(() => { this.renderBigramsStats(classifficationData); }, 0); //In a new thread
-        //setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
+        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
 
         this.updateBigramsControls(ngrams);
     },
@@ -450,7 +452,7 @@ app.views.tweets = Backbone.View.extend({
         $(".top-bubbles-to-display:visible").attr({"max": len});
         $(".top-bubbles-to-display:visible").val(len);
         //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
-        $(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
+        //$(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
 
         //Updating the bigram's control
         var docName = "tweet";
@@ -480,39 +482,44 @@ app.views.tweets = Backbone.View.extend({
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart(".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.tweets, this.bigrams.graphHeight, evt.target.value);
+        this.renderBigramsChart(".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
     },
-    renderBigramsChart: function(domSelector, bigrams, graphHeight, maxBubblesToShow){
+    filterElemByKey: function(key, collection){
+        var res = collection.filter(item => {return item.key == key});
+        return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
+    },
+    renderBigramsChart: function(domSelector, ngrams, graphHeight, maxBubblesToShow){
 
         this.clearNgramsGraph();
-
         //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
-        this.bigrams.bigrams = bigrams;
-        this.bigrams.tweets = tweets;
+        this.bigrams.bigrams = ngrams;
         this.bigrams.graphHeight = graphHeight;
 
-        var bigramsAsFilteredOrderedArray = maxBubblesToShow? Object.entries(bigrams).sort(function(a, b){return (new Set(a[1]).size > new Set(b[1]).size? -1 : 1) }).splice(0,maxBubblesToShow) : Object.entries(bigrams);
-        var dta = bigramsAsFilteredOrderedArray.map(bigram => {
-
-            var bigramMatchingTweets = tweets.filter(tweet => { return bigram[1].includes(tweet["_id"]) });
-            var bigram_confirmed = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
-            var bigram_negative = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
-            var bigram_unlabeled = bigramMatchingTweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
-
-            return [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+        formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+            return [
+                ngram.key.split(/-+/).join(" "),
+                [
+                    this.filterElemByKey("confirmed", ngram.status.buckets),
+                    this.filterElemByKey("negative", ngram.status.buckets),
+                    this.filterElemByKey("proposed", ngram.status.buckets)
+                ]
+            ]
         });
+
+        console.log("formatted_ngrams", formatted_ngrams);
 
         var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
-            for (var bigram in bigrams) {
+            console.log("evt", event);
+            /*for (var bigram in ngrams) {
                 if (bigram == event.label){
-                    var matchingTweets = tweets.filter(tweet => { return bigrams[bigram].includes(tweet["_id"]) });
+                    var matchingTweets = tweets.filter(tweet => { return ngrams[bigram].includes(tweet["_id"]) });
                     this.showBigramTweets("Tweets associated to the bigram «" + event.label + "»", matchingTweets);
                     return true;
                 }
-            }
+            }*/
         };
-        chart.draw(dta);
+        chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
     renderBigramsStats: function(classifficationData){
 
@@ -544,13 +551,13 @@ app.views.tweets = Backbone.View.extend({
                                             <label>N-gram length</label>
                                             <select name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2"></select>
                                         </div>
-                                        <div class="col-md-2">
+                                        <!--<div class="col-md-2">
                                             <label>Min tweets by n-gram</label>
                                             <input name="min-tweets-in-ngram" type="number" class="form-control min-tweets-in-ngram" value="20">
-                                        </div>
+                                        </div>-->
                                         <div class="col-md-2">
                                             <label>Max bubbles to show</label>
-                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="10" min="1" max="10">
+                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1" max="20">
                                         </div>
                                         <!--<div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
@@ -578,19 +585,31 @@ app.views.tweets = Backbone.View.extend({
         $("input[data-toggle='toggle']").bootstrapToggle();
 
         $(".regenerate-bigrams:visible").on("click", () => {
+
             this.bigrams.formData = this.getBigramsFormData();
-            this.requestBigrams(this.getSearchFormData().concat(this.bigrams.formData));
+            var tabData = this.getCurrentSearchTabData();
+
+            var data = this.getSearchFormData().concat([
+                {name: "search_by_label", value: tabData.label }
+            ]).concat(this.bigrams.formData);
+
+            this.requestBigrams(data);
         })
     },
     getBigramsFormData: function(){
         return $('.bigrams-controls').serializeArray();
     },
+    getFormDataFrom: function(data){
+        return [
+            {name: "n-grams-to-generate", value: data.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
+            {name: "top-bubbles-to-display", value: data.filter(item => {return item.name == "top-bubbles-to-display"})[0].value }
+        ];
+    },
     getBigramsDefaultFormData: function(){
         return [
             {name: "n-grams-to-generate", value: "2"},
-            {name: "top-bubbles-to-display", value: "10"},
-            {name: "min-tweets-in-ngram", value: "20"},
-            {name: "remove-stopwords", value: "true"}
+            {name: "top-bubbles-to-display", value: "20"}
+            //{name: "remove-stopwords", value: "true"},   also min-tweets-in-ngram
         ];
     },
     getSearchFormData: function(){

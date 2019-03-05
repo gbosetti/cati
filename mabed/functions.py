@@ -323,24 +323,6 @@ class Functions:
     # Tweets
     # ==================================================================
 
-    def get_full_matching_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", host="localhost", port="9200"):
-
-        my_connector = Es_connector(index=index)
-        query = {
-            "query": {
-                "bool": {
-                    "must": [
-                        {"match": {"text": word}},
-                        {"match": {session: label}}
-                    ]
-                }
-            }
-        }
-
-        total_matches = my_connector.count(query)["count"]
-        return my_connector.search_size(query, total_matches)
-
-
     def get_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
         my_connector = Es_connector(index=index)
         res = my_connector.init_paginatedSearch({
