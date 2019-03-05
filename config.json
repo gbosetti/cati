@@ -1,17 +1,15 @@
 {
-  "DEFAULT": {
-    "elastic_search": {
+  "elastic_search_sources": [
+    {
       "host": "localhost",
       "port": 9200,
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "test2",
+      "index": "twitter2017",
       "doc_type": "tweet",
-      "index_list": ["twitter2017"]
-    },
-    "test": {
       "session": "session_twitter2017"
     }
-  }
+  ],
+  "default": "twitter2017"
 }

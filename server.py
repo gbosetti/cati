@@ -28,15 +28,17 @@ app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 
 with open('config.json', 'r') as f:
     config = json.load(f)
-default_host = config['DEFAULT']['elastic_search']['host']
-default_port = config['DEFAULT']['elastic_search']['port']
-default_user = config['DEFAULT']['elastic_search']['user']
-default_password = config['DEFAULT']['elastic_search']['password']
-default_timeout = config['DEFAULT']['elastic_search']['timeout']
-default_index = config['DEFAULT']['elastic_search']['index']
-default_doc_type = config['DEFAULT']['elastic_search']['doc_type']
-default_session = config['DEFAULT']['test']['session']
-default_index_list = config['DEFAULT']['elastic_search']['index_list']
+default_source = config['default']
+for source in config['elastic_search_sources']:
+    if source['index'] == default_source:
+        default_host = source['host']
+        default_port = source['port']
+        default_user = source['user']
+        default_password = source['password']
+        default_timeout = source['timeout']
+        default_index = source['index']
+        default_doc_type = source['doc_type']
+        default_session = source['session']
 
 htpasswd = HtPasswdAuth(app)
 
@@ -419,7 +421,7 @@ def event_image():
 # @cross_origin()
 def mark_valid():
     data = request.form
-    res = functions.set_all_status(default_index, default_session, "proposed")
+    res = functions.set_all_status(default_source, default_session, "proposed")
     return jsonify(res)
 
 
@@ -941,7 +943,10 @@ def get_results():
 # Get available indexes
 @app.route('/available_indexes', methods=['GET'])
 def available_indexes():
-    return jsonify(default_index_list);
+    res = []
+    for source in config['elastic_search_sources']:
+        res.append(source['index'])
+    return jsonify(res);
 
 # ==================================================================
 # 7. Sessions

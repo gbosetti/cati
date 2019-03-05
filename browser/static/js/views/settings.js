@@ -16,7 +16,7 @@ app.views.settings = Backbone.View.extend({
         this.delegateEvents();
         this.all_sessions();
         this.show_seesion_info();
-        this.all_indexes();
+        this.update_available_indexes_list();
         app.views.mabed.prototype.getClassificationStats();
 
         return this;
@@ -168,7 +168,7 @@ app.views.settings = Backbone.View.extend({
             }, 7000);
         }, 0); //New thread
     },
-    all_indexes: function(){
+    update_available_indexes_list: function(){
         let self = this;
 
         $.get(app.appURL+'available_indexes', function (response) {
