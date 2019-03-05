@@ -30,7 +30,6 @@ class NgramBasedClasifier:
         my_connector = Es_connector(index=kwargs["index"])
         res = my_connector.init_paginatedSearch(
             {
-                "_source": ["text", "id_str", "extended_entities", "user", "created_at", "link"],
                 "query": {
                    "bool": {
                        "must": [

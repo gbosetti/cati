@@ -224,7 +224,7 @@ def search_bigrams_related_tweets():
     propName = data["n-grams-to-generate"] + "grams"
     matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], ngram=data['ngram'], ngramsPropName=propName)
-    return jsonify(matching_tweets)
+    return jsonify({"tweets": matching_tweets})
 
 
 # Get Tweets
@@ -287,6 +287,8 @@ def tweets_filter():
 # @cross_origin()
 def tweets_scroll():
     data = request.form
+
+    print(data)
     tweets= functions.get_tweets_scroll(index=data['index'], sid=data['sid'], scroll_size=int(data['scroll_size']))
     return jsonify({"tweets": tweets})
 

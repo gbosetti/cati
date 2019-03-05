@@ -301,7 +301,9 @@ app.views.tweets = Backbone.View.extend({
             }
         });
     },
-    get_tweets_html: function(response, classes, cid){
+    get_tweets_html: function(response, classes, loadMoreButtonClass){
+
+        loadMoreButtonClass = (loadMoreButtonClass && loadMoreButtonClass.length && loadMoreButtonClass.trim().length > 0)? loadMoreButtonClass : "";
         var html = "";
         var template = _.template($("#tpl-item-tweet").html());
 
@@ -350,7 +352,7 @@ app.views.tweets = Backbone.View.extend({
                         });
         });
         if(response.tweets.scroll_size>0){
-            html += '<div class="pix-margin-top-10"><a href="#" class="btn btn-lg btn-outline-success full_width scroll_tweets" data-scroll="'+response.tweets.scroll_size+'" data-sid="'+response.tweets.sid+'"> <strong>Load more tweets</strong> </a></div>';
+            html += '<div class="pix-margin-top-10"><a href="#" class="btn btn-lg btn-outline-success full_width ' + loadMoreButtonClass + '" data-scroll="'+response.tweets.scroll_size+'" data-sid="'+response.tweets.sid+'"> <strong>Load more tweets</strong> </a></div>';
         }
         return html;
     },
@@ -376,16 +378,31 @@ app.views.tweets = Backbone.View.extend({
                         {name: "ngram", value: ngram},
                         {name: "search_by_label", value: tabData.label }
                     ]);
+                    var loadMoreTweetsClass = "load-more-ngram-rel-tweets";
 
                     $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
                         console.log(response);
-                        var html = self.get_tweets_html(response, 'static_tweet_box');
+                        var html = self.get_tweets_html(response, '', loadMoreTweetsClass);
                         self.delegateEvents();
                         jc.setContent(html);
-                    });
 
-                    //var response = {"tweets": {"results": relatedTweets}};
-                    //this.setContent("<div id='bigram_rel_tweets'>" + self.get_tweets_html(response, '') + "</div>");
+                        document.querySelector('.load-more-ngram-rel-tweets').onclick = function(evt){
+                            console.log("Load more", response);
+
+                            evt.preventDefault();
+
+                            var moreTweetsdata = [];
+                            moreTweetsdata.push({name: "index", value: app.session.s_index});
+                            moreTweetsdata.push({name: "scroll_size", value: response.tweets.scroll_size});
+                            moreTweetsdata.push({name: "sid",  value: response.tweets.sid});
+
+                            $.post(app.appURL+'tweets_scroll', moreTweetsdata, function(res){
+                                var html = self.get_tweets_html(res, '', loadMoreTweetsClass);
+                                console.log("CURR CPONT", jc.content);
+                                jc.setContent(jc.content + html);
+                            }, 'json').fail(self.cnxError);
+                        }
+                    });
                 }catch(err){console.log(err)}
             },
             buttons: {
@@ -430,7 +447,7 @@ app.views.tweets = Backbone.View.extend({
                 onContentReady: function () {
                     var jc = this;
                     $.post(app.appURL+'cluster_search_tweets', {cid: cid, index: app.session.s_index, word: word}, function(response){
-                        var html = self.get_tweets_html(response, 'static_tweet_box', cid);
+                        var html = self.get_tweets_html(response, 'static_tweet_box');
                         self.delegateEvents();
                         jc.setContent(html);
                 }, 'json').fail(function() {
@@ -461,7 +478,7 @@ app.views.tweets = Backbone.View.extend({
         return false;
     },
     displayPaginatedResults: function(response, t0, word, label){
-        var html = this.get_tweets_html(response, '');
+        var html = this.get_tweets_html(response, '', 'scroll_tweets');
         this.showImageClusters(response.clusters, word, '.imagesClusters:visible:last');
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
@@ -711,17 +728,18 @@ app.views.tweets = Backbone.View.extend({
 		return false;
 	},
     scroll_tweets: function(e){
+
         e.preventDefault();
         var scroll_size = $(e.currentTarget).data("scroll");
-		var sid = $(e.currentTarget).data("sid");
-		var btn_area = $(e.currentTarget).parent();
-		var self = this;
+        var sid = $(e.currentTarget).data("sid");
+        var btn_area = $(e.currentTarget).parent();
+        var self = this;
         var data = [];
         data.push({name: "index", value: app.session.s_index});
         data.push({name: "scroll_size", value: scroll_size});
         data.push({name: "sid",  value: sid});
         $.post(app.appURL+'tweets_scroll', data, function(response){
-            var html = self.get_tweets_html(response, '');
+            var html = self.get_tweets_html(response, '', 'scroll_tweets');
             btn_area.replaceWith(html);
           }, 'json').fail(this.cnxError);
         return false;
