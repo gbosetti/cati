@@ -9,6 +9,16 @@
       "index": "twitter2017",
       "doc_type": "tweet",
       "session": "session_twitter2017"
+    },
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "example",
+      "doc_type": "tweet",
+      "session": "example"
     }
   ],
   "default": "twitter2017"

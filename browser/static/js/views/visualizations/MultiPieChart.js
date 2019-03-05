@@ -131,7 +131,7 @@ while (word = words.pop()) {
         .on("mouseover", function(evt, idx){self.mouseOver(evt, this)})
         .on("mousemove", function(evt, idx){self.mouseMove(evt, this)})
         .on("mouseout", function(evt, idx){ self.mouseOut(evt, this); })
-        .on("click", this.onBubbleClick);
+        .on("click", (evt) => { this.onBubbleClick(evt.label, evt) }); //this.onBubbleClick);
 
     return {arc: arc, arcEnter:arcEnter};
   }
@@ -184,8 +184,10 @@ while (word = words.pop()) {
   	var labels = nodes.selectAll("text.label")
     .data(function(d) { return [d]; });
 
-    labels.enter().append("text")
-      .attr({
+    labels.enter()
+    .append("text")
+    .on("click", (evt) => { this.onBubbleClick(evt[0], evt) })
+    .attr({
       "class": "label",
       dy: "0.35em"
     })
@@ -201,10 +203,12 @@ while (word = words.pop()) {
       return splittedWords.join(" ");
     })
     .call(this.wrap, 200);
-  }
 
-  onBubbleClick(e){
-    console.log("Default behaviour");
+
+  };
+
+  onBubbleClick(data, evt){
+    console.log("Default behaviour", data);
   }
 }
 

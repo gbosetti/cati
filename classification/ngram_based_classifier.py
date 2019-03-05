@@ -25,6 +25,24 @@ class NgramBasedClasifier:
         full_text = " ".join(filtered_words)
         return full_text
 
+    def search_bigrams_related_tweets(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"])
+        res = my_connector.init_paginatedSearch(
+            {
+                "_source": ["text", "id_str", "extended_entities", "user", "created_at", "link"],
+                "query": {
+                   "bool": {
+                       "must": [
+                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match": {kwargs["session"]: kwargs["label"]}}
+                       ]
+                   }
+               }
+            })
+        return res
+
+
     def generate_ngrams(self, **kwargs):
 
         try:

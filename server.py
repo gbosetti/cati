@@ -215,6 +215,18 @@ def get_dataset_date_range():
 
 ngram_classifier = NgramBasedClasifier()
 
+
+# Get Tweets
+@app.route('/search_bigrams_related_tweets', methods=['POST'])
+# @cross_origin()
+def search_bigrams_related_tweets():
+    data = request.form
+    propName = data["n-grams-to-generate"] + "grams"
+    matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=data['word'], session=data['session'],
+                                                       label=data['search_by_label'], ngram=data['ngram'], ngramsPropName=propName)
+    return jsonify(matching_tweets)
+
+
 # Get Tweets
 @app.route('/ngrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
@@ -228,8 +240,6 @@ def ngrams_with_higher_ocurrence():
     matching_ngrams = ngram_classifier.generate_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
-
-    print("TOTAL: ", matching_ngrams['hits']['total'])
 
     return jsonify({
         "total_matching_tweets": matching_ngrams['hits']['total'],

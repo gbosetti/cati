@@ -354,7 +354,7 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    showBigramTweets: function(title, relatedTweets){
+    showBigramTweets: function(title, ngram){
 
         var self = this;
         $.confirm({
@@ -366,10 +366,27 @@ app.views.tweets = Backbone.View.extend({
             content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
             defaultButtons: false,
             onContentReady: function () {
-                self.delegateEvents();
-                // response.tweets.results
-                var response = {"tweets": {"results": relatedTweets}};
-                this.setContent("<div id='bigram_rel_tweets'>" + self.get_tweets_html(response, '') + "</div>");
+
+                try{
+                    self.delegateEvents();
+
+                    var jc = this;
+                    var tabData = self.getCurrentSearchTabData();
+                    var data = self.getSearchFormData().concat(self.bigrams.formData).concat([
+                        {name: "ngram", value: ngram},
+                        {name: "search_by_label", value: tabData.label }
+                    ]);
+
+                    $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
+                        console.log(response);
+                        var html = self.get_tweets_html(response, 'static_tweet_box');
+                        self.delegateEvents();
+                        jc.setContent(html);
+                    });
+
+                    //var response = {"tweets": {"results": relatedTweets}};
+                    //this.setContent("<div id='bigram_rel_tweets'>" + self.get_tweets_html(response, '') + "</div>");
+                }catch(err){console.log(err)}
             },
             buttons: {
                 confirmAll: {
@@ -522,15 +539,10 @@ app.views.tweets = Backbone.View.extend({
         });
 
         var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
-        chart.onBubbleClick = (event) => {
-            console.log("evt", event);
-            /*for (var bigram in ngrams) {
-                if (bigram == event.label){
-                    var matchingTweets = tweets.filter(tweet => { return ngrams[bigram].includes(tweet["_id"]) });
-                    this.showBigramTweets("Tweets associated to the bigram «" + event.label + "»", matchingTweets);
-                    return true;
-                }
-            }*/
+        chart.onBubbleClick = (label, evt) => {
+
+            var ngram = label.split(" ").join("-");
+            this.showBigramTweets("Tweets associated to the bigram «" + label + "»", ngram);
         };
         chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
