@@ -99,14 +99,26 @@ app.views.tweets = Backbone.View.extend({
         var data = this.getSearchFormData().concat([
             {name: "search_by_label", value: tabData.label }
         ]);
+        var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
         if(query && query.trim() != ""){
-            console.log("Simple")
-            this.requestTweets(data);
+            this.requestTweets(data, startingReqTime);
             this.requestBigrams(data.concat(this.bigrams.formData.concat([{name: "full_search", value: "False" }])));
+
         } else {
-            this.requestBigrams(data.concat(this.bigrams.formData).concat([{name: "full_search", value: "True" }]));
+
+            var dataForFullRequest = data.concat(this.bigrams.formData).concat([{name: "full_search", value: "True" }]);
+
+            this.requestBigrams(dataForFullRequest).then(
+            (res) => { //In case of success
+                console.log(res["total_matching_tweets"], startingReqTime, query);
+                this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
+            },
+            (err) => { //In case of failing
+                console.log(err);
+                this.showNoBigramsFound(".ngrams-search-classif:visible:last");
+            });
         }
 
         app.views.mabed.prototype.getClassificationStats();
@@ -206,9 +218,7 @@ app.views.tweets = Backbone.View.extend({
             target: document.querySelector(tab.target)
         };
     },
-    requestTweets: function(data){
-
-        var t0 = performance.now();
+    requestTweets: function(data, startingReqTime){
 
         //First clean the previous results
         $('.imagesClusters:visible:last').html("");
@@ -219,25 +229,30 @@ app.views.tweets = Backbone.View.extend({
 
         var self = this;
         $.post(app.appURL+'search_for_tweets', data, function(response){
-            self.displayPaginatedResults(response, t0, data[0].value, data.find(row => row.name == "search_by_label").value);
+            self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
         }, 'json').fail(self.cnxError);
     },
     requestBigrams: function(data){
 
-        var containerSelector = ".ngrams-search-classif:visible:last";
-        this.showLoadingMessage(containerSelector, 677);
-        var self = this;
-        this.bigrams.formData = this.getFormDataFrom(data);
+        return new Promise((resolve, reject) => {
+            var containerSelector = ".ngrams-search-classif:visible:last";
+            this.showLoadingMessage(containerSelector, 677);
+            var self = this;
+            this.bigrams.formData = this.getFormDataFrom(data);
 
-        $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
-            //check if there are any ngrams
-            if($.isEmptyObject(response.ngrams))
-                self.showNoBigramsFound(containerSelector);
-            else self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+            $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
+                //check if there are any ngrams
+                console.log(response);
+                if($.isEmptyObject(response.ngrams))
+                    self.showNoBigramsFound(containerSelector);
+                else self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+                resolve(response)
 
-        }, 'json').fail(function(err){
-            this.clearNgramsGraph();
-            self.cnxError(err);
+            }, 'json').fail(function(err){
+                this.clearNgramsGraph();
+                self.cnxError(err);
+                reject(err)
+            });
         });
     },
     clearNgramsGraph: function(){
@@ -506,8 +521,6 @@ app.views.tweets = Backbone.View.extend({
             ]
         });
 
-        console.log("formatted_ngrams", formatted_ngrams);
-
         var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
         chart.onBubbleClick = (event) => {
             console.log("evt", event);
@@ -522,19 +535,6 @@ app.views.tweets = Backbone.View.extend({
         chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
     renderBigramsStats: function(classifficationData){
-
-        /*var query_confirmed = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
-        var query_negative = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
-        var query_unlabeled = tweets.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
-
-        var bigrams_confirmed = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "confirmed" }).length;
-        var bigrams_negative = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "negative" }).length;
-        var bigrams_unlabeled = filteredTweetsInBigrams.filter(tweet => { return tweet._source['session_'+app.session.s_name] == "proposed" }).length;
-
-        var data = [
-              { label: "Query", confirmed: query_confirmed, negative: query_negative, unlabeled: query_unlabeled },
-              { label: "Bigrams", confirmed: bigrams_confirmed, negative: bigrams_negative, unlabeled: bigrams_unlabeled }
-            ];*/
 
         new BarChart(".bigrams-stats:visible", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(classifficationData)
     },
@@ -618,36 +618,10 @@ app.views.tweets = Backbone.View.extend({
         data.push({name: "session", value:  'session_'+app.session.s_name});
         return data;
     },
-    formatDataForHeatmap: function(ngrams){
-        //TODO: for performance reasons, we should move this to the backend
-
-        try{
-
-            xLabels = Array.from(new Set(ngrams.map(ngram => {  // "Wednesday", "Tuesday", "Thursday", "Monday", "Friday"
-              return ngram[0][0]
-            }))).sort().reverse();
-
-            yLabels = Array.from(new Set(ngrams.map(ngram => {  // AF MN
-              return ngram[0][1]
-            }))).sort();
-
-            var matrix = []; //This will behave as an object rather than a matrix. We need to create it anyway in order to fill the blank spaces.
-
-            for (var i = 0; i < yLabels.length; i++) {
-              matrix[i] = new Array(xLabels.length).fill(0);
-
-              for (var j = 0; j < xLabels.length; j++) {
-                 ngrams.forEach(row => {
-                        if(row[0][0] == xLabels[j] && row[0][1] == yLabels[i]){
-                            matrix[i][j] = row[1];
-                    }
-                 });
-              }
-            }
-            return { "matrix": matrix, "xLabels": xLabels, "yLabels": yLabels };
-        }catch(err){console.log(err)}
-    },
     showResultsStats: function(total, t0, keywords){
+
+        $('.loading_text:visible:last').fadeOut(0);
+        $('.tweets_results').fadeIn(0);
 
         if(t0){
             var time = (performance.now() - t0) / 1000;
@@ -663,9 +637,6 @@ app.views.tweets = Backbone.View.extend({
             $('.individual_tweets_result:visible:last').html(html);
         }
         else this.showNoTweetsFound('.individual_tweets_result:visible:last');
-
-        $('.loading_text').fadeOut('slow');
-        $('.tweets_results').fadeIn('slow');
     },
     showImageClusters: function(clusters, word, clustersAreaSelector){
         var cbtn = "", chtml = "", state_btns="";

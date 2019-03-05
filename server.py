@@ -229,15 +229,14 @@ def ngrams_with_higher_ocurrence():
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
 
-    print("MATCHING", matching_ngrams)
+    print("TOTAL: ", matching_ngrams['hits']['total'])
 
     return jsonify({
-        # "bigrams": full_bigrams_with_assoc_tweets,
-        # "tweets": full_searched_tweets,
+        "total_matching_tweets": matching_ngrams['hits']['total'],
         "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
         "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'],
                                                                     session=data['session'],
-                                                                    label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search),
+                                                                    label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search)
     })
 
 
