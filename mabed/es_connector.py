@@ -42,8 +42,8 @@ class Es_connector:
             self.doc_type = default_doc_type
             available = True
         else:
-            for source in config['elastic_search_sources']:
-                if source['index'] == index:
+            for es_source in config['elastic_search_sources']:
+                if es_source['index'] == index:
                     # Define config
                     self.host = source['host']
                     self.port = source['port']
@@ -56,7 +56,8 @@ class Es_connector:
         if not available:
             # We can just throw an error instead
             # Or have elastic search throw it
-            return {}
+            print('Datasource not available, check config.json', index)
+            return None
 
         self.size = 500
         self.body = {"query": {"match_all": {}}}
