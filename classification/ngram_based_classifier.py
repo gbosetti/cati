@@ -185,6 +185,47 @@ class NgramBasedClasifier:
             except Exception as e:
                 print('Error: ' + str(e))
 
+    def generate_ngrams_for_index(self, **kwargs):
+
+        try:
+            # Get the data for performinga paginated search
+            my_connector = Es_connector(index=kwargs["index"])
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "match_all": {}
+                }
+            })
+            sid = res["sid"]
+            scroll_size = res["scroll_size"]
+            total = int(res["total"])
+            print("Total: ", total)
+
+            # Analyse and process page by page
+            i = 0
+            processed = 0
+            while scroll_size > 0:
+                i += 1
+                res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+                scroll_size = res2["scroll_size"]
+                processed += scroll_size
+                tweets = res2["results"]
+                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"])
+
+                # For backend & client-side logging
+                curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(
+                    round(processed * 100 / total, 2)) + "% done)")
+                self.logs.append(curr_log)
+                self.logs = self.logs[:10]
+                print(curr_log)
+
+            # Clean it at the end so the clien knows when to end asking for more logs
+            self.logs = []
+
+            return True
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return False
 
     def format_single_tweet_ngrams(self, ngrams):
 
