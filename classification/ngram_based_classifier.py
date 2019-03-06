@@ -9,7 +9,8 @@ from nltk.tokenize import TweetTokenizer
 class NgramBasedClasifier:
 
     def __init__(self):
-        self.logs = []
+        # self.logs = []
+        self.current_thread_percentage = 0
         self.tknzr = TweetTokenizer()
 
     def get_n_grams(self, text, length=2):
@@ -23,7 +24,7 @@ class NgramBasedClasifier:
         multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT"] + punctuation
         tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
         filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
-        full_text = " ".join(filtered_words)
+        full_text = " ".join(filtered_words).lower()
         return full_text
 
     def search_bigrams_related_tweets(self, **kwargs):
@@ -224,14 +225,17 @@ class NgramBasedClasifier:
                 self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"])
 
                 # For backend & client-side logging
-                curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(
-                    round(processed * 100 / total, 2)) + "% done)")
-                self.logs.append(curr_log)
-                self.logs = self.logs[:10]
-                print(curr_log)
+                # curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(
+                #     round(processed * 100 / total, 2)) + "% done)")
+                # self.logs.append(curr_log)
+                # self.logs = self.logs[:10]
+                # print(curr_log)
+                self.current_thread_percentage = round(processed * 100 / total, 2)
+                print("Completed: ", self.current_thread_percentage, "%")
 
             # Clean it at the end so the clien knows when to end asking for more logs
-            self.logs = []
+            #self.logs = []
+            self.current_thread_percentage = 100
 
             return True
 
@@ -262,7 +266,7 @@ class NgramBasedClasifier:
         # return ngram_text
 
     def get_current_backend_logs(self):
-        return {"logs": self.logs}
+        return { "percentage": self.current_thread_percentage }
 
     def updatePropertyValue(self, **kwargs):
 
