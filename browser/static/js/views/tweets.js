@@ -234,11 +234,11 @@ app.views.tweets = Backbone.View.extend({
     },
     requestBigrams: function(data){
 
+        var self = this;
         return new Promise((resolve, reject) => {
             var containerSelector = ".ngrams-search-classif:visible:last";
-            this.showLoadingMessage(containerSelector, 677);
-            var self = this;
-            this.bigrams.formData = this.getFormDataFrom(data);
+            self.showLoadingMessage(containerSelector, 677);
+            self.bigrams.formData = self.getFormDataFrom(data);
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
                 //check if there are any ngrams
@@ -249,7 +249,8 @@ app.views.tweets = Backbone.View.extend({
                 resolve(response)
 
             }, 'json').fail(function(err){
-                this.clearNgramsGraph();
+                self.clearNgramsGraph();
+                console.log(err);
                 self.cnxError(err);
                 reject(err)
             });

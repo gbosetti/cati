@@ -138,9 +138,12 @@ class NgramBasedClasifier:
 
             accum_total_ngrams += curr_confirmed + curr_negative + curr_unlabeled
 
-        return (confirmed_ngrams / accum_total_ngrams) * total_ngrams, \
-               (negative_ngrams / accum_total_ngrams) * total_ngrams, \
-               (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
+        if accum_total_ngrams ==0:
+            return 0,0,0
+        else:
+            return (confirmed_ngrams / accum_total_ngrams) * total_ngrams, \
+                   (negative_ngrams / accum_total_ngrams) * total_ngrams, \
+                   (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
 
     def get_classification_data(self, **kwargs):
 
