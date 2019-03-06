@@ -83,7 +83,7 @@ app.views.tweets = Backbone.View.extend({
       }
 
       $('.tweets_results').fadeOut('slow');
-      $('.loading_text').fadeIn('slow');
+      $('.loading_text:visible:last').fadeIn('slow');
 
       this.searchForTweets();
       return false;
@@ -91,7 +91,7 @@ app.views.tweets = Backbone.View.extend({
     searchForTweets: function(){
 
         this.showResultsArea();
-        $('.loading_text').fadeIn('slow');
+        $('.loading_text:visible:last').fadeIn('slow');
         //this.clearAllResultsTabs();
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
@@ -287,7 +287,7 @@ app.views.tweets = Backbone.View.extend({
         $(containerSelector).append(spinnerFrame);
     },
     cnxError: function(err) {
-        $('.loading_text').fadeOut('slow');
+        $('.loading_text:visible:last').fadeOut('slow');
         var err_content = "An error was encountered while connecting to the server, please try again." + ((err && err.statusText)? " Error's status: " + err.statusText : " ");
         $.confirm({
             title: 'Error',
@@ -865,7 +865,7 @@ app.views.tweets = Backbone.View.extend({
     filter_tweets: function(e){
         e.preventDefault();
         $('.tweets_results').fadeOut('slow');
-        $('.loading_text').fadeIn('slow');
+        $('.loading_text:visible:last').fadeIn('slow');
         var state = $(e.currentTarget).data("state");
         var t0 = performance.now();
         var data = this.getSearchFormData();
