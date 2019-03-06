@@ -98,19 +98,20 @@ app.views.tweets = Backbone.View.extend({
 
         var data = this.getSearchFormData().concat([
             {name: "search_by_label", value: tabData.label }
-        ]);
+        ]).concat(this.bigrams.formData);
+
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
         if(query && query.trim() != ""){
             this.requestTweets(data, startingReqTime);
-            this.requestBigrams(data.concat(this.bigrams.formData.concat([{name: "full_search", value: "False" }])));
+            this.requestNgrams(data);
 
         } else {
 
             var dataForFullRequest = data.concat(this.bigrams.formData).concat([{name: "full_search", value: "True" }]);
 
-            this.requestBigrams(dataForFullRequest).then(
+            this.requestNgrams(dataForFullRequest).then(
             (res) => { //In case of success
                 console.log(res["total_matching_tweets"], startingReqTime, query);
                 this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
@@ -232,7 +233,7 @@ app.views.tweets = Backbone.View.extend({
             self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
         }, 'json').fail(self.cnxError);
     },
-    requestBigrams: function(data){
+    requestNgrams: function(data){
 
         var self = this;
         return new Promise((resolve, reject) => {
@@ -623,7 +624,7 @@ app.views.tweets = Backbone.View.extend({
                 {name: "search_by_label", value: tabData.label }
             ]).concat(this.bigrams.formData);
 
-            this.requestBigrams(data);
+            this.requestNgrams(data);
         })
     },
     getBigramsFormData: function(){

@@ -43,14 +43,18 @@ class NgramBasedClasifier:
         return res
 
 
-    def generate_ngrams(self, **kwargs):
+    def get_ngrams(self, **kwargs):
 
         try:
             my_connector = Es_connector(index=kwargs["index"])
 
             if kwargs.get('full_search', False):
                 query = {
-                    "match_all": {}
+                    "bool": {
+                        "must": [
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
                 }
             else:
                 query = {
@@ -91,7 +95,11 @@ class NgramBasedClasifier:
 
         if full_search:
             query = {
-                "match_all": {}
+                "bool": {
+                    "must": [
+                        {"match": {session: label}}
+                    ]
+                }
             }
         else:
             query = {
