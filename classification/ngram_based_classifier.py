@@ -209,7 +209,7 @@ class NgramBasedClasifier:
         # return ngram_text
 
     def get_current_backend_logs(self):
-        return self.logs
+        return {"logs": self.logs}
 
     def updatePropertyValue(self, **kwargs):
 
