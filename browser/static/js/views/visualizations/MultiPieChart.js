@@ -186,7 +186,7 @@ while (word = words.pop()) {
 
     labels.enter()
     .append("text")
-    .on("click", (evt) => { this.onBubbleClick(evt[0], evt) })
+    //.on("click", (evt) => { this.onBubbleClick(evt[0], evt) })
     .attr({
       "class": "label",
       dy: "0.35em"
@@ -194,13 +194,14 @@ while (word = words.pop()) {
     .style("text-anchor", "middle")
     .style("font-size", function(d) { return d.r / 3; })
     .text(function(d) {
-      //this.currentBubbleWidth = d.r / 5;
-
       var splittedWords = d[0].split(/\s+/).map(word => {
           var ending = word.length > maxCharacters ? "…": "";
           return word.substring(0, maxCharacters) + ending;
       });
       return splittedWords.join(" ");
+    })
+    .on("mousedown", function(){
+        d3.event.stopPropagation();
     })
     .call(this.wrap, 200);
 
