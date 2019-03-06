@@ -364,7 +364,7 @@ app.views.tweets = Backbone.View.extend({
             title: title,
             columnClass: 'col-md-12',
             useBootstrap: true,
-            backgroundDismiss: false,
+            backgroundDismiss: true,
             content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
             defaultButtons: false,
             onContentReady: function () {
@@ -441,7 +441,7 @@ app.views.tweets = Backbone.View.extend({
                 title: 'Cluster'+cid+' Tweets',
                 columnClass: 'col-md-12',
                 useBootstrap: true,
-                backgroundDismiss: false,
+                backgroundDismiss: true,
                 content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
                 defaultButtons: false,
                 onContentReady: function () {
@@ -751,7 +751,7 @@ app.views.tweets = Backbone.View.extend({
             title: 'Changing tweets state',
             boxWidth: '600px',
             useBootstrap: false,
-            backgroundDismiss: false,
+            backgroundDismiss: true,
             content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
             defaultButtons: false,
             buttons: {
@@ -829,7 +829,7 @@ app.views.tweets = Backbone.View.extend({
 				title: 'Changing tweets state',
 				boxWidth: '600px',
 				useBootstrap: false,
-				backgroundDismiss: false,
+				backgroundDismiss: true,
 				content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
 				defaultButtons: false,
 				buttons: {
