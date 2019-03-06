@@ -4,12 +4,13 @@ from nltk.corpus import stopwords
 nltk.download('stopwords')
 from collections import Counter
 from mabed.es_connector import Es_connector
-
+from nltk.tokenize import TweetTokenizer
 
 class NgramBasedClasifier:
 
     def __init__(self):
         self.logs = []
+        self.tknzr = TweetTokenizer()
 
     def get_n_grams(self, text, length=2):
         n_grams = zip(*[text[i:] for i in range(length)])
@@ -18,9 +19,9 @@ class NgramBasedClasifier:
 
     def remove_stop_words(self, full_text, langs=["en", "fr", "es"]):
 
-        punctuation = list(string.punctuation + "…" + "..." + "’" + "️" + "'" + '🔴' + '•')
+        punctuation = list(string.punctuation + "…" + "’" + "'" + '🔴' + '•' + '...' + '.')
         multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT"] + punctuation
-        tokenized_text = nltk.word_tokenize(full_text)
+        tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
         filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
         full_text = " ".join(filtered_words)
         return full_text
