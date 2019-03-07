@@ -34,7 +34,7 @@ app.views.tweets = Backbone.View.extend({
     },
     updatingSearchDatesRange: function(){
 
-        var data = this.getSearchFormData();
+        var data = this.getIndexAndSession();
         $.post(app.appURL+'get_dataset_date_range', data, function(response){
             $("#search-start-date")[0].valueAsDate = new Date(response.min_timestamp.value);
             $("#search-end-date")[0].valueAsDate = new Date(response.max_timestamp.value);
@@ -86,7 +86,9 @@ app.views.tweets = Backbone.View.extend({
       $('.loading_text:visible:last').fadeIn('slow');
 
       // NOT WORKING$(".tab-pane").html("") //Cleaning each thime the user click on the search button, but not each time he changes the tab
-      this.bigrams.formData = this.getBigramsDefaultFormData();
+      if(document.querySelector("#search-results-tabs-area").hidden == true)
+        this.bigrams.formData = this.getBigramsFormData();
+
       this.searchForTweets(); //Submit
       return false;
     },
@@ -97,7 +99,8 @@ app.views.tweets = Backbone.View.extend({
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
 
-        var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.bigrams.formData));
+        console.log("searchForTweets", this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData));
+        var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
@@ -207,7 +210,7 @@ app.views.tweets = Backbone.View.extend({
     },
     showResultsArea: function(){
 
-        if(document.querySelector("#search-results-tabs-area").hidden == false)
+        if(document.querySelector("#search-results-tabs-area").hidden == false) // IF IT IS THE FIRST SEARCH
             return;
 
         document.querySelector("#search-results-tabs-area").hidden = false;
@@ -248,8 +251,8 @@ app.views.tweets = Backbone.View.extend({
     },
     requestNgrams: function(data, containerSelector){
 
-        this.bigrams.formData = data;
-        console.log(this.bigrams.formData);
+        this.bigrams.lastQueryParams = data;
+        this.updateBigramsFormData(data);
 
         var self = this;
         return new Promise((resolve, reject) => {
@@ -373,12 +376,13 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    showBigramTweets: function(title, ngram){
+    showBigramTweets: function(ngramsToGenerate, label, ngram){
 
         var self = this;
+        var popupTitle = "Tweets matching the " + ngramsToGenerate + "-gram «" + label + "»";
         $.confirm({
             theme: 'pix-cluster-modal',
-            title: title,
+            title: popupTitle,
             columnClass: 'col-md-12',
             useBootstrap: true,
             backgroundDismiss: true,
@@ -390,16 +394,17 @@ app.views.tweets = Backbone.View.extend({
                     self.delegateEvents();
 
                     var jc = this;
-                    var tabData = self.getCurrentSearchTabData();
-                    var data = self.getUniqueFormFields(self.getSearchFormData().concat(self.bigrams.formData).concat([
+                    var data = self.getUniqueFormFields(self.getIndexAndSession().concat(self.bigrams.formData).concat([
                         {name: "ngram", value: ngram},
-                        {name: "search_by_label", value: tabData.label }
+                        {name: "search_by_label", value: label }
                     ]));
                     var loadMoreTweetsClass = "load-more-ngram-rel-tweets";
 
                     $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
                         console.log(response);
-                        var html = self.get_tweets_html(response, '', loadMoreTweetsClass);
+
+                        jc.title = popupTitle;
+                        var html = '<div class="ngram_rel_tweets">' + self.get_tweets_html(response, '', loadMoreTweetsClass) + '</div>';
                         self.delegateEvents();
                         jc.setContent(html);
 
@@ -519,7 +524,7 @@ app.views.tweets = Backbone.View.extend({
 
         //Updating the bigram's control
         var docName = "tweet";
-        $.post(app.appURL+'get_mapping_spec', this.getSearchFormData().concat([{name: "doc", value: docName}]), function(response){
+        $.post(app.appURL+'get_mapping_spec', this.getIndexAndSession().concat([{name: "doc", value: docName}]), function(response){
 
             if(response == undefined || Object.keys(response).length == 0){
                 $(".n-grams-to-generate:visible")[0].disabled = true;
@@ -573,7 +578,8 @@ app.views.tweets = Backbone.View.extend({
         chart.onBubbleClick = (label, evt) => {
 
             var ngram = label.split(" ").join("-");
-            this.showBigramTweets("Tweets associated to the bigram «" + label + "»", ngram);
+            var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
+            this.showBigramTweets(ngramsToGenerate, label, ngram);
         };
         chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
@@ -626,7 +632,7 @@ app.views.tweets = Backbone.View.extend({
         $(".regenerate-bigrams:visible").on("click", () => {
 
             console.log("Regenerating ngrams");
-            var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.bigrams.formData));
+            var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData);
             this.requestNgrams(data);
         })
     },
@@ -646,16 +652,26 @@ app.views.tweets = Backbone.View.extend({
         ];
     },
     getBigramsFormData: function(){
-        return $('.bigrams-controls').serializeArray();
+        var formData = $('.bigrams-controls').serializeArray();
+
+        var ngramsToGenerate = formData.filter(item => {return item.name == "n-grams-to-generate"});
+        if(ngramsToGenerate.length == 0)
+            formData.push({name: "n-grams-to-generate", value: "2"});
+
+        var topBubbles = formData.filter(item => {return item.name == "top-bubbles-to-display"});
+        if(topBubbles.length == 0)
+            formData.push({name: "top-bubbles-to-display", value: "20"});
+
+        return formData;
     },
-    getBigramsDefaultFormData: function(){
-        return [
-            {name: "n-grams-to-generate", value: "2"},
-            {name: "top-bubbles-to-display", value: "20"}
-            //{name: "remove-stopwords", value: "true"},   also min-tweets-in-ngram
-        ];
+    updateBigramsFormData: function(data){
+
+        this.bigrams.formData = [
+            {name: "n-grams-to-generate", value: data.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
+            {name: "top-bubbles-to-display", value: data.filter(item => {return item.name == "top-bubbles-to-display"})[0].value }
+        ]
     },
-    getSearchFormData: function(){
+    getIndexAndSession: function(){
         var data = $('#tweets_form').serializeArray();
         data.push({name: "index", value: app.session.s_index});
         data.push({name: "session", value:  'session_'+app.session.s_name});
@@ -776,19 +792,19 @@ app.views.tweets = Backbone.View.extend({
             }
         });
 
-        var tweetIds = relatedTweets.map(tweet => { return tweet._id });
-
-    	var data = this.getSearchFormData().concat([
+    	var data = this.getIndexAndSession().concat([
     	    {name: "ngram", value: graphBasedLabelNgram },
-    	    {name: "n-grams-to-generate", value: "2" },        // FIXEDDDDDDDDDDDDDDDDD VALUE; TO CHANGE
-    	    {name: "query_label", value: "2" },
+    	    {name: "n-grams-to-generate", value: this.bigrams.lastQueryParams.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
+    	    {name: "query_label", value: this.bigrams.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value },
+    	    {name: "word", value: this.bigrams.lastQueryParams.filter(item => {return item.name == "word"})[0].value },
     	    {name: "new_label", value: label }
     	]);
 
 		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
             try{
+                console.log(response);
                 //Update the UI in case the user wants to exclude some tweets from the global tagging
-                document.querySelectorAll("#bigram_rel_tweets .t_state").forEach(node => {
+                document.querySelectorAll(".ngram_rel_tweets .t_state").forEach(node => {
 
                     var label_status;
                     if(label == "confirmed"){
@@ -858,7 +874,7 @@ app.views.tweets = Backbone.View.extend({
         $('.loading_text:visible:last').fadeIn('slow');
         var state = $(e.currentTarget).data("state");
         var t0 = performance.now();
-        var data = this.getSearchFormData();
+        var data = this.getIndexAndSession();
 
         var self = this;
 
@@ -872,7 +888,7 @@ app.views.tweets = Backbone.View.extend({
         e.preventDefault();
 
         var state = $(e.currentTarget).data("state");
-        var data = this.getSearchFormData();
+        var data = this.getIndexAndSession();
             data.push({name: "state", value: state});
 
         //Loading message

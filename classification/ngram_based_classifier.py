@@ -43,19 +43,32 @@ class NgramBasedClasifier:
             })
         return res
 
-    def set_tweets_state_by_ngram(self, **kwargs):
+    def update_tweets_state_by_ngram(self, **kwargs):
 
         tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
         # All tweets
-        query = {
+        if kwargs.get('full_search', False):
+            query = {
                 "query": {
-                   "bool": {
-                       "must": [
-                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
-                           {"match": {kwargs["session"]: kwargs["query_label"]}}
-                       ]
-                   }
-               }
+                    "bool": {
+                        "must": [
+                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match": {kwargs["session"]: kwargs["query_label"]}}
+                        ]
+                    }
+                }
+            }
+        else:  # Tweets matching a user-generated query
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": kwargs["word"]}},
+                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match": {kwargs["session"]: kwargs["query_label"]}}
+                        ]
+                    }
+                }
             }
 
         return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])

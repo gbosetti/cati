@@ -229,14 +229,8 @@ def search_bigrams_related_tweets():
 # @cross_origin()
 def ngrams_with_higher_ocurrence():
     data = request.form
-
-    print("PARAMS", data)
-
     word = (request.form.get('word', '')).strip()
-    print("word: ", word)
-    print("word len: ", len(word))
     full_search = len(word) == 0
-    print("full search: ", full_search)
 
     matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
@@ -477,10 +471,14 @@ def mark_tweet():
 def mark_bigram_tweets():
     data = request.form
     propName=data["n-grams-to-generate"] + "grams"
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
 
-    res = ngram_classifier.set_tweets_state_by_ngram(index=data['index'], word=data['word'], session=data['session'],
+    print("PARAMS: ", data)
+
+    res = ngram_classifier.update_tweets_state_by_ngram(index=data['index'], word=word, session=data['session'],
                                                query_label=data['query_label'], new_label=data['new_label'],
-                                               ngram=data['ngram'], ngramsPropName=propName)
+                                               ngram=data['ngram'], ngramsPropName=propName, full_search=full_search)
 
     return jsonify(res)
 
