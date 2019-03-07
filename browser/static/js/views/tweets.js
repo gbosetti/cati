@@ -85,21 +85,22 @@ app.views.tweets = Backbone.View.extend({
       $('.tweets_results').fadeOut('slow');
       $('.loading_text:visible:last').fadeIn('slow');
 
-      // NOT WORKING$(".tab-pane").html("") //Cleaning each thime the user click on the search button, but not each time he changes the tab
+      // NOT WORKING$ -->(".tab-pane").html("") //Cleaning each thime the user click on the search button, but not each time he changes the tab
       if(document.querySelector("#search-results-tabs-area").hidden == true)
         this.bigrams.formData = this.getBigramsFormData();
 
+      this.clearAllResultsTabs();
       this.searchForTweets(); //Submit
       return false;
     },
     searchForTweets: function(){
 
+        this.clearAllResultsTabs();
         this.showResultsArea();
         $('.loading_text:visible:last').fadeIn('slow');
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
 
-        console.log("searchForTweets", this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData));
         var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData);
         var startingReqTime = performance.now();
 
@@ -134,9 +135,23 @@ app.views.tweets = Backbone.View.extend({
         $(".full-search-warning:last")[0].hidden = false;
     },
     clearAllResultsTabs: function(){
-        document.querySelectorAll("#search-results-tabs li a").forEach(elem => {
+        /*document.querySelectorAll("#search-results-tabs li a").forEach(elem => {
             $(elem.target).html("");
-        });
+        });*/
+        $(".search-results-tabs-content").html(`
+            <div class="tab-content container clearfix">
+                <!-- ALL RESULTS -->
+                <div class="tab-pane active" id="all-search-results"></div>
+
+                <!-- UNLABELED RESULTS -->
+                <div class="tab-pane active" id="unlabeled-results"></div>
+
+                <!-- POSITIVE RESULTS -->
+                <div class="tab-pane active" id="confirmed-results"></div>
+
+                <!-- NEGATIVE RESULTS -->
+                <div class="tab-pane active" id="rejected-results"></div>
+            </div>`);
     },
     renderAccordionInTab: function(tab, label){
 
@@ -625,7 +640,7 @@ app.views.tweets = Backbone.View.extend({
         $("input[data-toggle='toggle']").bootstrapToggle();
 
         $(".regenerate-bigrams:visible").on("click", () => {
-            
+
             var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.getBigramsFormData());
             console.log("Regenerating ngrams with data:", data);
             this.requestNgrams(data);
