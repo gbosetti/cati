@@ -978,8 +978,8 @@ def sessions():
 def add_session():
     data = request.form
     name = data['s_name']
-    index = data['s_index']
-    res = functions.add_session(name, index)
+    s_index = data['s_index']
+    res = functions.add_session(name, s_index)
     status = False
     if res:
         status = True
