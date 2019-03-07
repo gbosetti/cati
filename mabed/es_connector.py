@@ -45,13 +45,13 @@ class Es_connector:
             for es_source in config['elastic_search_sources']:
                 if es_source['index'] == index:
                     # Define config
-                    self.host = source['host']
-                    self.port = source['port']
-                    self.user = source['user']
-                    self.password = source['password']
-                    self.timeout = source['timeout']
-                    self.index = source['index']
-                    self.doc_type = source['doc_type']
+                    self.host = es_source['host']
+                    self.port = es_source['port']
+                    self.user = es_source['user']
+                    self.password = es_source['password']
+                    self.timeout = es_source['timeout']
+                    self.index = es_source['index']
+                    self.doc_type = es_source['doc_type']
                     available = True
         if not available:
             # We can just throw an error instead
