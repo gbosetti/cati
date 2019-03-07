@@ -147,7 +147,6 @@ class Functions:
         session = "session_" + session_name
         keyword = session+".keyword"
         my_connector = Es_connector(index=index)
-        print("session is :%s", session)
         try:
             res = my_connector.search(
                 {"_source": ["id_str", "text", "imagesCluster", session, "lang"],
