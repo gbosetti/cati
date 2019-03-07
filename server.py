@@ -41,7 +41,7 @@ for source in config['elastic_search_sources']:
         default_session = source['session']
 
 htpasswd = HtPasswdAuth(app)
-
+ngram_classifier = NgramBasedClasifier()
 
 # ==================================================================
 # 1. Tests and Debug
@@ -213,9 +213,6 @@ def get_dataset_date_range():
     return jsonify(range)
 
 
-ngram_classifier = NgramBasedClasifier()
-
-
 # Get Tweets
 @app.route('/search_bigrams_related_tweets', methods=['POST'])
 # @cross_origin()
@@ -233,10 +230,13 @@ def search_bigrams_related_tweets():
 def ngrams_with_higher_ocurrence():
     data = request.form
 
-    print(data)
+    print("PARAMS", data)
 
     word = (request.form.get('word', '')).strip()
+    print("word: ", word)
+    print("word len: ", len(word))
     full_search = len(word) == 0
+    print("full search: ", full_search)
 
     matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
@@ -476,16 +476,13 @@ def mark_tweet():
 # @cross_origin()
 def mark_bigram_tweets():
     data = request.form
-    index = data['index']
-    session = data['session']
-    print(data['tweet_ids'])
-    tweet_ids = json.loads(data['tweet_ids'])
-    label = data['label']
+    propName=data["n-grams-to-generate"] + "grams"
 
-    for tid in tweet_ids:
-        functions.set_tweet_state(index, session, tid, label)
+    res = ngram_classifier.set_tweets_state_by_ngram(index=data['index'], word=data['word'], session=data['session'],
+                                               query_label=data['query_label'], new_label=data['new_label'],
+                                               ngram=data['ngram'], ngramsPropName=propName)
 
-    return jsonify(data)
+    return jsonify(res)
 
 
 @app.route('/mark_unlabeled_tweets', methods=['POST', 'GET'])

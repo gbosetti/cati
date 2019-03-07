@@ -16,7 +16,7 @@ app.views.tweets = Backbone.View.extend({
             bigrams: undefined,
             tweets: undefined,
             graphHeight: undefined,
-            formData: this.getBigramsDefaultFormData()
+            formData: []
         };
 
         this.render();
@@ -86,6 +86,7 @@ app.views.tweets = Backbone.View.extend({
       $('.loading_text:visible:last').fadeIn('slow');
 
       // NOT WORKING$(".tab-pane").html("") //Cleaning each thime the user click on the search button, but not each time he changes the tab
+      this.bigrams.formData = this.getBigramsDefaultFormData();
       this.searchForTweets(); //Submit
       return false;
     },
@@ -246,6 +247,9 @@ app.views.tweets = Backbone.View.extend({
         }, 'json').fail(self.cnxError);
     },
     requestNgrams: function(data, containerSelector){
+
+        this.bigrams.formData = data;
+        console.log(this.bigrams.formData);
 
         var self = this;
         return new Promise((resolve, reject) => {
@@ -423,7 +427,7 @@ app.views.tweets = Backbone.View.extend({
                     text: 'Confirm all',
                     btnClass: 'btn btn-outline-success',
                     action: function(e){
-                        self.markBigramTweets("confirmed", relatedTweets);
+                        self.markBigramTweets("confirmed", ngram);
                         return false; // prevent the modal from closing
                     }
                 },
@@ -431,7 +435,7 @@ app.views.tweets = Backbone.View.extend({
                     text: 'Reject all',
                     btnClass: 'btn btn-outline-danger',
                     action: function(){
-                        self.markBigramTweets("negative", relatedTweets);
+                        self.markBigramTweets("negative", ngram);
                         return false; // prevent the modal from closing
                     }
                 },
@@ -622,9 +626,7 @@ app.views.tweets = Backbone.View.extend({
         $(".regenerate-bigrams:visible").on("click", () => {
 
             console.log("Regenerating ngrams");
-            this.bigrams.formData = this.getBigramsFormData();
             var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.bigrams.formData));
-            console.log(data);
             this.requestNgrams(data);
         })
     },
@@ -756,7 +758,7 @@ app.views.tweets = Backbone.View.extend({
           }, 'json').fail(this.cnxError);
         return false;
     },
-    markBigramTweets: function(label, relatedTweets){
+    markBigramTweets: function(label, graphBasedLabelNgram){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
 
         var jc = $.confirm({
             theme: 'pix-default-modal',
@@ -777,19 +779,14 @@ app.views.tweets = Backbone.View.extend({
         var tweetIds = relatedTweets.map(tweet => { return tweet._id });
 
     	var data = this.getSearchFormData().concat([
-    	    {name: "label", value: label},
-    	    {name: "tweet_ids", value: JSON.stringify(tweetIds)}
+    	    {name: "ngram", value: graphBasedLabelNgram },
+    	    {name: "n-grams-to-generate", value: "2" },        // FIXEDDDDDDDDDDDDDDDDD VALUE; TO CHANGE
+    	    {name: "query_label", value: "2" },
+    	    {name: "new_label", value: label }
     	]);
 
 		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
-
-            //Update the labels in the dataset, so if the user closes and open the modal again the values will be up to date.
-		    relatedTweets.forEach(tweet => {
-                tweet._source['session_'+app.session.s_name] = label;
-            });
-
             try{
-
                 //Update the UI in case the user wants to exclude some tweets from the global tagging
                 document.querySelectorAll("#bigram_rel_tweets .t_state").forEach(node => {
 
@@ -805,26 +802,9 @@ app.views.tweets = Backbone.View.extend({
                     $(node).html(label_status)
                 });
             }catch(err){console.log(err)}
-
             //Close the "wait" message
 			jc.close();
-
-		}).fail(function(e) {
-            jc.close();
-            $.confirm({
-                title: 'Error',
-                boxWidth: '600px',
-                theme: 'pix-danger-modal',
-                backgroundDismiss: true,
-                content: "An error was encountered while connecting to the server, please try again.",
-                buttons: {
-                    cancel: {
-                        text: 'CANCEL',
-                        btnClass: 'btn-cancel'
-                    }
-                }
-            });
-        });
+		}).fail(this.cnxError);
     	return false;
     },
 	cluster_state: function(e){

@@ -43,6 +43,23 @@ class NgramBasedClasifier:
             })
         return res
 
+    def set_tweets_state_by_ngram(self, **kwargs):
+
+        tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
+        # All tweets
+        query = {
+                "query": {
+                   "bool": {
+                       "must": [
+                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match": {kwargs["session"]: kwargs["query_label"]}}
+                       ]
+                   }
+               }
+            }
+
+        return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
+
 
     def get_ngrams(self, **kwargs):
 
