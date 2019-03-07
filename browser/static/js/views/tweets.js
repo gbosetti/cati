@@ -106,15 +106,20 @@ app.views.tweets = Backbone.View.extend({
 
             this.requestNgrams(data).then(
             (res) => { //In case of success
-                console.log(res["total_matching_tweets"], startingReqTime, query);
+                this.showResultsWarning();
                 this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
             },
             (err) => { //In case of failing
-                console.log(err);
                 this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
         }
         app.views.mabed.prototype.getClassificationStats();
+    },
+    showResultsWarning: function(){
+
+        var elem = document.querySelector("#full-search-warning");
+        elem.hidden = false;
+        console.log(elem);
     },
     clearAllResultsTabs: function(){
         document.querySelectorAll("#search-results-tabs li a").forEach(elem => {
@@ -123,7 +128,14 @@ app.views.tweets = Backbone.View.extend({
     },
     renderAccordionInTab: function(tab, label){
 
-        $(tab).html(`<div class="mt-4 col-12 loading_text">
+        $(tab).html(`<div id="full-search-warning" class="mt-4 alert alert-warning alert-dismissible" role="alert" hidden>
+                        <strong>You have not specified keywords for the search.</strong> You can try with some combination of the words appearing below:
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="mt-3 col-12 loading_text">
                         <span class="badge badge-secondary">Loading...</span>
                     </div>
 
@@ -234,10 +246,11 @@ app.views.tweets = Backbone.View.extend({
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
                 //check if there are any ngrams
-                console.log(response);
-                if($.isEmptyObject(response.ngrams))
+                if($.isEmptyObject(response.ngrams)){
                     self.showNoBigramsFound(containerSelector);
-                else self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+                }else {
+                    self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+                }
                 resolve(response)
 
             }, 'json').fail(function(err){
@@ -570,10 +583,6 @@ app.views.tweets = Backbone.View.extend({
                                             <label>N-gram length</label>
                                             <select name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2"></select>
                                         </div>
-                                        <!--<div class="col-md-2">
-                                            <label>Min tweets by n-gram</label>
-                                            <input name="min-tweets-in-ngram" type="number" class="form-control min-tweets-in-ngram" value="20">
-                                        </div>-->
                                         <div class="col-md-2">
                                             <label>Max bubbles to show</label>
                                             <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1" >
