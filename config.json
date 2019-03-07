@@ -7,9 +7,29 @@
       "password": "elastic",
       "timeout": 1000,
       "index": "twitter2017",
-      "doc_type": "tweet",
-      "session": "session_twitter2017"
+      "doc_type": "tweet"
+    },
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "mabed_sessions",
+      "doc_type": "session"
+    },
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "twitterfdl2015mentions",
+      "doc_type": "tweet"
     }
   ],
-  "default": "twitter2017"
+  "default": {
+    "index":"twitter2017",
+    "session" : "twitter2017"
+  }
 }

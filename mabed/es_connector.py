@@ -15,7 +15,7 @@ __email__ = "odehfiras@gmail.com"
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-default_source = config['default']
+default_source = config['default']['index']
 for source in config['elastic_search_sources']:
     if source['index'] == default_source:
         default_host = source['host']

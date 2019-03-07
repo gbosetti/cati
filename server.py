@@ -28,7 +28,8 @@ app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 
 with open('config.json', 'r') as f:
     config = json.load(f)
-default_source = config['default']
+default_source = config['default']['index']
+default_session = config['default']['session']
 for source in config['elastic_search_sources']:
     if source['index'] == default_source:
         default_host = source['host']
@@ -38,7 +39,6 @@ for source in config['elastic_search_sources']:
         default_timeout = source['timeout']
         default_index = source['index']
         default_doc_type = source['doc_type']
-        default_session = source['session']
 
 htpasswd = HtPasswdAuth(app)
 
