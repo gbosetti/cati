@@ -50,6 +50,7 @@ class NgramBasedClasifier:
             my_connector = Es_connector(index=kwargs["index"])
 
             if kwargs.get('full_search', False):
+                print("Query matching full search 2")
                 query = {
                     "bool": {
                         "must": [
@@ -95,6 +96,7 @@ class NgramBasedClasifier:
     def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[], full_search=False):
 
         if full_search:
+            print("Query matching full search")
             query = {
                 "bool": {
                     "must": [

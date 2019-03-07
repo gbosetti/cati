@@ -92,26 +92,19 @@ app.views.tweets = Backbone.View.extend({
 
         this.showResultsArea();
         $('.loading_text:visible:last').fadeIn('slow');
-        //this.clearAllResultsTabs();
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
 
-        var data = this.getSearchFormData().concat([
-            {name: "search_by_label", value: tabData.label }
-        ]).concat(this.bigrams.formData);
-
+        var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.bigrams.formData));
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
         if(query && query.trim() != ""){
             this.requestTweets(data, startingReqTime);
             this.requestNgrams(data);
-
         } else {
 
-            var dataForFullRequest = data.concat(this.bigrams.formData).concat([{name: "full_search", value: "True" }]);
-
-            this.requestNgrams(dataForFullRequest).then(
+            this.requestNgrams(data).then(
             (res) => { //In case of success
                 console.log(res["total_matching_tweets"], startingReqTime, query);
                 this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
@@ -121,7 +114,6 @@ app.views.tweets = Backbone.View.extend({
                 this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
         }
-
         app.views.mabed.prototype.getClassificationStats();
     },
     clearAllResultsTabs: function(){
@@ -239,7 +231,6 @@ app.views.tweets = Backbone.View.extend({
         return new Promise((resolve, reject) => {
             var containerSelector = ".ngrams-search-classif:visible:last";
             self.showLoadingMessage(containerSelector, 677);
-            self.bigrams.formData = self.getFormDataFrom(data);
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
                 //check if there are any ngrams
@@ -376,10 +367,10 @@ app.views.tweets = Backbone.View.extend({
 
                     var jc = this;
                     var tabData = self.getCurrentSearchTabData();
-                    var data = self.getSearchFormData().concat(self.bigrams.formData).concat([
+                    var data = self.getUniqueFormFields(self.getSearchFormData().concat(self.bigrams.formData).concat([
                         {name: "ngram", value: ngram},
                         {name: "search_by_label", value: tabData.label }
-                    ]);
+                    ]));
                     var loadMoreTweetsClass = "load-more-ngram-rel-tweets";
 
                     $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
@@ -500,10 +491,7 @@ app.views.tweets = Backbone.View.extend({
     updateBigramsControls: function(ngrams){
 
         var len = Object.keys(ngrams).length;
-        //$(".top-bubbles-to-display:visible").attr({"max": len});
-        $(".top-bubbles-to-display:visible").val(len);
-        //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
-        //$(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
+        $(".top-bubbles-to-display:visible:last").val(len);
 
         //Updating the bigram's control
         var docName = "tweet";
@@ -617,24 +605,34 @@ app.views.tweets = Backbone.View.extend({
 
         $(".regenerate-bigrams:visible").on("click", () => {
 
+            var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.getBigramsFormData()));
             this.bigrams.formData = this.getBigramsFormData();
-            var tabData = this.getCurrentSearchTabData();
-
-            var data = this.getSearchFormData().concat([
-                {name: "search_by_label", value: tabData.label }
-            ]).concat(this.bigrams.formData);
-
             this.requestNgrams(data);
         })
     },
+    getUniqueFormFields: function(data){
+
+        var formData = [];
+        new Set(data.map(item => {return item.name})).forEach(propName => {
+            var prop = data.filter(item => {return item.name == propName});
+            formData.push({"name": propName, "value": prop[prop.length-1].value })
+        });
+        return formData;
+        /*var lastNgramToGenerate = data.filter(item => {return item.name == "n-grams-to-generate"});
+        var lastTopBubblesToDisplay = data.filter(item => {return item.name == "top-bubbles-to-display"});
+        return [
+            {name: "n-grams-to-generate", value: lastNgramToGenerate[lastNgramToGenerate.length-1].value },
+            {name: "top-bubbles-to-display", value: lastTopBubblesToDisplay[lastTopBubblesToDisplay.length-1].value }
+        ];*/
+    },
+    getTabSearchData: function(){
+        var tabData = this.getCurrentSearchTabData();
+        return [
+            {name: "search_by_label", value: tabData.label }
+        ];
+    },
     getBigramsFormData: function(){
         return $('.bigrams-controls').serializeArray();
-    },
-    getFormDataFrom: function(data){
-        return [
-            {name: "n-grams-to-generate", value: data.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
-            {name: "top-bubbles-to-display", value: data.filter(item => {return item.name == "top-bubbles-to-display"})[0].value }
-        ];
     },
     getBigramsDefaultFormData: function(){
         return [

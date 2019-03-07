@@ -233,10 +233,10 @@ def search_bigrams_related_tweets():
 def ngrams_with_higher_ocurrence():
     data = request.form
 
-    full_search = request.form.get('full_search', False)
-    if full_search is None:
-        full_search = False
-    else: full_search = str(full_search).lower() in ("yes", "true", "t", "1")
+    print(data)
+
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
 
     matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
