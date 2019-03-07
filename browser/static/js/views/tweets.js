@@ -500,7 +500,7 @@ app.views.tweets = Backbone.View.extend({
     updateBigramsControls: function(ngrams){
 
         var len = Object.keys(ngrams).length;
-        $(".top-bubbles-to-display:visible").attr({"max": len});
+        //$(".top-bubbles-to-display:visible").attr({"max": len});
         $(".top-bubbles-to-display:visible").val(len);
         //$("#remove-stopwords").val(this.bigrams.formData.find(row => row.name == "remove-stopwords").value);
         //$(".min-tweets-in-ngram:visible").val(this.bigrams.formData.find(row => row.name == "min-tweets-in-ngram").value);
@@ -588,7 +588,7 @@ app.views.tweets = Backbone.View.extend({
                                         </div>-->
                                         <div class="col-md-2">
                                             <label>Max bubbles to show</label>
-                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1" max="20">
+                                            <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1" >
                                         </div>
                                         <!--<div class="col-md-2">
                                             <label for="remove-stopwords">Remove stopwords</label>
