@@ -85,6 +85,7 @@ app.views.tweets = Backbone.View.extend({
       $('.tweets_results').fadeOut('slow');
       $('.loading_text:visible:last').fadeIn('slow');
 
+      // NOT WORKING$(".tab-pane").html("") //Cleaning each thime the user click on the search button, but not each time he changes the tab
       this.searchForTweets(); //Submit
       return false;
     },
@@ -620,8 +621,10 @@ app.views.tweets = Backbone.View.extend({
 
         $(".regenerate-bigrams:visible").on("click", () => {
 
-            var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.getBigramsFormData()));
+            console.log("Regenerating ngrams");
             this.bigrams.formData = this.getBigramsFormData();
+            var data = this.getUniqueFormFields(this.getSearchFormData().concat(this.getTabSearchData()).concat(this.bigrams.formData));
+            console.log(data);
             this.requestNgrams(data);
         })
     },
