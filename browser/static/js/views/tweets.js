@@ -85,7 +85,7 @@ app.views.tweets = Backbone.View.extend({
       $('.tweets_results').fadeOut('slow');
       $('.loading_text:visible:last').fadeIn('slow');
 
-      this.searchForTweets();
+      this.searchForTweets(); //Submit
       return false;
     },
     searchForTweets: function(){
@@ -99,14 +99,16 @@ app.views.tweets = Backbone.View.extend({
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
+
         if(query && query.trim() != ""){
             this.requestTweets(data, startingReqTime);
             this.requestNgrams(data);
-        } else {
 
+        } else {
             this.requestNgrams(data).then(
             (res) => { //In case of success
                 this.showResultsWarning();
+                this.hideNotFullSearchSearch();
                 this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
             },
             (err) => { //In case of failing
@@ -115,11 +117,16 @@ app.views.tweets = Backbone.View.extend({
         }
         app.views.mabed.prototype.getClassificationStats();
     },
+    hideNotFullSearchSearch: function(){
+
+        $(".card").each((key, cardElem) => {
+            if(!cardElem.querySelector(".collapse").classList.contains("collapseNgrams"))
+                cardElem.hidden = true;
+        });
+    },
     showResultsWarning: function(){
 
-        var elem = document.querySelector("#full-search-warning");
-        elem.hidden = false;
-        console.log(elem);
+        $(".full-search-warning:last")[0].hidden = false;
     },
     clearAllResultsTabs: function(){
         document.querySelectorAll("#search-results-tabs li a").forEach(elem => {
@@ -128,13 +135,12 @@ app.views.tweets = Backbone.View.extend({
     },
     renderAccordionInTab: function(tab, label){
 
-        $(tab).html(`<div id="full-search-warning" class="mt-4 alert alert-warning alert-dismissible" role="alert" hidden>
+        $(tab).html(`<div class="full-search-warning mt-4 alert alert-warning" hidden>
                         <strong>You have not specified keywords for the search.</strong> You can try with some combination of the words appearing below:
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
+                            <span class="close">
+                            <span aria-hidden="true"><i class="fa fa-info-circle"></i></span>
                         </button>
                     </div>
-
                     <div class="mt-3 col-12 loading_text">
                         <span class="badge badge-secondary">Loading...</span>
                     </div>
@@ -153,10 +159,11 @@ app.views.tweets = Backbone.View.extend({
                     </div>
 
                     <div class="container">
+                      <div class="full-search-ngrams-classif" hidden></div>
                       <div class="search-accordion">
                             <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
-                                  <div id="collapseNgrams" class="collapse show"> <!-- class="collapse show" -->
+                                  <div id="collapseNgrams" class="collapse show collapseNgrams"> <!-- class="collapse show" -->
                                     <div class="card-body">
 
                                        <!-- NGRAMS CLUSTERS RESULTS -->
@@ -170,7 +177,7 @@ app.views.tweets = Backbone.View.extend({
 
                                 <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
-                                  <div id="collapseImages" class="collapse show">
+                                  <div id="collapseImages" class="collapse show collapseImages">
                                     <div class="card-body">
 
                                         <!-- IMAGE CLUSTERS RESULTS -->
@@ -184,7 +191,7 @@ app.views.tweets = Backbone.View.extend({
 
                                 <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
-                                  <div id="collapseIndividual" class="collapse show">
+                                  <div id="collapseIndividual" class="collapse show collapseIndividual">
                                     <div class="card-body">
 
                                         <!-- INDIVIDUAL TWEET RESULTS -->
@@ -237,7 +244,7 @@ app.views.tweets = Backbone.View.extend({
             self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
         }, 'json').fail(self.cnxError);
     },
-    requestNgrams: function(data){
+    requestNgrams: function(data, containerSelector){
 
         var self = this;
         return new Promise((resolve, reject) => {
@@ -255,7 +262,6 @@ app.views.tweets = Backbone.View.extend({
 
             }, 'json').fail(function(err){
                 self.clearNgramsGraph();
-                console.log(err);
                 self.cnxError(err);
                 reject(err)
             });
@@ -627,12 +633,6 @@ app.views.tweets = Backbone.View.extend({
             formData.push({"name": propName, "value": prop[prop.length-1].value })
         });
         return formData;
-        /*var lastNgramToGenerate = data.filter(item => {return item.name == "n-grams-to-generate"});
-        var lastTopBubblesToDisplay = data.filter(item => {return item.name == "top-bubbles-to-display"});
-        return [
-            {name: "n-grams-to-generate", value: lastNgramToGenerate[lastNgramToGenerate.length-1].value },
-            {name: "top-bubbles-to-display", value: lastTopBubblesToDisplay[lastTopBubblesToDisplay.length-1].value }
-        ];*/
     },
     getTabSearchData: function(){
         var tabData = this.getCurrentSearchTabData();
