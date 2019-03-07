@@ -955,9 +955,7 @@ def get_results():
 # Get available indexes
 @app.route('/available_indexes', methods=['GET'])
 def available_indexes():
-    res = []
-    for source in config['elastic_search_sources']:
-        res.append(source['index'])
+    res = config["default"]['available_indexes']
     return jsonify(res);
 
 # ==================================================================

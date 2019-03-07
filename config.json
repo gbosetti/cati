@@ -30,6 +30,7 @@
   ],
   "default": {
     "index":"twitter2017",
+    "available_indexes": ["twitter2017","twitterfld2015mentions"],
     "session" : "twitter2017"
   }
 }
