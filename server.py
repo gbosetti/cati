@@ -215,29 +215,39 @@ def get_dataset_date_range():
 
 ngram_classifier = NgramBasedClasifier()
 
+
+# Get Tweets
+@app.route('/search_bigrams_related_tweets', methods=['POST'])
+# @cross_origin()
+def search_bigrams_related_tweets():
+    data = request.form
+    propName = data["n-grams-to-generate"] + "grams"
+    matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=data['word'], session=data['session'],
+                                                       label=data['search_by_label'], ngram=data['ngram'], ngramsPropName=propName)
+    return jsonify({"tweets": matching_tweets})
+
+
 # Get Tweets
 @app.route('/ngrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
 def ngrams_with_higher_ocurrence():
     data = request.form
-    full_search = False
 
-    if data['full_search'].lower() in ("yes", "true", "t", "1"):
-        full_search = True
+    full_search = request.form.get('full_search', False)
+    if full_search is None:
+        full_search = False
+    else: full_search = str(full_search).lower() in ("yes", "true", "t", "1")
 
-    matching_ngrams = ngram_classifier.generate_ngrams(index=data['index'], word=data['word'], session=data['session'],
+    matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
 
-    print("MATCHING", matching_ngrams)
-
     return jsonify({
-        # "bigrams": full_bigrams_with_assoc_tweets,
-        # "tweets": full_searched_tweets,
+        "total_matching_tweets": matching_ngrams['hits']['total'],
         "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
         "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'],
                                                                     session=data['session'],
-                                                                    label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search),
+                                                                    label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search)
     })
 
 
@@ -278,6 +288,8 @@ def tweets_filter():
 # @cross_origin()
 def tweets_scroll():
     data = request.form
+
+    print(data)
     tweets= functions.get_tweets_scroll(index=data['index'], sid=data['sid'], scroll_size=int(data['scroll_size']))
     return jsonify({"tweets": tweets})
 

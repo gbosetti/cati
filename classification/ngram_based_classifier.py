@@ -4,12 +4,14 @@ from nltk.corpus import stopwords
 nltk.download('stopwords')
 from collections import Counter
 from mabed.es_connector import Es_connector
-
+from nltk.tokenize import TweetTokenizer
 
 class NgramBasedClasifier:
 
     def __init__(self):
-        self.logs = []
+        # self.logs = []
+        self.current_thread_percentage = 0
+        self.tknzr = TweetTokenizer()
 
     def get_n_grams(self, text, length=2):
         n_grams = zip(*[text[i:] for i in range(length)])
@@ -18,21 +20,42 @@ class NgramBasedClasifier:
 
     def remove_stop_words(self, full_text, langs=["en", "fr", "es"]):
 
-        punctuation = list(string.punctuation + "…" + "..." + "’" + "️" + "'" + '🔴' + '•')
+        punctuation = list(string.punctuation + "…" + "’" + "'" + '🔴' + '•' + '...' + '.')
         multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT"] + punctuation
-        tokenized_text = nltk.word_tokenize(full_text)
+        tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
         filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
-        full_text = " ".join(filtered_words)
+        full_text = " ".join(filtered_words).lower()
         return full_text
 
-    def generate_ngrams(self, **kwargs):
+    def search_bigrams_related_tweets(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"])
+        res = my_connector.init_paginatedSearch(
+            {
+                "query": {
+                   "bool": {
+                       "must": [
+                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match": {kwargs["session"]: kwargs["label"]}}
+                       ]
+                   }
+               }
+            })
+        return res
+
+
+    def get_ngrams(self, **kwargs):
 
         try:
             my_connector = Es_connector(index=kwargs["index"])
 
             if kwargs.get('full_search', False):
                 query = {
-                    "match_all": {}
+                    "bool": {
+                        "must": [
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
                 }
             else:
                 query = {
@@ -73,7 +96,11 @@ class NgramBasedClasifier:
 
         if full_search:
             query = {
-                "match_all": {}
+                "bool": {
+                    "must": [
+                        {"match": {session: label}}
+                    ]
+                }
             }
         else:
             query = {
@@ -120,9 +147,12 @@ class NgramBasedClasifier:
 
             accum_total_ngrams += curr_confirmed + curr_negative + curr_unlabeled
 
-        return (confirmed_ngrams / accum_total_ngrams) * total_ngrams, \
-               (negative_ngrams / accum_total_ngrams) * total_ngrams, \
-               (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
+        if accum_total_ngrams ==0:
+            return 0,0,0
+        else:
+            return (confirmed_ngrams / accum_total_ngrams) * total_ngrams, \
+                   (negative_ngrams / accum_total_ngrams) * total_ngrams, \
+                   (unlabeled_ngrams / accum_total_ngrams) * total_ngrams  # confirmed_ngrams, negative_ngrams, unlabeled_ngrams
 
     def get_classification_data(self, **kwargs):
 
@@ -168,6 +198,50 @@ class NgramBasedClasifier:
             except Exception as e:
                 print('Error: ' + str(e))
 
+    def generate_ngrams_for_index(self, **kwargs):
+
+        try:
+            # Get the data for performinga paginated search
+            my_connector = Es_connector(index=kwargs["index"])
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "match_all": {}
+                }
+            })
+            sid = res["sid"]
+            scroll_size = res["scroll_size"]
+            total = int(res["total"])
+            print("Total: ", total)
+
+            # Analyse and process page by page
+            i = 0
+            processed = 0
+            while scroll_size > 0:
+                i += 1
+                res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+                scroll_size = res2["scroll_size"]
+                processed += scroll_size
+                tweets = res2["results"]
+                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"])
+
+                # For backend & client-side logging
+                # curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(
+                #     round(processed * 100 / total, 2)) + "% done)")
+                # self.logs.append(curr_log)
+                # self.logs = self.logs[:10]
+                # print(curr_log)
+                self.current_thread_percentage = round(processed * 100 / total, 2)
+                print("Completed: ", self.current_thread_percentage, "%")
+
+            # Clean it at the end so the clien knows when to end asking for more logs
+            #self.logs = []
+            self.current_thread_percentage = 100
+
+            return True
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return False
 
     def format_single_tweet_ngrams(self, ngrams):
 
@@ -192,7 +266,7 @@ class NgramBasedClasifier:
         # return ngram_text
 
     def get_current_backend_logs(self):
-        return self.logs
+        return { "percentage": self.current_thread_percentage }
 
     def updatePropertyValue(self, **kwargs):
 

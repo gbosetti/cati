@@ -8,6 +8,7 @@ class MultiPieChart{
     this.width = width;
     this.height = height;
     this.radius = Math.min(width, height) / 2;
+    //this.zoomAndMoveEnabled = true;
   }
 
   createLayout(data){
@@ -30,8 +31,11 @@ class MultiPieChart{
       .attr("width", width)
       .attr("height", height)
       .attr("class", "bubble")
-      .call(d3.behavior.zoom().on("zoom", function () {
-    		svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+      .call(d3.behavior.zoom().on("zoom", (evt) => {
+            //if(d3.event.sourceEvent.target.tagName.toLocaleLowerCase() == "svg"){
+    		svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+    		//}
+    		//else svg.on('.zoom', null);
       }))
       .append("g").attr("id", "draggable-area");
 
@@ -127,24 +131,29 @@ while (word = words.pop()) {
         .on("mouseover", function(evt, idx){self.mouseOver(evt, this)})
         .on("mousemove", function(evt, idx){self.mouseMove(evt, this)})
         .on("mouseout", function(evt, idx){ self.mouseOut(evt, this); })
-        .on("click", this.onBubbleClick);
+        .on("click", (evt) => { this.onBubbleClick(evt.label, evt) }); //this.onBubbleClick);
 
     return {arc: arc, arcEnter:arcEnter};
   }
 
   mouseMove(data, ele){
-
+    d3.event.preventDefault(); d3.event.stopPropagation();
+    //this.zoomAndMoveEnabled = false;
     return this.tooltip.style("top", (d3.event.pageY-10)+"px")
     	.style("left",(d3.event.pageX+10)+"px");
   }
 
   mouseOut(data, elem) {
+    d3.event.preventDefault(); d3.event.stopPropagation();
+    //this.zoomAndMoveEnabled = true;
     d3.select(elem).style("transform", "scale(1,1)");
     return this.tooltip.style("visibility", "hidden");
   }
 
   mouseOver(data, elem){
 
+    d3.event.preventDefault(); d3.event.stopPropagation();
+    //this.zoomAndMoveEnabled = false;
     this.tooltip.html(
     	data.label +
       "<br>" + (data.data * 100 / data.totalCount).toFixed(1) + "% " +
@@ -175,26 +184,32 @@ while (word = words.pop()) {
   	var labels = nodes.selectAll("text.label")
     .data(function(d) { return [d]; });
 
-    labels.enter().append("text")
-      .attr({
+    labels.enter()
+    .append("text")
+    //.on("click", (evt) => { this.onBubbleClick(evt[0], evt) })
+    .attr({
       "class": "label",
       dy: "0.35em"
     })
     .style("text-anchor", "middle")
     .style("font-size", function(d) { return d.r / 3; })
     .text(function(d) {
-      //this.currentBubbleWidth = d.r / 5;
-
       var splittedWords = d[0].split(/\s+/).map(word => {
           var ending = word.length > maxCharacters ? "…": "";
           return word.substring(0, maxCharacters) + ending;
       });
       return splittedWords.join(" ");
-    }).call(this.wrap, 200);
-  }
+    })
+    .on("mousedown", function(){
+        d3.event.stopPropagation();
+    })
+    .call(this.wrap, 200);
 
-  onBubbleClick(e){
-    console.log("Default behaviour");
+
+  };
+
+  onBubbleClick(data, evt){
+    console.log("Default behaviour", data);
   }
 }
 

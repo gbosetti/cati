@@ -9,6 +9,10 @@
   font-style: normal;
 }
 
+.jconfirm .jconfirm-box div.jconfirm-content-pane::-webkit-scrollbar {
+  width: 15px !important;
+  padding: 2px !important;
+}
 
 /* collapse navbar*/
 #progress_classification .progress-bar {

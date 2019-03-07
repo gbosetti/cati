@@ -149,24 +149,54 @@ app.views.settings = Backbone.View.extend({
             {name: "to_property", value: "2grams"}
         ];
 
+        var keepAskingForLogs = true;
+
         setTimeout(() => {
             $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
+                keepAskingForLogs = false;
                 console.log("generate_bigrams_for_index response: ", response);
             }, 'json');
          }, 0); //New thread
 
-        setTimeout(() => {
-            var i = 0;
-            var askForLogs = setInterval(function(){
-                $.get(app.appURL+'get_current_backend_logs', function(response){
-                    $('#logs').val(response.reverse().join("\r\n"));
-                }, 'json');
-                if(response.length == 0)
-                    i++;
-                if(i>7)
-                    clearInterval(askForLogs);
-            }, 7000);
-        }, 0); //New thread
+        $.confirm({
+            title:"(Re)generating ngrams",
+            columnClass: 'medium',
+            content: ' \
+                    Please, don\'t close this popup until the process is 100% finished. Click on "cancel" if you want to stop it. \
+                    <div class="mt-3 progress"> \
+                        <div id="ngrams-re-generation" class="progress-bar progress-bar-striped bg-warning progress-bar-animated" role="progressbar" style="width:0%; color:black;"> \
+                          0% \
+                        </div> \
+                    </div>',
+            buttons: {
+                Cancel: {
+                    btnClass: 'btn-red',
+                    action: function(){
+                        console.log("Canceled...");
+                    }
+                },
+                Close: {
+                    btnClass: 'btn',
+                    keys: ['enter', 'space']
+                },
+            },
+            onContentReady: function () {
+                var self = this;
+                var accum=0;
+                //this.setContentPrepend('<div>Prepended text</div>');
+                var askForLogs = setInterval(function(){
+                    $.get(app.appURL+'get_current_backend_logs', function(response){
+                        //$('#logs').val(response.logs.reverse().join("\r\n"));
+                        $("#ngrams-re-generation").css("width", response.percentage);
+                        $("#ngrams-re-generation").text(response.percentage + "%");
+                    }, 'json');
+                    if(response.percentage == 100)
+                        clearInterval(askForLogs);
+                }, 5000);
+            },
+        });
+
+
     },
     update_available_indexes_list: function(){
         let self = this;
