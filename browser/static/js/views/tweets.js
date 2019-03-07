@@ -153,12 +153,7 @@ app.views.tweets = Backbone.View.extend({
                     <div class="mt-4 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds) matching <span class="res_keywords">"«»"</span></div>
 
                     <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="">
-                        Mark
-                        <select class="force_all">
-                              <option value="mark_all_results">all the results</option>
-                              <option value="mark_unlabeled_results">the unlabeled results</option>
-                        </select>
-                        as:
+                        Mark all the results as:
                         <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
                         <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
                     </div>
@@ -630,9 +625,9 @@ app.views.tweets = Backbone.View.extend({
         $("input[data-toggle='toggle']").bootstrapToggle();
 
         $(".regenerate-bigrams:visible").on("click", () => {
-
-            console.log("Regenerating ngrams");
-            var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData);
+            
+            var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.getBigramsFormData());
+            console.log("Regenerating ngrams with data:", data);
             this.requestNgrams(data);
         })
     },
@@ -913,14 +908,7 @@ app.views.tweets = Backbone.View.extend({
             this.searchForTweets();
         };
 
-        var matchingStrategy = document.querySelector('.force_all').value;
-
-        if (matchingStrategy == "mark_all_results"){
-            $.post(app.appURL+'mark_all_matching_tweets', data, callback, 'json');
-
-        }else if(matchingStrategy == "mark_unlabeled_results"){
-            $.post(app.appURL+'mark_unlabeled_tweets', data, callback, 'json');
-        }
+        $.post(app.appURL+'mark_all_matching_tweets', data, callback, 'json');
         app.views.mabed.prototype.getClassificationStats();
 
         return false;
