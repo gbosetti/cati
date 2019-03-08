@@ -218,9 +218,13 @@ def get_dataset_date_range():
 # @cross_origin()
 def search_bigrams_related_tweets():
     data = request.form
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
+
     propName = data["n-grams-to-generate"] + "grams"
-    matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=data['word'], session=data['session'],
-                                                       label=data['search_by_label'], ngram=data['ngram'], ngramsPropName=propName)
+    matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=word, session=data['session'],
+                                                                     label=data['search_by_label'], ngram=data['ngram'],
+                                                                     ngramsPropName=propName, full_search=full_search)
     return jsonify({"tweets": matching_tweets})
 
 

@@ -644,6 +644,7 @@ class Functions:
         #         "should": terms
         #     }
         # }
+        # TODO add session field to this function
         query = {
             "size": 1,
             "_source": [
