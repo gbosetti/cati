@@ -411,10 +411,11 @@ def cluster_search_tweets():
 def event_image():
     data = request.form
     index = data['index']
+    s_name = data['s_name']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    image = functions.get_event_image(index, main_term, related_terms)
+    image = functions.get_event_image(index, main_term, related_terms, s_name)
     res = False
     if image:
         image = image['hits']['hits'][0]['_source']

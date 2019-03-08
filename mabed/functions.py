@@ -613,9 +613,10 @@ class Functions:
             print("Error: try creating the keyword field")  #TODO
             return {}
 
-    def get_event_image(self, index="test3", main_term="", related_terms=""):
+    def get_event_image(self, index="test3", main_term="", related_terms="",s_name=""):
         my_connector = Es_connector(index=index)
         terms = []
+        session = 'session_'+s_name
         words = main_term + ' '
         for t in related_terms:
             terms.append({"match": {
@@ -651,7 +652,7 @@ class Functions:
             "_source": [
                 "id_str",
                 "imagesCluster",
-                "session_Twitter2015",
+                session,
                 "extended_entities"
             ],
             "query": {
