@@ -447,28 +447,35 @@ app.views.tweets = Backbone.View.extend({
             jc.setContent(html);
             var self = this;
            $(".jconfirm-title").text(response.tweets.total + " tweets matching the " + ngramsToGenerate + "-gram «" + ngram + "»");
-
-            var loadMoreBtn = document.querySelector('.' + loadMoreTweetsClass);
-            if(loadMoreBtn){
-                loadMoreBtn.onclick = function(evt){
-
-                    evt.preventDefault();
-                    var moreTweetsdata = [];
-                    moreTweetsdata.push({name: "index", value: app.session.s_index});
-                    moreTweetsdata.push({name: "scroll_size", value: response.tweets.scroll_size});
-                    moreTweetsdata.push({name: "sid",  value: response.tweets.sid});
-
-                    $.post(app.appURL+'tweets_scroll', moreTweetsdata, function(res){
-                        try{
-                            console.log(res);
-                            var html = self.get_tweets_html(res, '', loadMoreTweetsClass);
-                            //jc.setContent(jc.content + html);
-
-                        }catch(err){console.log(err)}
-                    }, 'json').fail(this.cnxError);
-                }
-            }
+            this.loadMoreTweetsButton(response, loadMoreTweetsClass);
         }catch(err){console.log(err)}
+    },
+    loadMoreTweetsButton: function(response, loadMoreTweetsClass){
+        var loadMoreBtn = document.querySelector('.' + loadMoreTweetsClass);   //LOAD AGAIN
+        var self = this;
+
+        if(loadMoreBtn){
+            loadMoreBtn.onclick = function(evt){
+
+                evt.preventDefault();
+                evt.stopImmediatePropagation();
+                self.delegateEvents();
+
+                var moreTweetsdata = [];
+                moreTweetsdata.push({name: "index", value: app.session.s_index});
+                moreTweetsdata.push({name: "scroll_size", value: response.tweets.scroll_size});
+                moreTweetsdata.push({name: "sid",  value: response.tweets.sid});
+
+                $.post(app.appURL+'tweets_scroll', moreTweetsdata, function(res){
+                    try{
+                        var html = self.get_tweets_html(res, '', loadMoreTweetsClass);
+                        $(loadMoreBtn.parentElement).html(html); //LOAD AGAIN
+                        self.loadMoreTweetsButton(res, loadMoreTweetsClass);
+
+                    }catch(err){console.log(err)}
+                }, 'json').fail(this.cnxError);
+            }
+        }
     },
     cluster_tweets: function(e){ //Button "Show tweets" inn image clusters
         e.preventDefault();
