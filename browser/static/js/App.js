@@ -17,6 +17,7 @@ var app = (function() {
 			this.content = $("#content");
 
 			this.eventsCollection = new app.collections.events();
+			// TODO change imagesURL
 			this.imagesURL = 'http://mediamining.univ-lyon2.fr/~firas/TwitterImages/';
 			if (localStorage.getItem('session_id') !== null) {
 				var sessionString = localStorage.getItem('session');
