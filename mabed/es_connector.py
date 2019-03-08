@@ -16,6 +16,14 @@ with open('config.json', 'r') as f:
     config = json.load(f)
 
 default_source = config['default']['index']
+sessions_source = config['default']['sessions_index']['index']
+session_host = config['default']['sessions_index']['host']
+session_port = config['default']['sessions_index']['port']
+session_user = config['default']['sessions_index']['user']
+session_password = config['default']['sessions_index']['password']
+session_timeout = config['default']['sessions_index']['timeout']
+session_index = config['default']['sessions_index']['index']
+session_doc_type = config['default']['sessions_index']['doc_type']
 for source in config['elastic_search_sources']:
     if source['index'] == default_source:
         default_host = source['host']
@@ -41,6 +49,16 @@ class Es_connector:
             self.index = default_index
             self.doc_type = default_doc_type
             available = True
+        elif index == sessions_source:
+            self.host = session_host
+            self.port = session_port
+            self.user = session_user
+            self.password = session_password
+            self.timeout = session_timeout
+            self.index = session_index
+            self.doc_type = session_doc_type
+            available = True
+
         else:
             for es_source in config['elastic_search_sources']:
                 if es_source['index'] == index:
