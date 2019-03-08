@@ -41,7 +41,7 @@ for source in config['elastic_search_sources']:
         default_doc_type = source['doc_type']
 
 htpasswd = HtPasswdAuth(app)
-
+ngram_classifier = NgramBasedClasifier()
 
 # ==================================================================
 # 1. Tests and Debug
@@ -213,9 +213,6 @@ def get_dataset_date_range():
     return jsonify(range)
 
 
-ngram_classifier = NgramBasedClasifier()
-
-
 # Get Tweets
 @app.route('/search_bigrams_related_tweets', methods=['POST'])
 # @cross_origin()
@@ -232,11 +229,8 @@ def search_bigrams_related_tweets():
 # @cross_origin()
 def ngrams_with_higher_ocurrence():
     data = request.form
-
-    full_search = request.form.get('full_search', False)
-    if full_search is None:
-        full_search = False
-    else: full_search = str(full_search).lower() in ("yes", "true", "t", "1")
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
 
     matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
@@ -476,16 +470,17 @@ def mark_tweet():
 # @cross_origin()
 def mark_bigram_tweets():
     data = request.form
-    index = data['index']
-    session = data['session']
-    print(data['tweet_ids'])
-    tweet_ids = json.loads(data['tweet_ids'])
-    label = data['label']
+    propName=data["n-grams-to-generate"] + "grams"
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
 
-    for tid in tweet_ids:
-        functions.set_tweet_state(index, session, tid, label)
+    print("PARAMS: ", data)
 
-    return jsonify(data)
+    res = ngram_classifier.update_tweets_state_by_ngram(index=data['index'], word=word, session=data['session'],
+                                               query_label=data['query_label'], new_label=data['new_label'],
+                                               ngram=data['ngram'], ngramsPropName=propName, full_search=full_search)
+
+    return jsonify(res)
 
 
 @app.route('/mark_unlabeled_tweets', methods=['POST', 'GET'])

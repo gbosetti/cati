@@ -1066,8 +1066,6 @@ class Functions:
     def set_tweet_state(self, index, session, tid, val):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
 
-        print("PARAMS", index, session, tid, val)
-
         query = {
             "doc": {
                 session: val

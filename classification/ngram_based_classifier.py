@@ -43,6 +43,36 @@ class NgramBasedClasifier:
             })
         return res
 
+    def update_tweets_state_by_ngram(self, **kwargs):
+
+        tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
+        # All tweets
+        if kwargs.get('full_search', False):
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match": {kwargs["session"]: kwargs["query_label"]}}
+                        ]
+                    }
+                }
+            }
+        else:  # Tweets matching a user-generated query
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": kwargs["word"]}},
+                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match": {kwargs["session"]: kwargs["query_label"]}}
+                        ]
+                    }
+                }
+            }
+
+        return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
+
 
     def get_ngrams(self, **kwargs):
 
@@ -50,6 +80,7 @@ class NgramBasedClasifier:
             my_connector = Es_connector(index=kwargs["index"])
 
             if kwargs.get('full_search', False):
+                print("Query matching full search 2")
                 query = {
                     "bool": {
                         "must": [
@@ -95,6 +126,7 @@ class NgramBasedClasifier:
     def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[], full_search=False):
 
         if full_search:
+            print("Query matching full search")
             query = {
                 "bool": {
                     "must": [

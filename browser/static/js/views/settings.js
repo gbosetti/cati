@@ -187,10 +187,11 @@ app.views.settings = Backbone.View.extend({
                 var askForLogs = setInterval(function(){
                     $.get(app.appURL+'get_current_backend_logs', function(response){
                         //$('#logs').val(response.logs.reverse().join("\r\n"));
-                        $("#ngrams-re-generation").css("width", response.percentage);
+                        $("#ngrams-re-generation").css("width", response.percentage + "%");
                         $("#ngrams-re-generation").text(response.percentage + "%");
+
                     }, 'json');
-                    if(response.percentage == 100)
+                    if(response.percentage >= 100)
                         clearInterval(askForLogs);
                 }, 5000);
             },
