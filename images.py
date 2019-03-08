@@ -27,6 +27,7 @@ if __name__ == '__main__':
     for cluster in data['duplicates']:
         for img in cluster:
             imgs+=1
+            # target_tweet_id  = re.search(r'(?<=/)(\d*)_(.*)\.(.*)', img, re.M | re.I)
             target_tweet_id = re.match(r'(\d*)_(.*).(.*)', img, re.M | re.I)
             res = my_connector.search({
                 "query": {
