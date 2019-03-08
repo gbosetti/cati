@@ -386,55 +386,31 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    showBigramTweets: function(ngramsToGenerate, label, ngram){
+    showNgramTweets: function(ngramsToGenerate, ngramLabel, ngram){
 
         var self = this;
-        var popupTitle = "Tweets matching the " + ngramsToGenerate + "-gram «" + label + "»";
         $.confirm({
             theme: 'pix-cluster-modal',
-            title: popupTitle,
+            title: "Tweets matching the " + ngramsToGenerate + "-gram «" + ngramLabel + "»",
             columnClass: 'col-md-12',
             useBootstrap: true,
-            backgroundDismiss: true,
+            backgroundDismiss: false,
             content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
             defaultButtons: false,
             onContentReady: function () {
 
                 try{
-                    self.delegateEvents();
+                self.delegateEvents();
 
-                    var jc = this;
-                    var data = self.getUniqueFormFields(self.getIndexAndSession().concat(self.bigrams.formData).concat([
-                        {name: "ngram", value: ngram},
-                        {name: "search_by_label", value: label }
-                    ]));
-                    var loadMoreTweetsClass = "load-more-ngram-rel-tweets";
+                var jc = this;
+                var data = self.getIndexAndSession().concat(self.getTabSearchData()).concat(self.getBigramsFormData()).concat([
+                    {name: "ngram", value: ngram},
+                    {name: "search_by_label", value: self.bigrams.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
+                ]);
 
-                    $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
-                        console.log(response);
-
-                        jc.title = popupTitle;
-                        var html = '<div class="ngram_rel_tweets">' + self.get_tweets_html(response, '', loadMoreTweetsClass) + '</div>';
-                        self.delegateEvents();
-                        jc.setContent(html);
-
-                        document.querySelector('.load-more-ngram-rel-tweets').onclick = function(evt){
-                            console.log("Load more", response);
-
-                            evt.preventDefault();
-
-                            var moreTweetsdata = [];
-                            moreTweetsdata.push({name: "index", value: app.session.s_index});
-                            moreTweetsdata.push({name: "scroll_size", value: response.tweets.scroll_size});
-                            moreTweetsdata.push({name: "sid",  value: response.tweets.sid});
-
-                            $.post(app.appURL+'tweets_scroll', moreTweetsdata, function(res){
-                                var html = self.get_tweets_html(res, '', loadMoreTweetsClass);
-                                console.log("CURR CPONT", jc.content);
-                                jc.setContent(jc.content + html);
-                            }, 'json').fail(self.cnxError);
-                        }
-                    });
+                $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
+                    self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel);
+                });
                 }catch(err){console.log(err)}
             },
             buttons: {
@@ -463,6 +439,37 @@ app.views.tweets = Backbone.View.extend({
 
         return false;
     },
+    loadResponseTweetsForNgram: function(data, response, jc, ngramsToGenerate, ngram){
+        try{
+            var loadMoreTweetsClass = "load-more-ngram-rel-tweets";
+            var html = '<div class="ngram_rel_tweets">' + this.get_tweets_html(response, '', loadMoreTweetsClass) + '</div>';
+            this.delegateEvents();
+            jc.setContent(html);
+            var self = this;
+           $(".jconfirm-title").text(response.tweets.total + " tweets matching the " + ngramsToGenerate + "-gram «" + ngram + "»");
+
+            var loadMoreBtn = document.querySelector('.' + loadMoreTweetsClass);
+            if(loadMoreBtn){
+                loadMoreBtn.onclick = function(evt){
+
+                    evt.preventDefault();
+                    var moreTweetsdata = [];
+                    moreTweetsdata.push({name: "index", value: app.session.s_index});
+                    moreTweetsdata.push({name: "scroll_size", value: response.tweets.scroll_size});
+                    moreTweetsdata.push({name: "sid",  value: response.tweets.sid});
+
+                    $.post(app.appURL+'tweets_scroll', moreTweetsdata, function(res){
+                        try{
+                            console.log(res);
+                            var html = self.get_tweets_html(res, '', loadMoreTweetsClass);
+                            //jc.setContent(jc.content + html);
+
+                        }catch(err){console.log(err)}
+                    }, 'json').fail(this.cnxError);
+                }
+            }
+        }catch(err){console.log(err)}
+    },
     cluster_tweets: function(e){ //Button "Show tweets" inn image clusters
         e.preventDefault();
         var self = this;
@@ -473,7 +480,7 @@ app.views.tweets = Backbone.View.extend({
                 title: 'Cluster'+cid+' Tweets',
                 columnClass: 'col-md-12',
                 useBootstrap: true,
-                backgroundDismiss: true,
+                backgroundDismiss: false,
                 content: 'Loading... <div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
                 defaultButtons: false,
                 onContentReady: function () {
@@ -589,7 +596,7 @@ app.views.tweets = Backbone.View.extend({
 
             var ngram = label.split(" ").join("-");
             var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
-            this.showBigramTweets(ngramsToGenerate, label, ngram);
+            this.showNgramTweets(ngramsToGenerate, label, ngram);
         };
         chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
@@ -642,7 +649,6 @@ app.views.tweets = Backbone.View.extend({
         $(".regenerate-bigrams:visible").on("click", () => {
 
             var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.getBigramsFormData());
-            console.log("Regenerating ngrams with data:", data);
             this.requestNgrams(data);
         })
     },
