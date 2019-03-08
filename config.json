@@ -7,7 +7,8 @@
       "password": "elastic",
       "timeout": 1000,
       "index": "twitter2017",
-      "doc_type": "tweet"
+      "doc_type": "tweet",
+      "image_duplicates": "/home/stage/mabed/twitter2017.json"
     },
     {
       "host": "localhost",
@@ -25,12 +26,13 @@
       "password": "elastic",
       "timeout": 1000,
       "index": "twitterfdl2015mentions",
-      "doc_type": "tweet"
+      "doc_type": "tweet",
+      "image_duplicates": "/home/stage/IDENUM/labeled/Image_Classif_TwitterFDL2015.json"
     }
   ],
   "default": {
     "index":"twitter2017",
-    "available_indexes": ["twitter2017","twitterfld2015mentions"],
+    "available_indexes": ["twitter2017","twitterfdl2015mentions"],
     "session" : "twitter2017"
   }
 }
