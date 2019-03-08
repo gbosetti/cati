@@ -1,10 +1,12 @@
 import string
 import nltk
+import traceback
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 from collections import Counter
 from mabed.es_connector import Es_connector
 from nltk.tokenize import TweetTokenizer
+
 
 class NgramBasedClasifier:
 
@@ -110,7 +112,7 @@ class NgramBasedClasifier:
                         "aggs": {
                             "status": {
                                 "terms": {
-                                    "field": kwargs["session"]
+                                    "field": kwargs["session"]+".keyword"
                                 }
                             }
                         }
@@ -120,6 +122,7 @@ class NgramBasedClasifier:
 
         except Exception as e:
             print('Error: ' + str(e))
+            traceback.print_exc()
             return {}
 
 
