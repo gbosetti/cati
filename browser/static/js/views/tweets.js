@@ -419,6 +419,7 @@ app.views.tweets = Backbone.View.extend({
                     btnClass: 'btn btn-outline-success',
                     action: function(e){
                         self.markBigramTweets("confirmed", ngram);
+                        //self.searchForTweets();
                         return false; // prevent the modal from closing
                     }
                 },
@@ -427,6 +428,7 @@ app.views.tweets = Backbone.View.extend({
                     btnClass: 'btn btn-outline-danger',
                     action: function(){
                         self.markBigramTweets("negative", ngram);
+                        //self.searchForTweets();
                         return false; // prevent the modal from closing
                     }
                 },
@@ -823,6 +825,7 @@ app.views.tweets = Backbone.View.extend({
     	    {name: "new_label", value: label }
     	]);
 
+        var self = this;
 		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
             try{
                 console.log(response);
@@ -843,6 +846,7 @@ app.views.tweets = Backbone.View.extend({
             }catch(err){console.log(err)}
             //Close the "wait" message
 			jc.close();
+			self.searchForTweets();
 		}).fail(this.cnxError);
     	return false;
     },
