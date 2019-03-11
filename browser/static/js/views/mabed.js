@@ -106,6 +106,7 @@ app.views.mabed = Backbone.View.extend({
             document.querySelector('#total_urls').textContent = response.total_urls;
             document.querySelector('#lang_total').textContent = response.total_lang;
             document.querySelector('#total_images').textContent = response.total_images;
+            document.querySelector('#total_mentions').textContent = response.total_mentions;
             //map key and doc_count to language
             for (let i=0; i<10;i++){
                 document.querySelector('#lang_'+i).textContent = response.lang_stats[i].key;
