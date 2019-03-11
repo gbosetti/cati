@@ -33,6 +33,7 @@ for source in config['elastic_search_sources']:
         default_timeout = source['timeout']
         default_index = source['index']
         default_doc_type = source['doc_type']
+
 class Es_connector:
     def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
     timeout=default_timeout, index=default_index, doc_type=default_doc_type):

@@ -15,7 +15,7 @@ import elasticsearch.helpers
 
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
-
+from elasticsearch import Elasticsearch
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
@@ -871,24 +871,96 @@ class Functions:
                 }
             }
         }
+        print("index: ", self.sessions_index, " doc: ", self.sessions_doc_type, " name: ", name)
         res = my_connector.search(query)
         return res
 
     # Add new session
     def add_session(self, name, index):
-        my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
-        session = self.get_session_by_Name(name)
-        if session['hits']['total'] == 0:
-            res = my_connector.post({
-                "s_name": name,
-                "s_index": index,
-                "s_type": "tweet"
-            })
-            tweets_connector = Es_connector(index=index, doc_type="tweet")
-            tweets_connector.update_all('session_' + name, 'proposed')
-            return res
-        else:
+
+        try:
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+            es = Elasticsearch([{'host': my_connector.host, 'port': my_connector.port}])
+            settings = {
+                "settings": {
+                    "number_of_shards": 1,
+                    "number_of_replicas": 0
+                },
+                "mappings": {
+                    "urls": {
+                        "properties": {
+                            "events": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "impact_data": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "s_index": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "s_name": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "s_type": {
+                                "type": "text",
+                                    "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            es.indices.create(index="mabed_sessions", ignore=400, body=settings)
+
+
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+            session = self.get_session_by_Name(name)
+
+            if session['hits']['total'] == 0:
+                res = my_connector.post({
+                    "s_name": name,
+                    "s_index": index,
+                    "s_type": "tweet"
+                })
+                tweets_connector = Es_connector(index=index, doc_type="tweet")
+                tweets_connector.update_all('session_' + name, 'proposed')
+                return res
+            else:
+                return False
+
+        except RequestError as e:  # This is the correct syntax
+            print(e)
             return False
+
 
     # Update specific field value in an Index
     def update_all(self, index, doc_type, field, value):
