@@ -28,7 +28,8 @@ Provided a set of tweets, MABED can (i) perform event detection and (ii) generat
 ### Import tweets into Elasticsearch
 
 Edit the logstash_tweets_importer.conf file with the path to the json file containing the tweets in your device. Then, run the following command:
-logstash -f logstash_tweets_importer.conf
+    
+    logstash -f logstash_tweets_importer.conf
 
 
 ### Import images clusters into Elasticsearch
