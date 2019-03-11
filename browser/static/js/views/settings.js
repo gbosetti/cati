@@ -24,44 +24,13 @@ app.views.settings = Backbone.View.extend({
     create_session: function(e){
       e.preventDefault();
       var self = this;
-      var jc = $.confirm({
-            theme: 'pix-default-modal',
-            title: 'Creating Session',
-            boxWidth: '600px',
-            useBootstrap: false,
-            backgroundDismiss: false,
-            content: 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than an hour).<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
-            defaultButtons: false,
-            buttons: {
-                cancel: {
-                    text: 'OK',
-                    btnClass: 'btn-cancel'
-                }
-            }
-        });
-      $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(response){
-          console.log( response );
-          jc.close();
+
+      $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
           self.all_sessions();
-          self.all_sessions();
-          $.confirm({
-                theme: 'pix-default-modal',
-                title: 'Success',
-                boxWidth: '600px',
-                type: 'green',
-                useBootstrap: false,
-                backgroundDismiss: false,
-                content: 'The session was successfully created, you can start event detection!',
-                defaultButtons: false,
-                buttons: {
-                    cancel: {
-                        text: 'OK',
-                        btnClass: 'btn-cancel'
-                    }
-                }
-            });
+
+          self.regenerateNgrams(2, $("#session_index").val());
+
       }, 'json').fail(function() {
-            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',
@@ -141,12 +110,12 @@ app.views.settings = Backbone.View.extend({
           self.show_seesion_info();
       }, 'json');
     },
-    regenerateNgrams: function(evt){
+    regenerateNgrams: function(ngrams_length, index){
 
         var data = [
-            {name: "index", value: app.session.s_index},
-            {name: "ngrams_length", value: "2"},
-            {name: "to_property", value: "2grams"}
+            {name: "index", value: index },  //app.session.s_index
+            {name: "ngrams_length", value: ngrams_length},
+            {name: "to_property", value: ngrams_length + "grams"}
         ];
 
         var keepAskingForLogs = true;
@@ -190,9 +159,10 @@ app.views.settings = Backbone.View.extend({
                         $("#ngrams-re-generation").css("width", response.percentage + "%");
                         $("#ngrams-re-generation").text(response.percentage + "%");
 
+                        if(response && response.percentage >= 100)
+                            clearInterval(askForLogs);
+
                     }, 'json');
-                    if(response.percentage >= 100)
-                        clearInterval(askForLogs);
                 }, 5000);
             },
         });
