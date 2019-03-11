@@ -27,9 +27,9 @@ app.views.settings = Backbone.View.extend({
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
           self.all_sessions();
-
+          self.all_sessions();
           self.regenerateNgrams(2, $("#session_index").val());
-
+          self.regenerateNgrams(3, $("#session_index").val());
       }, 'json').fail(function() {
             $.confirm({
                 title: 'Error',
@@ -128,7 +128,7 @@ app.views.settings = Backbone.View.extend({
          }, 0); //New thread
 
         $.confirm({
-            title:"(Re)generating ngrams",
+            title:"(Re)generating " + ngrams_length + "-ngrams",
             columnClass: 'medium',
             content: ' \
                     Please, don\'t close this popup until the process is 100% finished. Click on "cancel" if you want to stop it. \
