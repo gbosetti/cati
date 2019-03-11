@@ -33,7 +33,8 @@ Edit the logstash_tweets_importer.conf file with the path to the json file conta
 
 ### Set the source in the config.json file
 
-Edit config.json to add a new element to elastic search sources
+Edit config.json to add a new element to elastic_search_sources
+Generate the duplicate files using DuplicateFinder.exe
 
 ```
 {
@@ -51,7 +52,6 @@ Edit config.json to add a new element to elastic search sources
     ],
     "default": {
         "index": [ this can be the first index],
-        "available_indexes": ["twitter2017","twitterfdl2015mentions"],
         "session" : "",
         "sessions_index" : {
           "host": ,
