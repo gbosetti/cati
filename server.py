@@ -170,7 +170,8 @@ def produce_dataset_stats():
         "total_urls": functions.get_total_urls(index=data['index']),
         "total_images": functions.get_total_images(index=data['index']),
         "lang_stats":stats['aggregations']['distinct_lang']['buckets'],
-        "total_lang": stats['aggregations']['count']['value']
+        "total_lang": stats['aggregations']['count']['value'],
+        "total_mentions": functions.get_total_mentions(index=data['index'])
 
     })
 
