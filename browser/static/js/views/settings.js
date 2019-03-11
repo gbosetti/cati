@@ -28,8 +28,9 @@ app.views.settings = Backbone.View.extend({
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
           self.all_sessions();
           self.all_sessions();
-          self.regenerateNgrams(2, $("#session_index").val());
-          self.regenerateNgrams(3, $("#session_index").val());
+          self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
+            self.regenerateNgrams(3, $("#session_index").val());
+          });
       }, 'json').fail(function() {
             $.confirm({
                 title: 'Error',
@@ -112,62 +113,62 @@ app.views.settings = Backbone.View.extend({
     },
     regenerateNgrams: function(ngrams_length, index){
 
-        var data = [
-            {name: "index", value: index },  //app.session.s_index
-            {name: "ngrams_length", value: ngrams_length},
-            {name: "to_property", value: ngrams_length + "grams"}
-        ];
+        return new Promise((resolve, reject) => {
 
-        var keepAskingForLogs = true;
+            var data = [
+                {name: "index", value: index },  //app.session.s_index
+                {name: "ngrams_length", value: ngrams_length},
+                {name: "to_property", value: ngrams_length + "grams"}
+            ];
 
-        setTimeout(() => {
-            $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
-                keepAskingForLogs = false;
-                console.log("generate_bigrams_for_index response: ", response);
-            }, 'json');
-         }, 0); //New thread
+            var keepAskingForLogs = true;
 
-        $.confirm({
-            title:"(Re)generating " + ngrams_length + "-ngrams",
-            columnClass: 'medium',
-            content: ' \
-                    Please, don\'t close this popup until the process is 100% finished. Click on "cancel" if you want to stop it. \
-                    <div class="mt-3 progress"> \
-                        <div id="ngrams-re-generation" class="progress-bar progress-bar-striped bg-warning progress-bar-animated" role="progressbar" style="width:0%; color:black;"> \
-                          0% \
-                        </div> \
-                    </div>',
-            buttons: {
-                Cancel: {
-                    btnClass: 'btn-red',
-                    action: function(){
-                        console.log("Canceled...");
-                    }
+            setTimeout(() => {
+                $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
+                    keepAskingForLogs = false;
+                    console.log("generate_bigrams_for_index response: ", response);
+                    resolve();
+                }, 'json');
+             }, 0); //New thread
+
+            $.confirm({
+                title:"(Re)generating " + ngrams_length + "-ngrams",
+                columnClass: 'medium',
+                content: ' \
+                        Please, don\'t close this popup until the process is 100% finished. Click on "cancel" if you want to stop it. \
+                        <div class="mt-3 progress"> \
+                            <div id="ngrams-re-generation" class="progress-bar progress-bar-striped bg-warning progress-bar-animated" role="progressbar" style="width:0%; color:black;"> \
+                              0% \
+                            </div> \
+                        </div>',
+                buttons: {
+                    Cancel: {
+                        btnClass: 'btn-red',
+                        action: function(){
+                            console.log("Canceled...");
+                        }
+                    },
+                    Close: {
+                        btnClass: 'btn',
+                        keys: ['enter', 'space']
+                    },
                 },
-                Close: {
-                    btnClass: 'btn',
-                    keys: ['enter', 'space']
+                onContentReady: function () {
+                    var askForLogs = setInterval(function(){
+                        $.get(app.appURL+'get_current_backend_logs', function(response){
+                            //$('#logs').val(response.logs.reverse().join("\r\n"));
+                            $("#ngrams-re-generation").css("width", response.percentage + "%");
+                            $("#ngrams-re-generation").text(response.percentage + "%");
+
+                            if(response && response.percentage >= 100){
+                                clearInterval(askForLogs);
+
+                            }
+                        }, 'json');
+                    }, 5000);
                 },
-            },
-            onContentReady: function () {
-                var self = this;
-                var accum=0;
-                //this.setContentPrepend('<div>Prepended text</div>');
-                var askForLogs = setInterval(function(){
-                    $.get(app.appURL+'get_current_backend_logs', function(response){
-                        //$('#logs').val(response.logs.reverse().join("\r\n"));
-                        $("#ngrams-re-generation").css("width", response.percentage + "%");
-                        $("#ngrams-re-generation").text(response.percentage + "%");
-
-                        if(response && response.percentage >= 100)
-                            clearInterval(askForLogs);
-
-                    }, 'json');
-                }, 5000);
-            },
+            });
         });
-
-
     },
     update_available_indexes_list: function(){
         let self = this;
