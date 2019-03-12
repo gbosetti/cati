@@ -23,7 +23,6 @@
   ],
   "default": {
     "index":"lyon2017",
-    "available_indexes": ["lyon2017","twitterfdl2015mentions"],
     "session" : "twitter2017",
     "sessions_index" : {
       "host": "localhost",
