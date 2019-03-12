@@ -7,17 +7,14 @@ app.views.settings = Backbone.View.extend({
         'click #regenerate-ngrams': 'regenerateNgramsWithUserParams',
     },
     initialize: function() {
-        this.render();
-        var handler = _.bind(this.render, this);
-    },
-    render: function(){
+
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
         this.all_sessions();
         this.show_seesion_info();
         this.update_available_indexes_list();
-        app.views.mabed.prototype.getClassificationStats();
+        //app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
@@ -26,7 +23,6 @@ app.views.settings = Backbone.View.extend({
       var self = this;
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
-          self.all_sessions();
           self.all_sessions();
           /*self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
             self.regenerateNgrams(3, $("#session_index").val());
@@ -96,9 +92,7 @@ app.views.settings = Backbone.View.extend({
           $('#cs_index').html(app.session.s_index);
           $('#cs_type').html(app.session.s_type);
           $('#cs_id').html(app.session_id);
-        }else{
-          this.all_sessions();
-        }
+        } //else { this.all_sessions(); }
     },
     all_sessions: function(){
       var self = this;
@@ -228,7 +222,6 @@ app.views.settings = Backbone.View.extend({
       $.post(app.appURL+'delete_session', {id: app.session_id}, function(response){
           console.log( response );
           jc.close();
-          self.all_sessions();
           self.all_sessions();
           app.session_id = null;
           app.session = null;
