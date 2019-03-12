@@ -22,9 +22,30 @@ app.views.settings = Backbone.View.extend({
       e.preventDefault();
       var self = this;
 
+      if ($('#session_name').val() == undefined || $('#session_name').val().trim() == ""){
+        alert("Please, choose a name for the session and try again.");
+        return;
+      }
+
+      var jc = $.confirm({
+            theme: 'pix-default-modal',
+            title: 'Creating Session',
+            boxWidth: '600px',
+            useBootstrap: false,
+            backgroundDismiss: false,
+            content: 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than an hour).<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
+            defaultButtons: false,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
 
-
+          jc.close();
           self.all_sessions();
           /*self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
             self.regenerateNgrams(3, $("#session_index").val());
@@ -43,6 +64,7 @@ app.views.settings = Backbone.View.extend({
             });
 
       }, 'json').fail(function() {
+            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',
