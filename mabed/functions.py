@@ -888,7 +888,7 @@ class Functions:
                     "number_of_replicas": 0
                 },
                 "mappings": {
-                    "urls": {
+                    "session": {
                         "properties": {
                             "events": {
                                 "type": "text",
@@ -939,20 +939,22 @@ class Functions:
                     }
                 }
             }
-            es.indices.create(index="mabed_sessions", ignore=400, body=settings)
-
+            es.indices.create(index=self.sessions_index, ignore=400, body=settings)
 
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
             session = self.get_session_by_Name(name)
 
             if session['hits']['total'] == 0:
+                # Creating the new entry in the mabed_sessions
                 res = my_connector.post({
                     "s_name": name,
                     "s_index": index,
                     "s_type": "tweet"
                 })
+                # Adding the session's field in the existing dataset
                 tweets_connector = Es_connector(index=index, doc_type="tweet")
                 tweets_connector.update_all('session_' + name, 'proposed')
+                print("Updated")
                 return res
             else:
                 return False

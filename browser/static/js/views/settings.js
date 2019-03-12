@@ -23,6 +23,8 @@ app.views.settings = Backbone.View.extend({
       var self = this;
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
+
+
           self.all_sessions();
           /*self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
             self.regenerateNgrams(3, $("#session_index").val());
