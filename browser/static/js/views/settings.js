@@ -4,7 +4,7 @@ app.views.settings = Backbone.View.extend({
         'submit #settings_form': 'create_session',
         'submit #session_form': 'switchSession',
         'click #deleteSession': 'deleteSession',
-        'click #regenerate-ngrams': 'regenerateNgrams',
+        'click #regenerate-ngrams': 'regenerateNgramsWithUserParams',
     },
     initialize: function() {
         this.render();
@@ -28,9 +28,22 @@ app.views.settings = Backbone.View.extend({
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
           self.all_sessions();
           self.all_sessions();
-          self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
+          /*self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
             self.regenerateNgrams(3, $("#session_index").val());
-          });
+          });*/
+          $.confirm({
+                title: 'Success',
+                boxWidth: '600px',
+                theme: 'pix-danger-modal',
+                backgroundDismiss: true,
+                content: "The session was successfully created.",
+                buttons: {
+                    Ok: {
+                        btnClass: 'btn'
+                    }
+                }
+            });
+
       }, 'json').fail(function() {
             $.confirm({
                 title: 'Error',
@@ -111,6 +124,11 @@ app.views.settings = Backbone.View.extend({
           self.show_seesion_info();
       }, 'json');
     },
+    regenerateNgramsWithUserParams: function(evt){
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+        this.regenerateNgrams($("#ngrams_length").val(), $("#session_index").val());
+    },
     regenerateNgrams: function(ngrams_length, index){
 
         return new Promise((resolve, reject) => {
@@ -162,7 +180,6 @@ app.views.settings = Backbone.View.extend({
 
                             if(response && response.percentage >= 100){
                                 clearInterval(askForLogs);
-
                             }
                         }, 'json');
                     }, 5000);

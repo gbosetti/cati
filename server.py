@@ -262,7 +262,7 @@ def generate_ngrams_for_index():
     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
     res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
-    return res
+    return jsonify(res)
 
 # Get Tweets
 @app.route('/get_current_backend_logs', methods=['GET'])

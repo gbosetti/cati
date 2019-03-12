@@ -235,8 +235,6 @@ class NgramBasedClasifier:
     def gerenate_ngrams_for_tweets(self, tweets, **kwargs ):  # remove_stopwords=True, stemming=True):
 
         length = int(kwargs.get('length', 2))
-        top_ngrams_to_retrieve = kwargs.get('top_ngrams_to_retrieve', 2)
-        min_occurrences = kwargs.get('min_occurrences', 20)
 
         for tweet in tweets:
             try:
@@ -252,6 +250,7 @@ class NgramBasedClasifier:
 
         try:
             # Get the data for performinga paginated search
+            self.current_thread_percentage = 0
             my_connector = Es_connector(index=kwargs["index"])
             res = my_connector.init_paginatedSearch({
                 "query": {
@@ -272,19 +271,11 @@ class NgramBasedClasifier:
                 scroll_size = res2["scroll_size"]
                 processed += scroll_size
                 tweets = res2["results"]
-                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"])
-
-                # For backend & client-side logging
-                # curr_log = "Updating bigrams of " + str(str(processed) + " tweets of " + str(total) + " (" + str(
-                #     round(processed * 100 / total, 2)) + "% done)")
-                # self.logs.append(curr_log)
-                # self.logs = self.logs[:10]
-                # print(curr_log)
+                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
                 self.current_thread_percentage = round(processed * 100 / total, 2)
                 print("Completed: ", self.current_thread_percentage, "%")
 
             # Clean it at the end so the clien knows when to end asking for more logs
-            #self.logs = []
             self.current_thread_percentage = 100
 
             return True
