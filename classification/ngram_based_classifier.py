@@ -31,9 +31,11 @@ class NgramBasedClasifier:
 
     def search_bigrams_related_tweets(self, **kwargs):
 
+        print("PARAMS", kwargs)
+
         my_connector = Es_connector(index=kwargs["index"])
-        res = my_connector.init_paginatedSearch(
-            {
+        if kwargs.get('full_search', False):  # All tweets
+            query = {
                 "query": {
                    "bool": {
                        "must": [
@@ -42,14 +44,27 @@ class NgramBasedClasifier:
                        ]
                    }
                }
-            })
-        return res
+            }
+        else:  # matching keywords
+            query = {
+                "query": {
+                   "bool": {
+                       "must": [
+                           {"match": {"text": kwargs["word"]}},
+                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match": {kwargs["session"]: kwargs["label"]}}
+                       ]
+                   }
+               }
+            }
+
+        return my_connector.init_paginatedSearch(query)
 
     def update_tweets_state_by_ngram(self, **kwargs):
 
         tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
-        # All tweets
-        if kwargs.get('full_search', False):
+
+        if kwargs.get('full_search', False):  # All tweets
             query = {
                 "query": {
                     "bool": {

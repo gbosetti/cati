@@ -27,7 +27,8 @@ if __name__ == '__main__':
     for cluster in data['duplicates']:
         for img in cluster:
             imgs+=1
-            target_tweet_id = re.match(r'(\d*)_(.*).(.*)', img, re.M | re.I)
+            target_tweet_id  = re.search(r'(?<=/)(\d*)_(.*)\.(.*)', img, re.M | re.I)
+            # target_tweet_id = re.match(r'(\d*)_(.*).(.*)', img, re.M | re.I)
             res = my_connector.search({
                 "query": {
                         "term": {"id_str": target_tweet_id.group(1)}
@@ -37,18 +38,18 @@ if __name__ == '__main__':
                 if 'imagesCluster' in res['hits']['hits'][0]['_source']:
                     arr = res['hits']['hits'][0]['_source']['imagesCluster']
                     if isinstance(arr, list):
-                        print(res['hits']['hits'][0]['_source']['imagesCluster'])
+                        # print(res['hits']['hits'][0]['_source']['imagesCluster'])
                         arr.extend([c_count])
                         arr = list(set(arr))
                         update = my_connector.update_field(id, 'imagesCluster', arr)
                     else:
                         update = my_connector.update_field(id, 'imagesCluster', [arr])
-                        print(res['hits']['hits'][0]['_source']['imagesCluster'])
+                        # print(res['hits']['hits'][0]['_source']['imagesCluster'])
                 else:
                     update = my_connector.update_field(id, 'imagesCluster', [c_count])
 
                 count += res['hits']['total']
         c_count += 1
-        print('-----------------------')
+        print('CLuster ', c_count, ' -----------------------')
     print('images %d' % imgs)
     print('count %d' % count)

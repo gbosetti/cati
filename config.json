@@ -6,9 +6,9 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "twitter2017",
+      "index": "lyon2017",
       "doc_type": "tweet",
-      "session": "session_twitter2017"
+      "image_duplicates": "/home/gabi/dev/IDENUM/data/2017-Image-Classif.json"
     },
     {
       "host": "localhost",
@@ -16,10 +16,23 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "example",
+      "index": "twitterfdl2015mentions",
       "doc_type": "tweet",
-      "session": "example"
+      "image_duplicates": "/home/stage/IDENUM/labeled/Image_Classif_TwitterFDL2015.json"
     }
   ],
-  "default": "twitter2017"
+  "default": {
+    "index":"lyon2017",
+    "available_indexes": ["lyon2017","twitterfdl2015mentions"],
+    "session" : "twitter2017",
+    "sessions_index" : {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "mabed_sessions",
+      "doc_type": "session"
+    }
+  }
 }

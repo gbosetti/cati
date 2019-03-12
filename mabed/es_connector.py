@@ -15,7 +15,15 @@ __email__ = "odehfiras@gmail.com"
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-default_source = config['default']
+default_source = config['default']['index']
+sessions_source = config['default']['sessions_index']['index']
+session_host = config['default']['sessions_index']['host']
+session_port = config['default']['sessions_index']['port']
+session_user = config['default']['sessions_index']['user']
+session_password = config['default']['sessions_index']['password']
+session_timeout = config['default']['sessions_index']['timeout']
+session_index = config['default']['sessions_index']['index']
+session_doc_type = config['default']['sessions_index']['doc_type']
 for source in config['elastic_search_sources']:
     if source['index'] == default_source:
         default_host = source['host']
@@ -25,20 +33,51 @@ for source in config['elastic_search_sources']:
         default_timeout = source['timeout']
         default_index = source['index']
         default_doc_type = source['doc_type']
+
 class Es_connector:
     def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
     timeout=default_timeout, index=default_index, doc_type=default_doc_type):
     # def __init__(self, host='localhost', port=9200, user='', password='', timeout=1000, index="test2", doc_type="tweet"):
 
+        available = False
+        if index == default_index:
+            # Define config
+            self.host = default_host
+            self.port = default_port
+            self.user = default_user
+            self.password = default_password
+            self.timeout = default_timeout
+            self.index = default_index
+            self.doc_type = default_doc_type
+            available = True
+        elif index == sessions_source:
+            self.host = session_host
+            self.port = session_port
+            self.user = session_user
+            self.password = session_password
+            self.timeout = session_timeout
+            self.index = session_index
+            self.doc_type = session_doc_type
+            available = True
 
-        # Define config
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.timeout = timeout
-        self.index = index
-        self.doc_type = doc_type
+        else:
+            for es_source in config['elastic_search_sources']:
+                if es_source['index'] == index:
+                    # Define config
+                    self.host = es_source['host']
+                    self.port = es_source['port']
+                    self.user = es_source['user']
+                    self.password = es_source['password']
+                    self.timeout = es_source['timeout']
+                    self.index = es_source['index']
+                    self.doc_type = es_source['doc_type']
+                    available = True
+        if not available:
+            # We can just throw an error instead
+            # Or have elastic search throw it
+            print('Datasource not available, check config.json', index)
+            raise Exception("Datasource initialisation")
+
         self.size = 500
         self.body = {"query": {"match_all": {}}}
         self.result = []
@@ -49,6 +88,7 @@ class Es_connector:
             http_auth=(self.user, self.password),
             port=self.port,
             timeout=self.timeout,
+            # TODO: use SSL
             use_ssl=False
         )
 

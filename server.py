@@ -28,7 +28,8 @@ app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 
 with open('config.json', 'r') as f:
     config = json.load(f)
-default_source = config['default']
+default_source = config['default']['index']
+default_session = config['default']['session']
 for source in config['elastic_search_sources']:
     if source['index'] == default_source:
         default_host = source['host']
@@ -38,7 +39,6 @@ for source in config['elastic_search_sources']:
         default_timeout = source['timeout']
         default_index = source['index']
         default_doc_type = source['doc_type']
-        default_session = source['session']
 
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
@@ -218,9 +218,13 @@ def get_dataset_date_range():
 # @cross_origin()
 def search_bigrams_related_tweets():
     data = request.form
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
+
     propName = data["n-grams-to-generate"] + "grams"
-    matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=data['word'], session=data['session'],
-                                                       label=data['search_by_label'], ngram=data['ngram'], ngramsPropName=propName)
+    matching_tweets = ngram_classifier.search_bigrams_related_tweets(index=data['index'], word=word, session=data['session'],
+                                                                     label=data['search_by_label'], ngram=data['ngram'],
+                                                                     ngramsPropName=propName, full_search=full_search)
     return jsonify({"tweets": matching_tweets})
 
 
@@ -951,9 +955,7 @@ def get_results():
 # Get available indexes
 @app.route('/available_indexes', methods=['GET'])
 def available_indexes():
-    res = []
-    for source in config['elastic_search_sources']:
-        res.append(source['index'])
+    res = config["default"]['available_indexes']
     return jsonify(res);
 
 # ==================================================================
@@ -976,8 +978,8 @@ def sessions():
 def add_session():
     data = request.form
     name = data['s_name']
-    index = data['s_index']
-    res = functions.add_session(name, index)
+    s_index = data['s_index']
+    res = functions.add_session(name, s_index)
     status = False
     if res:
         status = True
