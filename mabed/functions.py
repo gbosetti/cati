@@ -60,6 +60,20 @@ class Functions:
 
         return Es_connector(index=index, doc_type=doc).es.indices.get_mapping(index=index, doc_type=doc)
 
+    def get_total_mentions(self,index):
+        my_connector = Es_connector(index=index, doc_type= "tweet")
+        print("Index for get mentions ", index)
+        try:
+            res = my_connector.search({
+                    "size": 0,
+                    "query": {
+                        "exists": {"field": "entities.user_mentions"}
+                    }
+            })
+            return res['hits']['total']
+        except RequestError:
+            return 'None  Found'
+
     def get_total_urls(self, index):
 
         my_connector = Es_connector(index=index, doc_type="tweet")  # self.sessions_doc_type)
