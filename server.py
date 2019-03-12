@@ -401,12 +401,12 @@ def n_grams_classification():
 # @cross_origin()
 def event_tweets():
     data = request.form
-    index = data['index']
+    source_index = data['index']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    tweets = functions.get_event_tweets(index, main_term, related_terms)
-    clusters = functions.get_event_clusters(index, main_term, related_terms)
+    tweets = functions.get_event_tweets(source_index, main_term, related_terms)
+    clusters = functions.get_event_clusters(source_index, main_term, related_terms)
     return jsonify({"tweets": tweets, "clusters": clusters})
 
 
