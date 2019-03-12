@@ -150,7 +150,7 @@ app.views.settings = Backbone.View.extend({
              }, 0); //New thread
 
             $.confirm({
-                title:"(Re)generating " + ngrams_length + "-ngrams",
+                title:"(Re)generating " + ngrams_length + "-grams",
                 columnClass: 'medium',
                 content: ' \
                         Please, don\'t close this popup until the process is 100% finished. Click on "cancel" if you want to stop it. \
