@@ -27,45 +27,47 @@ app = Flask(__name__, static_folder='browser/static', template_folder='browser/t
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 SELF = "'self'"
-# talisman = Talisman(
-#     app,
-#     content_security_policy={
-#         'default-src': SELF,
-#         'img-src': [
-#             '*',
-#             SELF,
-#         ],
-#         'script-src': [
-#             SELF,
-#             "'unsafe-inline'",
-#             "'unsafe-eval'",
-#             'https://cdn.knightlab.com',
-#             'https://unpkg.com',
-#             "http://underscorejs.org"
-#         ],
-#         'font-src' : [
-#             SELF,
-#             "'unsafe-inline'",
-#             "'unsafe-eval'",
-#             "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
-#             "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/fonts/",
-#             "https://fonts.googleapis.com",
-#             'https://cdn.knightlab.com',
-#             'https://fonts.gstatic.com',
-#         ],
-#         'style-src': [
-#             SELF,
-#             "'unsafe-inline'",
-#             "'unsafe-eval'",
-#             "https://fonts.googleapis.com",
-#             'https://cdn.knightlab.com',
-#             "https://maxcdn.bootstrapcdn.com"
-#         ]
-#     },
-#     feature_policy={
-#         'geolocation': '\'none\'',
-#     },
-# )
+# here we define the content security policy,
+# this CSP allows for inline script, and using a nonce will improve security
+talisman = Talisman(
+    app,
+    content_security_policy={
+        'default-src': SELF,
+        'img-src': [
+            '*',
+            SELF,
+        ],
+        'script-src': [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            'https://cdn.knightlab.com',
+            'https://unpkg.com',
+            "http://underscorejs.org"
+        ],
+        'font-src' : [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
+            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/fonts/",
+            "https://fonts.googleapis.com",
+            'https://cdn.knightlab.com',
+            'https://fonts.gstatic.com',
+        ],
+        'style-src': [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://fonts.googleapis.com",
+            'https://cdn.knightlab.com',
+            "https://maxcdn.bootstrapcdn.com"
+        ]
+    },
+    feature_policy={
+        'geolocation': '\'none\'',
+    },
+)
 
 
 with open('config.json', 'r') as f:
