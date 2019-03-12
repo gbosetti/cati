@@ -178,39 +178,37 @@ class Functions:
     # Event Detection
     # ==================================================================
 
-    def detect_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2):
+    def detect_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2, **kwargs):
         sw = 'stopwords/twitter_all.txt'
         sep = '\t'
-        print('Parameters:')
-        print(
-            '   Index: %s\n   k: %d\n   Stop-words: %s\n   Min. abs. word frequency: %d\n   Max. rel. word frequency: %f' %
-            (index, k, sw, maf, mrf))
-        print('   p: %d\n   theta: %f\n   sigma: %f' % (p, theta, sigma))
 
-        print('Loading corpus...')
+        kwargs["logger"].add_log('Parameters:   Index: %s\n   k: %d\n   Stop-words: %s\n   Min. abs. word frequency: %d\n   Max. rel. word frequency: %f' %
+            (index, k, sw, maf, mrf))
+        kwargs["logger"].add_log('   p: %d\n   theta: %f\n   sigma: %f' % (p, theta, sigma))
+        kwargs["logger"].add_log('Loading corpus...')
 
         start_time = timeit.default_timer()
         my_corpus = Corpus(sw, maf, mrf, sep, index=index)
         elapsed = timeit.default_timer() - start_time
-        print('Corpus loaded in %f seconds.' % elapsed)
+        kwargs["logger"].add_log('Corpus loaded in %f seconds.' % elapsed)
 
         time_slice_length = tsl
-        print('Partitioning tweets into %d-minute time-slices...' % time_slice_length)
+        kwargs["logger"].add_log('Partitioning tweets into %d-minute time-slices...' % time_slice_length)
         start_time = timeit.default_timer()
-        my_corpus.discretize(time_slice_length, cluster)
+        my_corpus.discretize(time_slice_length, cluster, logger=kwargs["logger"])
         elapsed = timeit.default_timer() - start_time
-        print('Partitioning done in %f seconds.' % elapsed)
+        kwargs["logger"].add_log('Partitioning done in %f seconds.' % elapsed)
 
-        print('Running MABED...')
+        kwargs["logger"].add_log('Running MABED...')
         start_time = timeit.default_timer()
-        mabed = MABED(my_corpus)
+        mabed = MABED(my_corpus, kwargs["logger"])
         mabed.run(k=k, p=p, theta=theta, sigma=sigma)
         elapsed = timeit.default_timer() - start_time
-        print('Event detection performed in %f seconds.' % elapsed)
+        kwargs["logger"].add_log('Event detection performed in %f seconds.' % elapsed)
         return mabed
 
-    def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2):
-        mabed = self.detect_events(index, k, maf, mrf, tsl, p, theta, sigma, cluster)
+    def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2, **kwargs):
+        mabed = self.detect_events(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=kwargs["logger"])
 
         # format data
         event_descriptions = []
@@ -246,42 +244,42 @@ class Functions:
         return {"event_descriptions": event_descriptions, "impact_data": impact_data}
 
     def detect_filtered_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6,
-                               session=False, filter=False, cluster=2):
+                               session=False, filter=False, cluster=2, **kwargs):
         sw = 'stopwords/twitter_all.txt'
         sep = '\t'
-        print('Parameters:')
-        print(
+        kwargs["logger"].add_log('Parameters--')
+        kwargs["logger"].add_log(
             '   Index: %s\n   k: %d\n   Stop-words: %s\n   Min. abs. word frequency: %d\n   Max. rel. word frequency: %f' %
             (index, k, sw, maf, mrf))
-        print('   p: %d\n   theta: %f\n   sigma: %f' % (p, theta, sigma))
+        kwargs["logger"].add_log('   p: %d\n   theta: %f\n   sigma: %f' % (p, theta, sigma))
 
-        print('Loading corpus...')
+        kwargs["logger"].add_log('Loading corpus...')
         start_time = timeit.default_timer()
         my_corpus = Corpus(sw, maf, mrf, sep, index=index, session=session, filter=filter)
         if not my_corpus.tweets:
             return False
 
         elapsed = timeit.default_timer() - start_time
-        print('Corpus loaded in %f seconds.' % elapsed)
+        kwargs["logger"].add_log('Corpus loaded in %f seconds.' % elapsed)
 
         time_slice_length = tsl
-        print('Partitioning tweets into %d-minute time-slices...' % time_slice_length)
+        kwargs["logger"].add_log('Partitioning tweets into %d-minute time-slices...' % time_slice_length)
         start_time = timeit.default_timer()
-        my_corpus.discretize(time_slice_length, cluster)
+        my_corpus.discretize(time_slice_length, cluster, logger=kwargs["logger"])
         elapsed = timeit.default_timer() - start_time
-        print('Partitioning done in %f seconds.' % elapsed)
+        kwargs["logger"].add_log('Partitioning done in %f seconds.' % elapsed)
 
-        print('Running MABED...')
+        kwargs["logger"].add_log('Running MABED...')
         start_time = timeit.default_timer()
-        mabed = MABED(my_corpus)
+        mabed = MABED(my_corpus, kwargs["logger"])
         mabed.run(k=k, p=p, theta=theta, sigma=sigma)
         elapsed = timeit.default_timer() - start_time
-        print('Event detection performed in %f seconds.' % elapsed)
+        kwargs["logger"].add_log('Event detection performed in %f seconds.' % elapsed)
         return mabed
 
     def filtered_event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6,
-                                    session=False, filter=False, cluster=2):
-        mabed = self.detect_filtered_events(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster)
+                                    session=False, filter=False, cluster=2, **kwargs):
+        mabed = self.detect_filtered_events(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=kwargs["logger"])
         if not mabed:
             return False
 
