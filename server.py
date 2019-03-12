@@ -14,6 +14,7 @@ from flask_cors import CORS, cross_origin
 from flask_frozen import Freezer
 from flask import Response
 from flask_htpasswd import HtPasswdAuth
+from flask_talisman import Talisman
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
 from classification.ngram_based_classifier import NgramBasedClasifier
@@ -25,6 +26,49 @@ import datetime
 app = Flask(__name__, static_folder='browser/static', template_folder='browser/templates')
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
+SELF = "'self'"
+# here we define the content security policy,
+# this CSP allows for inline script, and using a nonce will improve security
+talisman = Talisman(
+    app,
+    content_security_policy={
+        'default-src': SELF,
+        'img-src': [
+            '*',
+            SELF,
+        ],
+        'script-src': [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            'https://cdn.knightlab.com',
+            'https://unpkg.com',
+            "http://underscorejs.org"
+        ],
+        'font-src' : [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
+            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/fonts/",
+            "https://fonts.googleapis.com",
+            'https://cdn.knightlab.com',
+            'https://fonts.gstatic.com',
+        ],
+        'style-src': [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://fonts.googleapis.com",
+            'https://cdn.knightlab.com',
+            "https://maxcdn.bootstrapcdn.com"
+        ]
+    },
+    feature_policy={
+        'geolocation': '\'none\'',
+    },
+)
+
 
 with open('config.json', 'r') as f:
     config = json.load(f)
@@ -183,10 +227,16 @@ def detect_events():
 # have tested twitter2017.json, and it renders a page with broken images
 @app.route('/images')
 def images():
-    with open('twitter2015.json') as f:
-        data = json.load(f)
+    data = request.form
+    source_index = data['s_index']
+    for es_sources in config['elastic_search_sources']:
+        if es_sources['index'] == source_index:
+            with open(es_sources['image_duplicates']) as file:
+                duplicates = json.load(file)
+    # with open('twitter2015.json') as f:
+    #     data = json.load(f)
     clusters_num = len(data['duplicates'])
-    clusters = data['duplicates']
+    clusters = duplicates['duplicates']
     return render_template('images.html',
                            clusters_num=clusters_num,
                            clusters=clusters
@@ -263,7 +313,10 @@ def generate_ngrams_for_index():
     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
     res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
-    return res
+    if res:
+        return "True"
+    else:
+        return "False"
 
 # Get Tweets
 @app.route('/get_current_backend_logs', methods=['GET'])

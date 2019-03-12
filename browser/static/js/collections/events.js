@@ -11,7 +11,7 @@ app.collections.events = Backbone.Collection.extend({
         });
 
         var s_ev = res.toJSON();
-        $.post(app.appURL+'event_image', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
+        $.post(app.appURL+'event_image', {obj: JSON.stringify(s_ev), index: app.session.s_index, s_name: app.session.s_name}, function(response){
             console.log("event image", response.result);
             if(response.result){
                 var ext = "jpg";
