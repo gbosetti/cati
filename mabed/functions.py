@@ -874,7 +874,7 @@ class Functions:
         return res
 
     # Add new session
-    def add_session(self, name, index):
+    def add_session(self, name, index, **kwargs):
 
         try:
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
@@ -939,6 +939,8 @@ class Functions:
             }
             es.indices.create(index=self.sessions_index, ignore=400, body=settings)
 
+            kwargs["logger"].add_log("The existence of the " + self.sessions_index + " index was checked")
+
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
             session = self.get_session_by_Name(name)
 
@@ -951,10 +953,12 @@ class Functions:
                 })
                 # Adding the session's field in the existing dataset
                 tweets_connector = Es_connector(index=index, doc_type="tweet")
-                tweets_connector.update_all('session_' + name, 'proposed')
-                print("Updated")
+                kwargs["logger"].add_log("Starting with the labeling of the session's tweet to 'proposed'")
+                tweets_connector.update_all('session_' + name, 'proposed', logger=kwargs["logger"])
+                kwargs["logger"].add_log("The tweets labels were successfully updated to the 'proposed' state")
                 return res
             else:
+                kwargs["logger"].add_log("There are no documents in the selected index.")
                 return False
 
         except RequestError as e:  # This is the correct syntax
@@ -963,9 +967,9 @@ class Functions:
 
 
     # Update specific field value in an Index
-    def update_all(self, index, doc_type, field, value):
+    def update_all(self, index, doc_type, field, value, **kwargs):
         my_connector = Es_connector(index=index, doc_type=doc_type)
-        res = my_connector.update_all(field, value)
+        res = my_connector.update_all(field, value, logger=kwargs["logger"])
         return res
 
     # Update session events results

@@ -381,11 +381,13 @@ class Es_connector:
         # date = self.result[0]['_source']['timestamp_ms']
         return self.result
 
-    def update_all(self, field, value):
+    def update_all(self, field, value, **kwargs):
         # Process hits here
         def process_hits(hits):
             for item in hits:
                 self.update_field(item['_id'], field, value)
+
+        logger = kwargs.get("logger", None)
 
         # Check index exists
         if not self.es.indices.exists(index=self.index):
@@ -408,9 +410,10 @@ class Es_connector:
         # Before scroll, process current batch of hits
         # print(data['hits']['total'])
         process_hits(data['hits']['hits'])
+        processed_docs = 0
 
         while scroll_size > 0:
-            "Scrolling..."
+
             data = self.es.scroll(scroll_id=sid, scroll='15m')
 
             # Process current batch of hits
@@ -421,6 +424,10 @@ class Es_connector:
 
             # Get the number of results that returned in the last scroll
             scroll_size = len(data['hits']['hits'])
+
+            if (logger):
+                processed_docs += scroll_size
+                logger.add_log("Scrolling " + str(round(processed_docs * 100 / data['hits']['total'],2)) + "% documents")
         return True
 
     def update_query(self, query, field, value):

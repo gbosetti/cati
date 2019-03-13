@@ -989,7 +989,8 @@ def add_session():
     data = request.form
     name = data['s_name']
     s_index = data['s_index']
-    res = functions.add_session(name, s_index)
+    app.backend_logger.clear_logs()
+    res = functions.add_session(name, s_index, logger=app.backend_logger)
     status = False
     if res:
         status = True

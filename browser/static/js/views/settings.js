@@ -18,6 +18,41 @@ app.views.settings = Backbone.View.extend({
 
         return this;
     },
+    showProcessingEventsPopup: function(popupTitle, loggingKey){
+        barHtml = 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
+			'<div class="mt-3 form-group"> ' +
+                '<textarea class="form-control rounded-0" id="backend_logs" rows="10">Starting...\n</textarea> ' +
+            '</div>';
+
+        var jc = $.confirm({
+            title:popupTitle,
+            columnClass: 'extra-large',
+            content: barHtml,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+        var self = this;
+        self[loggingKey] = true;
+        var askForLogs = setInterval(function(){
+            $.get(app.appURL+'get_backend_logs', function(response){
+
+                response.forEach(log => {
+                    $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");
+                });
+                $("#backend_logs")[0].scrollTop = $("#backend_logs")[0].scrollHeight - $("#backend_logs").height();
+
+                if(self[loggingKey] == false){
+                    clearInterval(askForLogs);
+                }
+            }, 'json');
+        }, 7000);
+
+
+    },
     create_session: function(e){
       e.preventDefault();
       var self = this;
@@ -27,29 +62,13 @@ app.views.settings = Backbone.View.extend({
         return;
       }
 
-      var jc = $.confirm({
-            theme: 'pix-default-modal',
-            title: 'Creating Session',
-            boxWidth: '600px',
-            useBootstrap: false,
-            backgroundDismiss: false,
-            content: 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than an hour).<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
-            defaultButtons: false,
-            buttons: {
-                cancel: {
-                    text: 'OK',
-                    btnClass: 'btn-cancel'
-                }
-            }
-        });
+      var keepLoggingKey = 'keepLogging';
+      this.showProcessingEventsPopup('Creating Session', keepLoggingKey);
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
 
-          jc.close();
           self.all_sessions();
-          /*self.regenerateNgrams(2, $("#session_index").val()).then(()=>{
-            self.regenerateNgrams(3, $("#session_index").val());
-          });*/
+
           $.confirm({
                 title: 'Success',
                 boxWidth: '600px',
@@ -62,9 +81,9 @@ app.views.settings = Backbone.View.extend({
                     }
                 }
             });
+          self[keepLoggingKey] = false;
 
       }, 'json').fail(function() {
-            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',
