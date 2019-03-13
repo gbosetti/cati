@@ -142,8 +142,7 @@ app.views.mabed = Backbone.View.extend({
                 }
             }, 'json');
         }, 7000);
-
-
+        return jc;
     },
     run_mabed: function(e){
         e.preventDefault();
@@ -162,8 +161,7 @@ app.views.mabed = Backbone.View.extend({
       $.post(app.appURL+'detect_events', data, function(response){
 
           self.keepaskingForLogs = false;
-          $('#mabed_loading').fadeOut();
-          jc.close();
+
           if(response.result){
               self.model.reset();
               $.each(response.events.event_descriptions, function( i, value ) {
@@ -200,8 +198,6 @@ app.views.mabed = Backbone.View.extend({
           }
 
       }, 'json').fail(function() {
-            $('#mabed_loading').fadeOut();
-            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',

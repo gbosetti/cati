@@ -152,6 +152,8 @@ class Es_connector:
             return False
 
     def update(self,id, query):
+
+        print(self.index, self.doc_type, query)
         res = self.es.update(
             index=self.index,
             doc_type=self.doc_type,
