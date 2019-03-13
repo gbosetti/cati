@@ -548,8 +548,10 @@ app.views.tweets = Backbone.View.extend({
         var len = Object.keys(ngrams).length;
         $(".top-bubbles-to-display:visible:last").val(len);
 
+
         //Updating the bigram's control
         var docName = "tweet";
+        var self = this;
         $.post(app.appURL+'get_mapping_spec', this.getIndexAndSession().concat([{name: "doc", value: docName}]), function(response){
 
             if(response == undefined || Object.keys(response).length == 0){
@@ -571,7 +573,7 @@ app.views.tweets = Backbone.View.extend({
                 }
             }
 
-            $(".n-grams-to-generate:visible").val(this.bigrams.formData.find(row => row.name == "n-grams-to-generate").value);
+            $(".n-grams-to-generate:visible").val(self.bigrams.lastQueryParams.find(row => row.name == "n-grams-to-generate").value);
         }, 'json');
     },
     updateTopBubblesToDisplay: function(evt){
