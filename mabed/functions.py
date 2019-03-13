@@ -719,17 +719,24 @@ class Functions:
             }
         })
         clusters = res['aggregations']['group_by_cluster']['buckets']
-        with open('config.json') as f:
-            config = json.load(f)
-        for es_sources in config['elastic_search_sources']:
-            if es_sources['index'] == index:
-                with open(es_sources['image_duplicates']) as file:
-                    data = json.load(file)
+        data = self.get_current_session_data(index)
         for cluster in clusters:
             images = data['duplicates'][cluster['key']]
             cluster['image'] = images[0]
             cluster['size'] = len(images)
         return clusters
+
+    def get_current_session_data(self, index):
+
+        with open('config.json') as f:
+            config = json.load(f)
+
+        for es_sources in config['elastic_search_sources']:
+            if es_sources['index'] == index:
+                with open(es_sources['image_duplicates']) as file:
+                    data = json.load(file)
+
+        return data
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
@@ -749,22 +756,7 @@ class Functions:
                 "boost": 2
             }
         }})
-        # query = {
-        #     "size": 0,
-        #     "query": {
-        #             "bool": {
-        #                 "should": terms
-        #             }
-        #         },
-        #     "aggs": {
-        #         "group_by_cluster": {
-        #             "terms": {
-        #                 "field": "imagesCluster",
-        #                 "size": 200
-        #             }
-        #         }
-        #     }
-        # }
+
         query = {
             "size": 0,
             "query": {
@@ -776,43 +768,16 @@ class Functions:
                 "group_by_cluster": {
                     "terms": {
                         "field": "imagesCluster",
-                        # "shard_size": 999999999,
                         "size": 999999
                     }
                 }
             }
         }
-        # print(query)
         res = my_connector.search(query)
-        # print("Clusters")
-        # print(res['aggregations']['group_by_cluster']['buckets'])
         clusters = res['aggregations']['group_by_cluster']['buckets']
-        with open(index + '.json') as f:
-            data = json.load(f)
+        data = self.get_current_session_data(index)
 
         for cluster in clusters:
-            # q1 = {
-            #       "_source": [
-            #         "text",
-            #         "imagesCluster"
-            #       ],
-            #       "query": {
-            #         "bool": {
-            #            "should": terms,
-            #           "filter": {
-            #             "bool": {
-            #               "should": [
-            #                 {
-            #                   "match": {
-            #                     "imagesCluster": cluster['key']
-            #                   }
-            #                 }
-            #               ]
-            #             }
-            #           }
-            #         }
-            #       }
-            #     }
             q2 = {
                 "query": {
                     "term": {"imagesCluster": cluster['key']}

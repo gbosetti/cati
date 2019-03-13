@@ -52,7 +52,9 @@ app.collections.events = Backbone.Collection.extend({
     get_timeline_events: function(){
       var self = this;
       var events = [];
+
       self.each(function(event){
+
         var sd = new Date(event.get('start_date'));
         var ed = new Date(event.get('end_date'));
 
