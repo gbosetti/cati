@@ -8,7 +8,8 @@ app.views.client = Backbone.View.extend({
 				'click .tweet_state': 'tweet_state',
         		'click .scroll_tweets': 'scroll_tweets',
 				'click .cluster_state': 'cluster_state',
-				'click .btn_filter': 'filter_tweets'
+				'click .btn_filter': 'filter_tweets',
+				'click .event-tweets-tab': 'filter_tweets_matching_tab'
 		},
 	  initialize: function() {
 	      this.render();
@@ -38,6 +39,7 @@ app.views.client = Backbone.View.extend({
 					marker_height_min: 40
 				});
 				var s_ev = app.eventsCollection.get({ cid: timeline.config.events[0].unique_id }).toJSON();
+				self.currentClusterId = timeline.config.events[0].unique_id;
 				var t0 = performance.now();
 
 				$.post(app.appURL+'event_tweets', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
@@ -51,6 +53,7 @@ app.views.client = Backbone.View.extend({
 				timeline.on('change', function(data) {
 				    try{
 						var ev = app.eventsCollection.get({ cid: data.unique_id }).toJSON();
+						self.currentClusterId = data.unique_id;
                         self.load_impact(ev.main_term);
                         $('.tweets_results').fadeOut('slow');
                         $('.loading_text').fadeIn('slow');
@@ -241,13 +244,7 @@ app.views.client = Backbone.View.extend({
 			return html;
 		},
 		display_tweets: function(response, t0, eid){
-		    console.log("Displaying tweets", response);
 			var html = '';
-			html += '<div class="col-12 pix-padding-top-30 pix-padding-bottom-30">\n' +
-				'                    <a class="btn btn-lg btn-success pix-white fly shadow scale btn_filter" data-eid="' + eid + '" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>\n' +
-				'                    <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_filter" data-eid="' + eid + '" data-state="negative" href="#" role="button"><strong>Negative</strong></a>\n' +
-				'                    <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_filter" data-eid="' + eid + '" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>\n' +
-		'              </div>';
         	html += this.get_tweets_html(response, '');
 			var chtml = "";
 			var cbtn = "", state_btns="";
@@ -392,16 +389,22 @@ app.views.client = Backbone.View.extend({
         });
     	return false;
 	},
-	filter_tweets: function(e){
+	filter_tweets_matching_tab: function(evt){
+	    evt.preventDefault();
+	    this.filter_tweets(evt, this.currentClusterId, evt.target.getAttribute("tag"));
+        $('#event-results-tabs-area li').removeClass('active');
+        $(evt.target).parent().addClass('active');
+    },
+	filter_tweets: function(e, eid, state){
 	    e.preventDefault();
-	    var eid = $(e.currentTarget).data("eid");
+	    var eid = (eid != undefined)? eid : $(e.currentTarget).data("eid"); //c1 c2 c5
 	    var ev = app.eventsCollection.get({ cid: eid }).toJSON();
-	    var state = $(e.currentTarget).data("state");
+	    var state = (state != undefined)? state : $(e.currentTarget).data("state");
 	    var session = 'session_'+app.session.s_name;
 	    var self = this;
 	    $('.tweets_results').fadeOut('slow');
-	  $('.loading_text').fadeIn('slow');
-	  var t0 = performance.now();
+        $('.loading_text').fadeIn('slow');
+        var t0 = performance.now();
 	    $.post(app.appURL+'event_filter_tweets', {obj: JSON.stringify(ev), index: app.session.s_index, state:state, session: session}, function(response){
 			self.display_tweets(response, t0, eid);
 		}, 'json');
