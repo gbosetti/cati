@@ -30,8 +30,8 @@ app.views.client = Backbone.View.extend({
 	  },
 		load_timeline: function(){
 			var self = this;
-			console.log("Loading Timeline");
 			data = app.eventsCollection.get_timeline_events();
+			console.log("Timeline data", data);
 			if($('#timeline-embed').length){
 				timeline = new TL.Timeline('timeline-embed',data,{
 					timenav_height: 260,
@@ -39,19 +39,28 @@ app.views.client = Backbone.View.extend({
 				});
 				var s_ev = app.eventsCollection.get({ cid: timeline.config.events[0].unique_id }).toJSON();
 				var t0 = performance.now();
+
 				$.post(app.appURL+'event_tweets', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
+				    try{
 					self.display_tweets(response, t0, timeline.config.events[0].unique_id);
-				}, 'json');
+					}catch(err){console.log(err)}
+				}, 'json').fail(function(err) {
+                      console.log(err);
+                });
 
 				timeline.on('change', function(data) {
+				    try{
 						var ev = app.eventsCollection.get({ cid: data.unique_id }).toJSON();
-						 self.load_impact(ev.main_term);
-						$('.tweets_results').fadeOut('slow');
-			      $('.loading_text').fadeIn('slow');
-			      var t0 = performance.now();
-					$.post(app.appURL+'event_tweets', {obj: JSON.stringify(ev), index: app.session.s_index}, function(response){
-						self.display_tweets(response, t0, data.unique_id);
-					}, 'json');
+                        self.load_impact(ev.main_term);
+                        $('.tweets_results').fadeOut('slow');
+                        $('.loading_text').fadeIn('slow');
+                        var t0 = performance.now();
+                        $.post(app.appURL+'event_tweets', {obj: JSON.stringify(ev), index: app.session.s_index}, function(response){
+                            try{
+                                self.display_tweets(response, t0, data.unique_id);
+                            }catch(err){console.log(err)}
+                        }, 'json');
+                    }catch(err){console.log(err)}
 				});
 			}
 		},
@@ -232,6 +241,7 @@ app.views.client = Backbone.View.extend({
 			return html;
 		},
 		display_tweets: function(response, t0, eid){
+		    console.log("Displaying tweets", response);
 			var html = '';
 			html += '<div class="col-12 pix-padding-top-30 pix-padding-bottom-30">\n' +
 				'                    <a class="btn btn-lg btn-success pix-white fly shadow scale btn_filter" data-eid="' + eid + '" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>\n' +

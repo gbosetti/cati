@@ -17,6 +17,17 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
+      "index": "lyon2017",
+      "doc_type": "tweet",
+      "images_folder": "Twitter_2017_Imgs",
+      "image_duplicates": "C:\\Users\\gbosetti\\dev\\IDENUM\\data\\2017-Image-Classif.json"
+    },
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
       "index": "twitterfdl2015mentions",
       "doc_type": "tweet",
       "images_folder": "Twitter_2015_Imgs",
@@ -24,8 +35,8 @@
     }
   ],
   "default": {
-    "index":"twitter2017",
-    "session" : "twitter2017",
+    "index":"lyon2017",
+    "session" : "lyon2017",
     "sessions_index" : {
       "host": "localhost",
       "port": 9200,

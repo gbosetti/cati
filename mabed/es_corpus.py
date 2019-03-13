@@ -111,7 +111,7 @@ class Corpus:
             self.time_slice_length = None
 
 
-    def discretize(self, time_slice_length, cluster = 2):
+    def discretize(self, time_slice_length, cluster = 2, **kwargs):
         self.time_slice_length = time_slice_length
 
         # clean the data directory
@@ -124,7 +124,7 @@ class Corpus:
         time_delta = time_delta.total_seconds()/60
         self.time_slice_count = int(time_delta // self.time_slice_length) + 1
         self.tweet_count = np.zeros(self.time_slice_count)
-        print('   Number of time-slices: %d' % self.time_slice_count)
+        kwargs["logger"].add_log('   Number of time-slices: %d' % self.time_slice_count)
 
         # create empty files
         for time_slice in range(self.time_slice_count):
@@ -135,6 +135,10 @@ class Corpus:
         self.global_freq = dok_matrix((len(self.vocabulary), self.time_slice_count), dtype=np.short)
         self.mention_freq = dok_matrix((len(self.vocabulary), self.time_slice_count), dtype=np.short)
         for line in self.tweets:
+
+            if self.tweet_count[time_slice] % 300 == 0:
+                kwargs["logger"].add_log("Processing " + str(self.tweet_count[time_slice]) + " tweets")
+
             date = line['_source']['timestamp_ms']
             date = time.ctime(int(date) / 1000)
             tweet_date = datetime.strptime(date, "%a %b %d %H:%M:%S %Y")

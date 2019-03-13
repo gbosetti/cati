@@ -110,6 +110,7 @@ class Corpus:
             text_column_index = header.index('text')
             date_column_index = header.index('date')
             for line in csv_reader:
+                print("corpus.py ", line)
                 tweet_date = datetime.strptime(line[date_column_index], "%Y-%m-%d %H:%M:%S")
                 time_delta = (tweet_date - self.start_date)
                 time_delta = time_delta.total_seconds() / 60

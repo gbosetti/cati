@@ -1,6 +1,7 @@
 # coding: utf-8
 from preprocessing_and_stats.PreProcessor import PreProcessor
 from preprocessing_and_stats.StopWords import EnglishStopWords, FrenchStopWords
+from BackendLogger import BackendLogger
 
 import argparse
 import json
@@ -26,6 +27,8 @@ import datetime
 app = Flask(__name__, static_folder='browser/static', template_folder='browser/templates')
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
+app.backend_logger = BackendLogger()
+
 SELF = "'self'"
 # here we define the content security policy,
 # this CSP allows for inline script, and using a nonce will improve security
@@ -68,7 +71,6 @@ talisman = Talisman(
         'geolocation': '\'none\'',
     },
 )
-
 
 with open('config.json', 'r') as f:
     config = json.load(f)
@@ -187,9 +189,18 @@ def produce_classification_stats():
     })
 
 # Run MABED
+@app.route('/get_backend_logs', methods=['POST', 'GET'])
+# @cross_origin()
+def get_backend_logs():
+    logs = jsonify(app.backend_logger.get_logs())
+    app.backend_logger.clear_logs()
+    return logs
+
+# Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])
 # @cross_origin()
 def detect_events():
+
     data = request.form
     index = data['index']
     k = int(data['top_events'])
@@ -205,12 +216,12 @@ def detect_events():
     events=""
     res = False
     if filter=="all":
-        events = functions.event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, cluster)
+        events = functions.event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=app.backend_logger)
     elif filter == "proposedconfirmed":
         filter = ["proposed","confirmed"]
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster)
+        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=app.backend_logger)
     else:
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster)
+        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster, logger=app.backend_logger)
     if not events:
         events = "No Result!"
     else:
@@ -1034,7 +1045,8 @@ def add_session():
     data = request.form
     name = data['s_name']
     s_index = data['s_index']
-    res = functions.add_session(name, s_index)
+    app.backend_logger.clear_logs()
+    res = functions.add_session(name, s_index, logger=app.backend_logger)
     status = False
     if res:
         status = True

@@ -14,7 +14,7 @@ __email__ = "adrien.guille@univ-lyon2.fr"
 
 class MABED:
 
-    def __init__(self, corpus):
+    def __init__(self, corpus, logger):
         self.corpus = corpus
         self.event_graph = None
         self.redundancy_graph = None
@@ -23,6 +23,7 @@ class MABED:
         self.k = None
         self.theta = None
         self.sigma = None
+        self.logger = logger
 
     def run(self, k=10, p=10, theta=0.6, sigma=0.5):
         self.p = p
@@ -33,11 +34,11 @@ class MABED:
         return self.phase2(basic_events)
 
     def phase1(self):
-        print('Phase 1...')
+        self.logger.add_log('Phase 1...')
         basic_events = []
         for vocabulary_entry in self.corpus.vocabulary.items():
             basic_events.append(self.maximum_contiguous_subsequence_sum(vocabulary_entry))
-        print('   Detected events: %d' % len(basic_events))
+        self.logger.add_log('   Detected events: %d' % len(basic_events))
         return basic_events
 
     def maximum_contiguous_subsequence_sum(self, vocabulary_entry):
@@ -69,7 +70,7 @@ class MABED:
         return basic_event
 
     def phase2(self, basic_events):
-        print('Phase 2...')
+        self.logger.add_log('Phase 2...')
 
         # sort the events detected during phase 1 according to their magnitude of impact
         basic_events.sort(key=lambda tup: tup[0], reverse=True)
@@ -191,13 +192,13 @@ class MABED:
         related_words = []
         for related_word, weight in event[3]:
             related_words.append(related_word+'('+str("{0:.2f}".format(weight))+')')
-        print('   %s - %s: %s (%s)' % (str(self.corpus.to_date(event[1][0])),
+        self.logger.add_log('   %s - %s: %s (%s)' % (str(self.corpus.to_date(event[1][0])),
                                        str(self.corpus.to_date(event[1][1])),
                                        event[2],
                                        ', '.join(related_words)))
 
     def print_events(self):
-        print('   Top %d events:' % len(self.events))
+        self.logger.add_log('   Top %d events:' % len(self.events))
         for event in self.events:
             self.print_event(event)
 

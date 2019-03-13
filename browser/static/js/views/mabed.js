@@ -5,31 +5,7 @@ app.views.mabed = Backbone.View.extend({
     },
     initialize: function() {
         var handler = _.bind(this.render, this);
-        this.initSpinner();
-    },
-    initSpinner: function(){
-        /*var opts = {
-          lines: 9, // The number of lines to draw
-          length: 38, // The length of each line
-          width: 15, // The line thickness
-          radius: 32, // The radius of the inner circle
-          scale: 1, // Scales overall size of the spinner
-          corners: 1, // Corner roundness (0..1)
-          color: '#ffffff', // CSS color or array of colors
-          fadeColor: 'transparent', // CSS color or array of colors
-          speed: 1, // Rounds per second
-          rotate: 0, // The rotation offset
-          animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
-          direction: 1, // 1: clockwise, -1: counterclockwise
-          zIndex: 2e9, // The z-index (defaults to 2000000000)
-          className: 'spinner', // The CSS class to assign to the spinner
-          top: '50%', // Top position relative to parent
-          left: '50%', // Left position relative to parent
-          shadow: '0 0 1px transparent', // Box-shadow for the lines
-          position: 'absolute' // Element positioning
-        };
-
-        this.spinner = new Spinner(opts);*/
+        this.keepaskingForLogs = false;
     },
     render: function () {
         var html = this.template();
@@ -135,6 +111,40 @@ app.views.mabed = Backbone.View.extend({
         });
         return false;
     },
+    showProcessingEventsPopup: function(){
+        barHtml = 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
+			'<div class="mt-3 form-group"> ' +
+                '<textarea class="form-control rounded-0" id="backend_logs" rows="10">Starting...\n</textarea> ' +
+            '</div>';
+
+        var jc = $.confirm({
+            title:"Detecting Events",
+            columnClass: 'extra-large',
+            content: barHtml,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+        var self = this;
+        this.keepaskingForLogs = true;
+        var askForLogs = setInterval(function(){
+            $.get(app.appURL+'get_backend_logs', function(response){
+
+                response.forEach(log => {
+                    $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");
+                });
+                $("#backend_logs")[0].scrollTop = $("#backend_logs")[0].scrollHeight - $("#backend_logs").height();
+
+                if(self.keepaskingForLogs == false){
+                    clearInterval(askForLogs);
+                }
+            }, 'json');
+        }, 7000);
+        return jc;
+    },
     run_mabed: function(e){
         e.preventDefault();
         if(!app.session){
@@ -146,26 +156,13 @@ app.views.mabed = Backbone.View.extend({
       var data = $('#run_mabed').serializeArray();
       data.push({name: "index", value: app.session.s_index});
       data.push({name: "session", value: app.session.s_name});
-      console.log(data);
-      var jc = $.confirm({
-            theme: 'pix-default-modal',
-            title: 'Detecting Events',
-            boxWidth: '600px',
-            useBootstrap: false,
-            backgroundDismiss: false,
-            content: 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes).<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
-            defaultButtons: false,
-            buttons: {
-                cancel: {
-                    text: 'OK',
-                    btnClass: 'btn-cancel'
-                }
-            }
-        });
-      console.log(app.appURL+'detect_events', data);
+
+      this.showProcessingEventsPopup();
+
       $.post(app.appURL+'detect_events', data, function(response){
-          $('#mabed_loading').fadeOut();
-          jc.close();
+
+          self.keepaskingForLogs = false;
+
           if(response.result){
               self.model.reset();
               $.each(response.events.event_descriptions, function( i, value ) {
@@ -202,8 +199,6 @@ app.views.mabed = Backbone.View.extend({
           }
 
       }, 'json').fail(function() {
-            $('#mabed_loading').fadeOut();
-            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',
