@@ -31,6 +31,40 @@ Edit the logstash_tweets_importer.conf file with the path to the json file conta
     
     logstash -f logstash_tweets_importer.conf
 
+### Set the source in the config.json file
+
+Edit config.json to add a new element to elastic_search_sources
+Generate the duplicate files using DuplicateFinder.exe
+
+```
+{
+    "elastic_search_sources":[
+        {
+          "host": ,
+          "port": ,
+          "user": ,
+          "password": ,
+          "timeout": ,
+          "index": [the name of index, it was used in the logstash_tweets_importer],
+          "doc_type": "tweet",
+          "image_duplicates": [path to duplicates file]
+        }
+    ],
+    "default": {
+        "index": [ this can be the first index],
+        "session" : "",
+        "sessions_index" : {
+          "host": ,
+          "port": ,
+          "user": ,
+          "password": ,
+          "timeout": ,
+          "index": "mabed_sessions",
+          "doc_type": "session"
+        }
+    }
+}
+```
 
 ### Import images clusters into Elasticsearch
 
