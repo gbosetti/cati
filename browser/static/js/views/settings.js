@@ -58,6 +58,8 @@ app.views.settings = Backbone.View.extend({
             self.show_seesion_info();
             localStorage.removeItem('session_id');
             localStorage.removeItem('session');
+            localStorage.removeItem('image_path')
+            localStorage.setItem('image_path',response.image_path)
             localStorage.setItem('session_id', response.body._id);
             localStorage.setItem('session', JSON.stringify(response.body._source));
             console.log("sesssss");
