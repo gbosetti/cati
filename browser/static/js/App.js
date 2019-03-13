@@ -9,6 +9,7 @@ var app = (function() {
 		session_id: null,
 		session: null,
 		eventsCollection: null,
+		imagesPath: null,
 		imagesURL: 'http://localhost/TwitterImages/',
 		appURL: 'http://localhost:5000/',
 		// appURL: 'http://mediamining.univ-lyon2.fr:5000/',
@@ -17,7 +18,7 @@ var app = (function() {
 			this.content = $("#content");
 
 			this.eventsCollection = new app.collections.events();
-			this.imagesURL = 'http://mediamining.univ-lyon2.fr/~firas/TwitterImages/';
+			this.imagesURL = 'http://localhost:5000/static/images/';
 			if (localStorage.getItem('session_id') !== null) {
 				var sessionString = localStorage.getItem('session');
 				this.session = JSON.parse(sessionString);
@@ -27,6 +28,9 @@ var app = (function() {
 					// console.log(collection);
 					this.eventsCollection.add_json_events(collection);
 				}
+			}
+			if (localStorage.getItem('image_path') !== null) {
+				this.imagesPath = localStorage.getItem('image_path');
 			}
 
 			Backbone.history.start();

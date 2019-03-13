@@ -358,7 +358,7 @@ app.views.tweets = Backbone.View.extend({
                     if(media.media_url.endsWith("png")){
                         ext = "png";
                     }
-                        imgs += '<a href="'+app.imagesURL+app.session.s_index+'/'+tweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="'+app.imagesURL+app.session.s_index+'/'+tweet._source.id_str+"_"+i+'.'+ext+'"></a>'
+                        imgs += '<a href="'+app.imagesURL+app.imagesPath+'/'+tweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="'+app.imagesURL+app.imagesPath+'/'+tweet._source.id_str+"_"+i+'.'+ext+'"></a>'
               });
             }
             var state = tweet._source['session_'+app.session.s_name];
@@ -740,7 +740,7 @@ app.views.tweets = Backbone.View.extend({
                         state_btns += '</div>';
                 }
                 chtml += '<div class="card p-3 '+cbg+'">'+
-                    '<img class="card-img-top" src="'+app.imagesURL+app.session.s_index+'/'+cluster.image+'" alt="">'+
+                    '<img class="card-img-top" src="'+app.imagesURL+ app.imagesPath +'/'+cluster.image+'" alt="">'+
                     state_btns +
                     '<div class="card-body">'+
                         '<p class="card-text">'+cluster.doc_count+' related tweets contain this image</p>'+
