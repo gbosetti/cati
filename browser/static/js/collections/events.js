@@ -18,7 +18,7 @@ app.collections.events = Backbone.Collection.extend({
                 if(response.image.extended_entities.media[0].media_url.endsWith("png")){
                     ext = "png";
                 }
-                res.set({image: app.imagesURL+app.session.s_index+'/'+response.image.id_str+"_0"+'.'+ext});
+                res.set({image: app.imagesURL+app.imagesPath+'/'+response.image.id_str+"_0"+'.'+ext});
             }else{
                 res.set({image: "static/images/img.jpg"});
             }
@@ -42,7 +42,7 @@ app.collections.events = Backbone.Collection.extend({
                 if(response.image.extended_entities.media[0].media_url.endsWith("png")){
                     ext = "png";
                 }
-                res.set({image: app.imagesURL+app.session.s_index+'/'+response.image.id_str+"_0"+'.'+ext});
+                res.set({image: app.imagesURL+app.imagesPath+'/'+response.image.id_str+"_0"+'.'+ext});
             }else{
                 res.set({image: "static/images/img.jpg"});
             }
