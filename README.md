@@ -27,14 +27,29 @@ Provided a set of tweets, MABED can (i) perform event detection and (ii) generat
 
 ### Import tweets into Elasticsearch
 
-Edit the logstash_tweets_importer.conf file with the path to the json file containing the tweets in your device. Then, run the following command:
+Edit the logstash_tweets_importer.conf file with A) the path to the json file containing the tweets in your device, and B) the name of the index you want to create (E.g. lyon2017).
+Then, run the following command:
     
     logstash -f logstash_tweets_importer.conf
 
+
+### Generate the image clusters
+
+Generate the duplicate-image clusters by using the DuplicateFinder.exe application. Make sure that the images to be analized are in a folder placed at:
+
+    mabed/browser/static/images
+
+E.g. mabed/browser/static/images/lyon2017-images
+
+Once you analyzed and generated the clusters, export the json file and keep track of such filename. Let's say we name it and save it as:
+mabed/browser/static/images/image-clusters-lyon2017.json
+
+
 ### Set the source in the config.json file
 
-Edit config.json to add a new element to elastic_search_sources
-Generate the duplicate files using DuplicateFinder.exe
+Before running the application, it is important to properly configure the available list of indexes you want to use from the application.
+To do so, you can edit the config.json file at the root of the project's folder.
+To add a new index, please add a new entry into the elastic_search_sources:
 
 ```
 {
@@ -45,9 +60,10 @@ Generate the duplicate files using DuplicateFinder.exe
           "user": ,
           "password": ,
           "timeout": ,
-          "index": [the name of index, it was used in the logstash_tweets_importer],
+          "index": [the name of index, it was used in the logstash_tweets_importer. E.g. lyon2017],
           "doc_type": "tweet",
-          "image_duplicates": [path to duplicates file]
+          "images_folder": [ name of the folder containing the images related to the dataset. E.g. "lyon2017-images"],
+          "image_duplicates": [full path to duplicates file. E.g. home/user/mabed/browser/static/images/image-clusters-lyon2017.json or C:\\Users\\...\\image-clusters-lyon2017.json]
         }
     ],
     "default": {
@@ -65,6 +81,8 @@ Generate the duplicate files using DuplicateFinder.exe
     }
 }
 ```
+
+The default values are the default index and session you want the application to load. The sessions_index entry is for the mabed_sessions index, that will contain the list of created sessions with the system. It is automtically created the first time you run the system.
 
 ### Import images clusters into Elasticsearch
 
@@ -88,8 +106,6 @@ If you execute the images.py script more than one, the values are updated, not d
     }
 
 ### Start the web application
-
-Before running the application, it is important to properly configure the available list of indexes you want to use from the application. To do so, you can edit the config.json file at the root of the project's folder.
 
 Start the elasticsearchserver:
 
