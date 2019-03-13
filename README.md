@@ -55,26 +55,21 @@ If you execute the images.py script more than one, the values are updated, not d
 
 ### Start the web application
 
-Start the elasticsearchserver. If you are running the application for the first time, please create a “mabed_sessions” index using kibana. For the version 6.5.4 simply execute the following line in the Dev tools console:
+Before running the application, it is important to properly configure the available list of indexes you want to use from the application. To do so, you can edit the config.json file at the root of the project's folder.
 
-    PUT mabed_sessions
-
-Then:
+Start the elasticsearchserver:
 
     python3 server.py
 
-Visit localhost:5000.
+And visit localhost:5000. The first time the system is running, a new “mabed_sessions” index will be automatically created. Just in case a read-only error arises, please run the following using Kibana:
+    
+    PUT mabed_sessions/_settings { "index": { "blocks": { "read_only_allow_delete": "false" } } } 
 
-PS: right now, the indexes listed and used by the application are fixed. Please, add an alias if the name of your index is different. You can do it by running a query like the following one:
+Once the application isrunning, go to Settings > Create Session. choose a name and an existing index in Elasticsearch, and click Save. The process may take a while.
 
-    POST /_aliases
-    {
-        "actions" : [
-            { "add" : { "index" : "twitterfdl2017", "alias" : "twitter2017" } }
-        ]
-    }
+Once the new session is created, please select it from the Switch Sessions combo and click on the "Swithc session" button. The information presentes in the "Current Session" section should be updated.
 
-When running MABED, the detect_events method is called. Look at the functions.py file
+Once you are working with the right session, you can generate as many ngrams as you want, to be further used in the "Tweets Search" tab. E.g. choose "2" and press the "(Re) generate" button. If you execute the process with the same parameters more than once, the ngrams are updated, not duplicated.
 
 
 ### Updating the dependencies
