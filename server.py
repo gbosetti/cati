@@ -177,18 +177,26 @@ def detect_events():
 # 3. Images
 # ==================================================================
 # TODO replace hard coded options
-# this function is not working
-# we must find out what is the expected content
-# have tested twitter2017.json, and it renders a page with broken images
+# we are rendering the images of the default index
 @app.route('/images')
 def images():
-    with open('twitter2015.json') as f:
-        data = json.load(f)
+    # with open('twitter2015.json') as f:
+    #     data = json.load(f)
+    # TODO make this page compatible with multiple sources
+    # instead of using default_source
+    for es_sources in config['elastic_search_sources']:
+        if es_sources['index'] == default_source:
+            images_folder = es_sources['images_folder']
+            with open(es_sources['image_duplicates']) as file:
+                data = json.load(file)
     clusters_num = len(data['duplicates'])
     clusters = data['duplicates']
+    clusters_url = []
+    for image_url in clusters:
+        clusters_url.append(images_folder + "/" + image_url[0])
     return render_template('images.html',
                            clusters_num=clusters_num,
-                           clusters=clusters
+                           clusters=clusters_url
                            )
 
 # ==================================================================
@@ -1007,7 +1015,15 @@ def get_session():
     status = False
     if res:
         status = True
-    return jsonify({"result": status, "body": res})
+        for es_sources in config['elastic_search_sources']:
+            if es_sources['index'] == res['_source']['s_index']:
+                try:
+                    images_folder = es_sources['images_folder']
+                except KeyError:
+                    raise KeyError("Check config.json images_folder not set for index ", es_sources['index'])
+    else:
+        images_folder = ""
+    return jsonify({"result": status, "body": res, "image_path": images_folder})
 
 
 # Get Session
