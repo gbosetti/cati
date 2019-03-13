@@ -14,6 +14,7 @@ from flask_cors import CORS, cross_origin
 from flask_frozen import Freezer
 from flask import Response
 from flask_htpasswd import HtPasswdAuth
+from flask_talisman import Talisman
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
 from classification.ngram_based_classifier import NgramBasedClasifier
@@ -25,6 +26,49 @@ import datetime
 app = Flask(__name__, static_folder='browser/static', template_folder='browser/templates')
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
+SELF = "'self'"
+# here we define the content security policy,
+# this CSP allows for inline script, and using a nonce will improve security
+talisman = Talisman(
+    app,
+    content_security_policy={
+        'default-src': SELF,
+        'img-src': [
+            '*',
+            SELF,
+        ],
+        'script-src': [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            'https://cdn.knightlab.com',
+            'https://unpkg.com',
+            "http://underscorejs.org"
+        ],
+        'font-src' : [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
+            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/fonts/",
+            "https://fonts.googleapis.com",
+            'https://cdn.knightlab.com',
+            'https://fonts.gstatic.com',
+        ],
+        'style-src': [
+            SELF,
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://fonts.googleapis.com",
+            'https://cdn.knightlab.com',
+            "https://maxcdn.bootstrapcdn.com"
+        ]
+    },
+    feature_policy={
+        'geolocation': '\'none\'',
+    },
+)
+
 
 with open('config.json', 'r') as f:
     config = json.load(f)
@@ -356,12 +400,12 @@ def n_grams_classification():
 # @cross_origin()
 def event_tweets():
     data = request.form
-    index = data['index']
+    source_index = data['index']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    tweets = functions.get_event_tweets(index, main_term, related_terms)
-    clusters = functions.get_event_clusters(index, main_term, related_terms)
+    tweets = functions.get_event_tweets(source_index, main_term, related_terms)
+    clusters = functions.get_event_clusters(source_index, main_term, related_terms)
     return jsonify({"tweets": tweets, "clusters": clusters})
 
 
@@ -424,10 +468,11 @@ def cluster_search_tweets():
 def event_image():
     data = request.form
     index = data['index']
+    s_name = data['s_name']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    image = functions.get_event_image(index, main_term, related_terms)
+    image = functions.get_event_image(index, main_term, related_terms, s_name)
     res = False
     if image:
         image = image['hits']['hits'][0]['_source']
