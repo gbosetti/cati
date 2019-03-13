@@ -789,8 +789,12 @@ class Functions:
         # print("Clusters")
         # print(res['aggregations']['group_by_cluster']['buckets'])
         clusters = res['aggregations']['group_by_cluster']['buckets']
-        with open(index + '.json') as f:
-            data = json.load(f)
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        for es_sources in config['elastic_search_sources']:
+            if es_sources['index'] == index:
+                with open(es_sources['image_duplicates']) as file:
+                    data = json.load(file)
 
         for cluster in clusters:
             # q1 = {
