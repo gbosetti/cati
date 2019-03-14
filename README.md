@@ -132,7 +132,7 @@ flask run --cert [certificate_file] --key [key_file]
 If one is testing the application, one can create a self [signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html)
 ```
 openssl genrsa -out key.pem 4096
-openssl req -new -key key.pem -out req.pem
+openssl req -x509 -new -key key.pem -out cert.pem
 ```
 And use these files as certificate and keyfile
 
