@@ -266,8 +266,21 @@ app.views.client = Backbone.View.extend({
                         state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
                         state_btns += '</div>';
                     }
+                    //console.log("URL: ", app.imagesURL, "\nImage: ", cluster.image);
+                    var image_filename_with_ext = cluster.image.split("/").pop();
+
+                    $.post(app.appURL+'get_image_by_id', [
+                        { name: "image_filename_with_ext", value: image_filename_with_ext },
+                        { name: "cid", value: cluster.key }
+                    ],
+                    function(response){
+                    var elem = $("#eventsClusters .cluster_tweets[data-cid='" + response.cid + "']")[0].closest(".card").querySelector("img");
+                        console.log(elem);
+                        elem.setAttribute('src', 'data:image/png;base64,' + response.encoded);
+                    });
+
                     chtml += '<div class="card p-3 ' + cbg + '">' +
-                        '<img class="card-img-top" src="' + app.imagesURL + app.imagesPath + '/' + cluster.image + '" alt="">' +
+                        '<img class="card-img-top" src="' + app.imagesURL + '/' + cluster.image + '" alt="">' +
                         state_btns +
                         '<div class="card-body">' +
                         '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
