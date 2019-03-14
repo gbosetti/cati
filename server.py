@@ -258,21 +258,6 @@ def images():
                            )
 
 
-@app.route('/get_image_by_id', methods=['POST'])
-def get_image_by_id():
-    data = request.form
-
-    for es_sources in config['elastic_search_sources']:
-        if es_sources['index'] == default_source:
-            images_folder = es_sources['images_folder']
-
-    image_full_path = os.path.join(os.path.sep, os.getcwd(),"browser", "static", "images", images_folder, data["image_filename_with_ext"])
-    with open(image_full_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read())
-
-    return jsonify({"encoded": encoded_string.decode(encoding="utf-8"), "cid": data["cid"]})
-
-
 # ==================================================================
 # 4. Tweets
 # ==================================================================
@@ -1124,6 +1109,17 @@ def update_session_results():
         status = True
     return jsonify({"result": status, "body": res})
 
+# Update session results
+@app.route('/get_image_folder', methods=['POST'])
+# @cross_origin()
+def get_image_folder():
+    data = request.form
+
+    for es_sources in config['elastic_search_sources']:
+        if es_sources['index'] == data["index"]:  # & es_sources['session'] == data["session"]:
+            return es_sources['images_folder']
+
+    return
 
 # Get session results
 @app.route('/get_session_results', methods=['POST', 'GET'])

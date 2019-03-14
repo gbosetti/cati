@@ -249,50 +249,49 @@ app.views.client = Backbone.View.extend({
 			var chtml = "";
 			var cbtn = "", state_btns="";
 			var i = 0;
-			if(response.clusters) {
-                $.each(response.clusters, function (i, cluster) {
-                    if (i >= 40) {
-                        return false;
-                    }
-                    i++;
-                    var cbg = "";
-                    if (cluster.size > cluster.doc_count) {
-                        cbg = 'yellow-tweet';
-                    }
-                    if (eid) {
-                        cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="' + eid + '" data-cid="' + cluster.key + '"><strong>Show tweets</strong></a>';
-                        state_btns = '<div class="cluster_state_btns">';
-                        state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
-                        state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
-                        state_btns += '</div>';
-                    }
-                    //console.log("URL: ", app.imagesURL, "\nImage: ", cluster.image);
-                    var image_filename_with_ext = cluster.image.split("/").pop();
 
-                    $.post(app.appURL+'get_image_by_id', [
-                        { name: "image_filename_with_ext", value: image_filename_with_ext },
-                        { name: "cid", value: cluster.key }
-                    ],
-                    function(response){
-                    var elem = $("#eventsClusters .cluster_tweets[data-cid='" + response.cid + "']")[0].closest(".card").querySelector("img");
-                        console.log(elem);
-                        elem.setAttribute('src', 'data:image/png;base64,' + response.encoded);
-                    });
+			 $.post(app.appURL+'get_image_folder', [
+                    { name: "index", value: app.session.s_index },
+                    { name: "session", value: app.session.s_name }
+                ],function(image_folder){
 
-                    chtml += '<div class="card p-3 ' + cbg + '">' +
-                        '<img class="card-img-top" src="' + app.imagesURL + '/' + cluster.image + '" alt="">' +
-                        state_btns +
-                        '<div class="card-body">' +
-                        '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
-                        // '<p class="card-text">'+cluster.size2+' related tweets contain this image</p>'+
-                        '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
-                        '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
-                        cbtn +
-                        '</div>' +
-                        '</div>';
-                });
-                $('#eventsClusters').html(chtml);
-            }
+                    console.log("ImageFolder", image_folder);
+                    if(response.clusters) {
+                        $.each(response.clusters, function (i, cluster) {
+                            if (i >= 40) {
+                                return false;
+                            }
+                            i++;
+                            var cbg = "";
+                            if (cluster.size > cluster.doc_count) {
+                                cbg = 'yellow-tweet';
+                            }
+                            if (eid) {
+                                cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="' + eid + '" data-cid="' + cluster.key + '"><strong>Show tweets</strong></a>';
+                                state_btns = '<div class="cluster_state_btns">';
+                                state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
+                                state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
+                                state_btns += '</div>';
+                            }
+                            //console.log("URL: ", app.imagesURL, "\nImage: ", cluster.image);
+                            var image_filename_with_ext = cluster.image.split("/").pop();
+
+                            chtml += '<div class="card p-3 ' + cbg + '">' +
+                                '<img class="card-img-top" src="' + app.imagesURL + '/' + image_folder + "/" + image_filename_with_ext + '" alt="">' +
+                                state_btns +
+                                '<div class="card-body">' +
+                                '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
+                                // '<p class="card-text">'+cluster.size2+' related tweets contain this image</p>'+
+                                '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
+                                '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
+                                cbtn +
+                                '</div>' +
+                                '</div>';
+                        });
+                        $('#eventsClusters').html(chtml);
+                    }
+                }
+            );
 			$('.individual_tweets_result:visible:last').html(html);
 			$('.loading_text').fadeOut('slow');
 			$('.tweets_results').fadeIn('slow');
