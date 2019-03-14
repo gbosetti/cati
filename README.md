@@ -129,7 +129,7 @@ To serve the application using HTTPS:
 export FLASK_APP=server.py
 flask run --cert [certificate_file] --key [key_file]
 ```
-If one is testing the application, one can create a self [signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html)
+If one is testing the application, one can create a [self signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html)
 ```
 openssl genrsa -out key.pem 4096
 openssl req -x509 -new -key key.pem -out cert.pem
