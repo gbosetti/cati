@@ -13,3 +13,6 @@ classification/test/*
 classification/train/*
 classification/unlabeled/*
 browser/static/images/Twitter_2017_Imgs
+key.pem
+cert.pem
+.rnd

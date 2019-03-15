@@ -124,17 +124,38 @@ Once you are working with the right session, you can generate as many ngrams as 
 
 ### Serving with HTTPS
 
-To serve the application using HTTPS:
+First, please install openssl.
+In Debian-based systems you can do it with:
 ```
-export FLASK_APP=server.py
-flask run --cert [certificate_file] --key [key_file]
+sudo apt-get install openssl
 ```
-If one is testing the application, one can create a [self signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html)
+
+In WIndows, you can download a [zip file](https://freefr.dl.sourceforge.net/project/openssl/openssl-1.0.2j-fips-x86_64/openssl-1.0.2j-fips-x86_64.zip)
+and then set the environment variable OPENSSL_CONF. From the commandline you should type:
+```
+set OPENSSL_CONF=C:\Users\...\OpenSSL\bin\openssl.cnf
+```
+
+To create a [self signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html):
 ```
 openssl genrsa -out key.pem 4096
 openssl req -x509 -new -key key.pem -out cert.pem
 ```
-And use these files as certificate and keyfile
+
+Then, you should set the environment variable.
+In Debian-based systems:
+```
+export FLASK_APP=server.py
+```
+In Windows:
+```
+set FLASK_APP=server.py
+```
+
+And finally serve the application using HTTPS:
+```
+flask run --cert [certificate_file] --key [key_file]
+```
 
 ### Updating the dependencies
 
