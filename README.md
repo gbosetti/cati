@@ -122,6 +122,20 @@ Once the new session is created, please select it from the Switch Sessions combo
 Once you are working with the right session, you can generate as many ngrams as you want, to be further used in the "Tweets Search" tab. E.g. choose "2" and press the "(Re) generate" button. If you execute the process with the same parameters more than once, the ngrams are updated, not duplicated.
 
 
+### Serving with HTTPS
+
+To serve the application using HTTPS:
+```
+export FLASK_APP=server.py
+flask run --cert [certificate_file] --key [key_file]
+```
+If one is testing the application, one can create a [self signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html)
+```
+openssl genrsa -out key.pem 4096
+openssl req -x509 -new -key key.pem -out cert.pem
+```
+And use these files as certificate and keyfile
+
 ### Updating the dependencies
 
 If you edit the code and install new dependencies, you can update the list by executing:
