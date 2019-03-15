@@ -742,7 +742,7 @@ app.views.tweets = Backbone.View.extend({
                         state_btns += '</div>';
                 }
                 chtml += '<div class="card p-3 '+cbg+'">'+
-                    '<img class="card-img-top" src="'+app.imagesURL+ app.imagesPath +'/'+cluster.image+'" alt="">'+
+                    '<img class="card-img-top" src="'+app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() +'" alt="">'+
                     state_btns +
                     '<div class="card-body">'+
                         '<p class="card-text">'+cluster.doc_count+' related tweets contain this image</p>'+

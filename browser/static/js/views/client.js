@@ -253,12 +253,11 @@ app.views.client = Backbone.View.extend({
 			var cbtn = "", state_btns="";
 			var i = 0;
 
-			 $.post(app.appURL+'get_image_folder', [
-                    { name: "index", value: app.session.s_index },
-                    { name: "session", value: app.session.s_name }
-                ],function(image_folder){
+			 //$.post(app.appURL+'get_image_folder', [
+             //       { name: "index", value: app.session.s_index },
+             //       { name: "session", value: app.session.s_name }
+             //   ],function(image_folder){
 
-                    console.log("ImageFolder", image_folder);
                     if(response.clusters) {
                         $.each(response.clusters, function (i, cluster) {
                             if (i >= 40) {
@@ -276,11 +275,9 @@ app.views.client = Backbone.View.extend({
                                 state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
                                 state_btns += '</div>';
                             }
-                            //console.log("URL: ", app.imagesURL, "\nImage: ", cluster.image);
-                            var image_filename_with_ext = cluster.image.split("/").pop();
 
                             chtml += '<div class="card p-3 ' + cbg + '">' +
-                                '<img class="card-img-top" src="' + app.imagesURL + '/' + image_folder + "/" + image_filename_with_ext + '" alt="">' +
+                                '<img class="card-img-top" src="' +app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() + '" alt="">' +
                                 state_btns +
                                 '<div class="card-body">' +
                                 '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
@@ -293,8 +290,8 @@ app.views.client = Backbone.View.extend({
                         });
                         $('#eventsClusters').html(chtml);
                     }
-                }
-            );
+                //}
+            //);
 			$('.individual_tweets_result:visible:last').html(html);
 			$('.loading_text').fadeOut('slow');
 			$('.tweets_results').fadeIn('slow');
