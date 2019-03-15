@@ -31,6 +31,7 @@ app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 app.backend_logger = BackendLogger()
 
+functions = Functions()
 SELF = "'self'"
 # here we define the content security policy,
 # this CSP allows for inline script, and using a nonce will improve security
@@ -48,7 +49,7 @@ talisman = Talisman(
             "'unsafe-eval'",
             'https://cdn.knightlab.com',
             'https://unpkg.com',
-            "http://underscorejs.org"
+            "https://underscorejs.org"
         ],
         'font-src' : [
             SELF,
@@ -1154,6 +1155,7 @@ def index(user):
 
 
 if __name__ == '__main__':
-    functions = Functions()
+    #
+    # app.run(debug=True, host='localhost', port=5000, threaded=True, ssl_context=())
     app.run(debug=True, host='localhost', port=5000, threaded=True)
     # app.run(debug=False, host='mediamining.univ-lyon2.fr', port=5000, threaded=True)
