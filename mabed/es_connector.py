@@ -175,6 +175,8 @@ class Es_connector:
             return False
 
     def get(self, id):
+
+        print("SEARCHING FOR SESSION ", id)
         res = self.es.get(index=self.index,
             doc_type=self.doc_type,
             id=id)

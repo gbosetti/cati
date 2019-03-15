@@ -14,9 +14,8 @@ var app = (function() {
 		appURL: 'http://localhost:5000/',
 		// appURL: 'http://mediamining.univ-lyon2.fr:5000/',
 		// appURL: 'http://206.189.211.142:5000/',
-		init: function() {
+		init: function() {  //THIS MIGHT HELP
 			this.content = $("#content");
-
 			this.eventsCollection = new app.collections.events();
 			this.imagesURL = 'http://localhost:5000/static/images/';
 			if (localStorage.getItem('session_id') !== null) {

@@ -12,60 +12,63 @@ app.views.client = Backbone.View.extend({
 				'click .event-tweets-tab': 'filter_tweets_matching_tab'
 		},
 	  initialize: function() {
-	      this.render();
-	      var handler = _.bind(this.render, this);
-	      var self = this;
-	      $(document).on("click","body .tweet_state",function(e){ // Search tweets
-			self.tweet_state(e);
-		});
+            this.render();
+            var handler = _.bind(this.render, this);
+            var self = this;
+            $(document).on("click","body .tweet_state",function(e){ // Search tweets
+                self.tweet_state(e);
+            });
 	  },
 	  render: function(){
 	    var html = this.template({});
 	  	this.$el.html(html);
 	  	this.delegateEvents();
 	  	$('#timeline_div').html('<div id="timeline-embed" style="width: 100%; height: 800px;box-shadow: 0 4px 2px -2px rgba(0,0,0,0.2)"></div>');
+		app.views.mabed.prototype.getClassificationStats();
+
 		this.load_timeline();
 		this.load_impact();
-		  app.views.mabed.prototype.getClassificationStats();
 	  	return this;
 	  },
 		load_timeline: function(){
 			var self = this;
-			data = app.eventsCollection.get_timeline_events();
-			console.log("Timeline data", data);
-			if($('#timeline-embed').length){
-				timeline = new TL.Timeline('timeline-embed',data,{
-					timenav_height: 260,
-					marker_height_min: 40
-				});
-				var s_ev = app.eventsCollection.get({ cid: timeline.config.events[0].unique_id }).toJSON();
-				self.currentClusterId = timeline.config.events[0].unique_id;
-				var t0 = performance.now();
+			app.eventsCollection.get_timeline_events().then(data => {
+			    console.log("Timeline data", data);
 
-				$.post(app.appURL+'event_tweets', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
-				    try{
-					self.display_tweets(response, t0, timeline.config.events[0].unique_id);
-					}catch(err){console.log(err)}
-				}, 'json').fail(function(err) {
-                      console.log(err);
-                });
+                if($('#timeline-embed').length){
+                    timeline = new TL.Timeline('timeline-embed',data,{
+                        timenav_height: 260,
+                        marker_height_min: 40
+                    });
+                    var s_ev = app.eventsCollection.get({ cid: timeline.config.events[0].unique_id }).toJSON();
+                    self.currentClusterId = timeline.config.events[0].unique_id;
+                    var t0 = performance.now();
 
-				timeline.on('change', function(data) {
-				    try{
-						var ev = app.eventsCollection.get({ cid: data.unique_id }).toJSON();
-						self.currentClusterId = data.unique_id;
-                        self.load_impact(ev.main_term);
-                        $('.tweets_results').fadeOut('slow');
-                        $('.loading_text').fadeIn('slow');
-                        var t0 = performance.now();
-                        $.post(app.appURL+'event_tweets', {obj: JSON.stringify(ev), index: app.session.s_index}, function(response){
-                            try{
-                                self.display_tweets(response, t0, data.unique_id);
-                            }catch(err){console.log(err)}
-                        }, 'json');
-                    }catch(err){console.log(err)}
-				});
-			}
+                    $.post(app.appURL+'event_tweets', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
+                        try{
+                        self.display_tweets(response, t0, timeline.config.events[0].unique_id);
+                        }catch(err){console.log(err)}
+                    }, 'json').fail(function(err) {
+                          console.log(err);
+                    });
+
+                    timeline.on('change', function(data) {
+                        try{
+                            var ev = app.eventsCollection.get({ cid: data.unique_id }).toJSON();
+                            self.currentClusterId = data.unique_id;
+                            self.load_impact(ev.main_term);
+                            $('.tweets_results').fadeOut('slow');
+                            $('.loading_text').fadeIn('slow');
+                            var t0 = performance.now();
+                            $.post(app.appURL+'event_tweets', {obj: JSON.stringify(ev), index: app.session.s_index}, function(response){
+                                try{
+                                    self.display_tweets(response, t0, data.unique_id);
+                                }catch(err){console.log(err)}
+                            }, 'json');
+                        }catch(err){console.log(err)}
+                    });
+                }
+            });
 		},
 		reset_impact: function(e){
 			e.preventDefault();

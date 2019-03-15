@@ -1,14 +1,34 @@
 app.views.events = Backbone.View.extend({
 	template: _.template($("#tpl-page-events").html()),
 	events: {
-		'click .export_tweets': 'export_tweets',
+		'click .export_tweets': 'imageexport_tweets',
 		'click .tweet_state': 'tweet_state',
 		'click .scroll_tweets': 'scroll_tweets',
 		'click .btn_review': 'review_tweets'
 	},
 	initialize: function() {
+	    this.updateEventImages();
 		this.render();
 		var handler = _.bind(this.render, this);
+	},
+	updateEventImages: function(){
+
+
+	    /*app.eventsCollection = new app.collections.events();
+			this.imagesURL = 'http://localhost:5000/static/images/';
+			if (localStorage.getItem('session_id') !== null) {
+				var sessionString = localStorage.getItem('session');
+				this.session = JSON.parse(sessionString);
+				this.session_id = localStorage.getItem('session_id');
+				if(this.session.events){
+					var collection = JSON.parse(this.session.events);
+					// console.log(collection);
+					this.eventsCollection.add_json_events(collection);
+				}
+			}
+			if (localStorage.getItem('image_path') !== null) {
+				this.imagesPath = localStorage.getItem('image_path');
+			}*/
 	},
 	render: function(){
 		var html = this.template({});

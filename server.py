@@ -493,6 +493,30 @@ def event_image():
         res = True
     return jsonify({"result":res, "image": image})
 
+@app.route('/all_events_images', methods=['POST'])
+# @cross_origin()
+def all_events_images():
+    data = request.form
+    index = data['index']
+    s_name = data['s_name']
+    events = json.loads(data['events'])
+    images_by_event = []
+
+    for event in events:
+        main_term = event['main_term'].replace(",", " ")
+        related_terms = event['related_terms']
+        image = functions.get_event_image(index, main_term, related_terms, s_name)
+        if image:
+            image_src = image['hits']['hits'][0]['_source']['extended_entities']['media'][0]["media_url"]
+            image_id = image['hits']['hits'][0]['_source']['id_str']
+        else:
+            image_src = "static/images/img.jpg"
+
+        images_by_event.append({"cid": event["cid"], "image_id": image_id, "image_src": image_src})
+
+    return jsonify(images_by_event)
+
+
 # TODO replace hard coded options
 # Test & Debug
 @app.route('/mark_valid', methods=['POST', 'GET'])
@@ -528,7 +552,6 @@ def mark_cluster():
 @app.route('/mark_tweet', methods=['POST', 'GET'])
 # @cross_origin()
 def mark_tweet():
-    print("MARK TWEET")
     data = request.form
     index = data['index']
     session = data['session']
@@ -545,9 +568,6 @@ def mark_bigram_tweets():
     propName=data["n-grams-to-generate"] + "grams"
     word = (request.form.get('word', '')).strip()
     full_search = len(word) == 0
-
-    print("PARAMS: ", data)
-
     res = ngram_classifier.update_tweets_state_by_ngram(index=data['index'], word=word, session=data['session'],
                                                query_label=data['query_label'], new_label=data['new_label'],
                                                ngram=data['ngram'], ngramsPropName=propName, full_search=full_search)
@@ -724,7 +744,6 @@ def get_word2vec():
 
     res = {"words":words, "count":count, "newKeywords":newKeywords}
     # res = {"words":words, "count":count}
-    print(res)
     return jsonify(res)
 
 @app.route('/get_sse', methods=['POST', 'GET'])
@@ -941,8 +960,6 @@ def get_results():
     elbow = kn.knee
     if not elbow:
         elbow = KneeLocator(x, y2,direction="decreasing", curve='concave').knee
-        # print("kn.knee2")
-        # print(elbow)
 
     sse_points2 = []
     count = 0
@@ -964,10 +981,7 @@ def get_results():
     testValues = [1, 5, 10, 20, 30, 40 , 50, 60, 70]
     testValues = testValues  + [elbow_value]
     testValues = sorted(testValues)
-    print(testValues)
-    print("total = ")
     total = functions.get_event_state_tweets_count(index, session, finalwords, "confirmed")
-    print(total)
     finalcount = functions.get_words_tweets_count(index, session, finalwords)
 
     eventCount = functions.get_words_tweets_count(index, session, query_words)
@@ -1004,10 +1018,6 @@ def get_results():
         testList.append({'val': val, 'words': testWords, 'testValCount': testValCount, 'testValConfirmedCount': testValConfirmedCount, 'testValNegativeCount':testValNegativeCount, 'newtweets': newtweets, 'newConfirmedtweets': newConfirmedtweets, 'newConfirmedPersent': newConfirmedPersent, 'reviewedTweetsCount': reviewedTweetsCount})
 
     step5= {'eventCount': eventCount, 'eventConfirmedCount':eventConfirmedCount, 'testList': testList}
-    print("finalcount = ")
-    print(finalcount)
-    print(finalwords)
-
 
     # all_count = functions.get_all_count(index)
     # percentage = 100 * (count / all_count)
@@ -1072,7 +1082,7 @@ def delete_session():
 def get_session():
     data = request.form
     id = data['id']
-    res = functions.get_session(id)
+    res = functions.get_session_by_id(id)
     status = False
     if res:
         status = True
