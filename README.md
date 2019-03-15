@@ -152,10 +152,13 @@ In Windows:
 set FLASK_APP=server.py
 ```
 
-And finally serve the application using HTTPS:
+Finally, serve the application using HTTPS:
 ```
 flask run --cert [certificate_file] --key [key_file]
 ```
+And access the application using HTTPS:
+[https://localhost:5000](https://localhost:5000)
+
 
 ### Updating the dependencies
 
