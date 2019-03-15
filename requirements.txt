@@ -21,7 +21,7 @@ elasticsearch==6.2.0
 feedfinder2==0.0.4
 feedparser==5.2.1
 filelock==3.0.10
-Flask==0.12.3
+Flask==1.0.2
 Flask-Cors==3.0.4
 flask-htpasswd==0.3.1
 FrenchLefffLemmatizer==0.3
