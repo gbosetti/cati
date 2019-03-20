@@ -75,8 +75,7 @@ class Es_connector:
         if not available:
             # We can just throw an error instead
             # Or have elastic search throw it
-            print('Datasource not available, check config.json', index)
-            raise Exception("Datasource initialisation")
+            raise Exception('The "' + index + '" index is not available, please check that it is defined in the config.json file and try again.')
 
         self.size = 500
         self.body = {"query": {"match_all": {}}}

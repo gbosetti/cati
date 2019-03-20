@@ -13,6 +13,10 @@ classification/test/*
 classification/train/*
 classification/unlabeled/*
 browser/static/images/Twitter_2017_Imgs
+browser/static/images/Twitter_2016_Imgs/
+browser/static/images/Twitter_2015_Imgs/
+browser/static/images/Twitter_2015_labeled/
+browser/static/images/Twitter_2015_Imgs.lnk
 key.pem
 cert.pem
 .rnd

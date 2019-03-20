@@ -17,7 +17,6 @@ from flask_cors import CORS, cross_origin
 from flask_frozen import Freezer
 from flask import Response
 from flask_htpasswd import HtPasswdAuth
-from flask_talisman import Talisman
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
 from classification.ngram_based_classifier import NgramBasedClasifier
@@ -35,46 +34,6 @@ functions = Functions()
 SELF = "'self'"
 # here we define the content security policy,
 # this CSP allows for inline script, and using a nonce will improve security
-talisman = Talisman(
-    app,
-    content_security_policy={
-        'default-src': SELF,
-        'img-src': [
-            '*',
-            SELF,
-        ],
-        'script-src': [
-            SELF,
-            "'unsafe-inline'",
-            "'unsafe-eval'",
-            'https://cdn.knightlab.com',
-            'https://unpkg.com',
-            "https://underscorejs.org"
-        ],
-        'font-src' : [
-            SELF,
-            "'unsafe-inline'",
-            "'unsafe-eval'",
-            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
-            "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/fonts/",
-            "https://fonts.googleapis.com",
-            'https://cdn.knightlab.com',
-            'https://fonts.gstatic.com',
-        ],
-        'style-src': [
-            SELF,
-            "'unsafe-inline'",
-            "'unsafe-eval'",
-            "https://fonts.googleapis.com",
-            'https://cdn.knightlab.com',
-            "https://maxcdn.bootstrapcdn.com"
-        ]
-    },
-    feature_policy={
-        'geolocation': '\'none\'',
-    },
-)
-
 with open('config.json', 'r') as f:
     config = json.load(f)
 default_source = config['default']['index']
@@ -1083,19 +1042,23 @@ def delete_session():
 def get_session():
     data = request.form
     id = data['id']
-    res = functions.get_session_by_id(id)
+    res = functions.get_session(id)
     status = False
+    session = {}
     if res:
         status = True
         for es_sources in config['elastic_search_sources']:
             if es_sources['index'] == res['_source']['s_index']:
                 try:
-                    images_folder = es_sources['images_folder']
+                    session["images_folder"] = es_sources['images_folder']
                 except KeyError:
-                    raise KeyError("Check config.json images_folder not set for index ", es_sources['index'])
-    else:
-        images_folder = ""
-    return jsonify({"result": status, "body": res, "image_path": images_folder})
+                    # raise KeyError("Check config.json images_folder not set for index ", es_sources['index'])
+                    print("Warning: the currnt session doesn't have an images_folder defined, and this might leat to some execution errors.")
+
+    session["result"] = status
+    session["body"] = res
+
+    return jsonify(session)
 
 
 # Get Session
