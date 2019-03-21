@@ -231,6 +231,18 @@ def search_for_tweets():
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "keywords": data['word'] })
 
+
+
+# Get Tweets
+@app.route('/get_image_folder', methods=['POST'])
+# @cross_origin()
+def get_image_folder():
+    data = request.form
+    folder_name = functions.get_image_folder(data["index"])
+    return folder_name
+
+
+
 # Get Tweets
 @app.route('/get_dataset_date_range', methods=['POST'])
 # @cross_origin()
@@ -1095,17 +1107,6 @@ def update_session_results():
         status = True
     return jsonify({"result": status, "body": res})
 
-# Update session results
-@app.route('/get_image_folder', methods=['POST'])
-# @cross_origin()
-def get_image_folder():
-    data = request.form
-
-    for es_sources in config['elastic_search_sources']:
-        if es_sources['index'] == data["index"]:  # & es_sources['session'] == data["session"]:
-            return es_sources['images_folder']
-
-    return
 
 # Get session results
 @app.route('/get_session_results', methods=['POST', 'GET'])
