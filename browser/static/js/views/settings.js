@@ -114,7 +114,7 @@ app.views.settings = Backbone.View.extend({
             localStorage.removeItem('image_path')
 
             localStorage.setItem('image_path',response.images_folder);
-            app.image_path = response.images_folder;
+            app.imagePath = response.images_folder;
             localStorage.setItem('session_id', response.body._id);
             localStorage.setItem('session', JSON.stringify(response.body._source));
 
