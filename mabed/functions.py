@@ -965,6 +965,7 @@ class Functions:
             session = self.get_session_by_Name(name)
 
             if session['hits']['total'] == 0:
+                self.fix_read_only_allow_delete(self.sessions_index, my_connector)  # Just in case we import it and the property isn't there
                 # Creating the new entry in the mabed_sessions
                 res = my_connector.post({
                     "s_name": name,
