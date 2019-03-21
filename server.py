@@ -997,6 +997,18 @@ def available_indexes():
         res.append(source['index'])
     return jsonify(res);
 
+# @app.route('/get_app_url', methods=['GET'])
+# def get_app_url():
+#
+#     with open('config.json', 'r') as f:
+#         config = json.load(f)
+#
+#     app_url = 'http://localhost:5000/'
+#     print("APP URL: ", app_url)
+#
+#     return app_url
+#     # return config['default']['app_url']
+
 # ==================================================================
 # 7. Sessions
 # ==================================================================
