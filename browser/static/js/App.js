@@ -28,7 +28,7 @@ var app = (function() {
                     this.eventsCollection.add_json_events(collection);
                 }
             }
-            if (localStorage.getItem('image_path') !== null) {
+            if (localStorage.getItem('image_path') != undefined || localStorage.getItem('image_path') !== null) {
                 this.imagesPath = localStorage.getItem('image_path');
             }
             /*else{
