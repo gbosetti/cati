@@ -747,6 +747,22 @@ class Functions:
 
         return clusters
 
+
+    def get_image_folder(self, index):
+
+        with open('config.json') as f:
+            config = json.load(f)
+
+        try:
+            for es_sources in config['elastic_search_sources']:
+                if es_sources['index'] == index:
+                    return es_sources['images_folder']
+            return
+
+        except IOError as err:
+            print("The image-duplicated file was not found.", err)
+            return
+
     def get_current_session_data(self, index):
 
         with open('config.json') as f:

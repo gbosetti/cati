@@ -28,9 +28,10 @@ var app = (function() {
                     this.eventsCollection.add_json_events(collection);
                 }
             }
-            if (localStorage.getItem('image_path') !== null) {
-                this.imagesPath = localStorage.getItem('image_path');
-            }
+
+            $.post(app.appURL+'get_image_folder', [{name:"index", value:app.session.s_index}], response => {
+                this.imagesPath = response;
+            }, 'json');
 
             Backbone.history.start();
             return this;
