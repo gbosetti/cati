@@ -735,10 +735,16 @@ class Functions:
         })
         clusters = res['aggregations']['group_by_cluster']['buckets']
         data = self.get_current_session_data(index)
+
         for cluster in clusters:
-            images = data['duplicates'][cluster['key']]
-            cluster['image'] = images[0]
-            cluster['size'] = len(images)
+            if data and data["duplicates"]:
+                images = data['duplicates'][cluster['key']]
+                cluster['image'] = images[0]
+                cluster['size'] = len(images)
+            else:
+                cluster['image'] = "Missing 'duplicated' file"
+                cluster['size'] = "Missing 'duplicated' file"
+
         return clusters
 
     def get_current_session_data(self, index):
@@ -746,12 +752,16 @@ class Functions:
         with open('config.json') as f:
             config = json.load(f)
 
-        for es_sources in config['elastic_search_sources']:
-            if es_sources['index'] == index:
-                with open(es_sources['image_duplicates']) as file:
-                    data = json.load(file)
+        try:
+            for es_sources in config['elastic_search_sources']:
+                if es_sources['index'] == index:
+                    with open(es_sources['image_duplicates']) as file:
+                        return json.load(file)
+            return
 
-        return data
+        except IOError as err:
+            print("The image-duplicated file was not found.", err)
+            return
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
@@ -794,24 +804,20 @@ class Functions:
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
-            q2 = {
-                "query": {
-                    "term": {"imagesCluster": cluster['key']}
+            if data and data["duplicates"]:
+                q2 = {
+                    "query": {
+                        "term": {"imagesCluster": cluster['key']}
+                    }
                 }
-            }
-            # cres1 = my_connector.search(q1)
-            cres = my_connector.count(q2)
-            # print(cluster['key'])
-            images = data['duplicates'][cluster['key']]
-            # print(images[0])
-            cluster['image'] = images[0]
-            # cluster['size'] = len(images)
-            # print(cres)
-            cluster['size'] = cres['count']
-            # cluster['size2'] = cres1['hits']['total']
-            # if cluster['key']==1452:
-            #     print(cluster)
-        # print(clusters)
+                cres = my_connector.count(q2)
+                images = data['duplicates'][cluster['key']]
+                cluster['image'] = images[0]
+                cluster['size'] = cres['count']
+            else:
+                cluster['image'] = "Missing 'duplicated' file"
+                cluster['size'] = "Missing 'duplicated' file"
+
         return clusters
 
     # ==================================================================
