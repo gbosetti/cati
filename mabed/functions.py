@@ -882,7 +882,10 @@ class Functions:
         settings = {
             "settings": {
                 "number_of_shards": 1,
-                "number_of_replicas": 0
+                "number_of_replicas": 0,
+                "blocks": {
+                    "read_only_allow_delete": "false"
+                }
             },
             "mappings": {
                 "session": {
@@ -938,6 +941,14 @@ class Functions:
         }
         es.indices.create(index=self.sessions_index, ignore=400, body=settings)
 
+    def fix_read_only_allow_delete(self, index, connector):
+
+        connector.es.indices.put_settings(index=index, body={
+            "blocks": {
+                "read_only_allow_delete": "false"
+            }
+        })
+
     # Add new session
     def add_session(self, name, index, **kwargs):
 
@@ -962,6 +973,8 @@ class Functions:
                 })
                 # Adding the session's field in the existing dataset
                 tweets_connector = Es_connector(index=index, doc_type="tweet")
+                self.fix_read_only_allow_delete(index, tweets_connector)
+
                 kwargs["logger"].add_log("Starting with the labeling of the session's tweet to 'proposed'")
                 tweets_connector.update_all('session_' + name, 'proposed', logger=kwargs["logger"])
                 kwargs["logger"].add_log("The tweets labels were successfully updated to the 'proposed' state")
