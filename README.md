@@ -86,16 +86,17 @@ The default values are the default index and session you want the application to
 
 ### Import images clusters into Elasticsearch
 
-    python images.py -f twitter2017.json -i twitterfdl2017
+Make sure you didn't forget to set the image_duplicates entry in the config.json file. Then, run:
+
+    python images.py -i lyon2016
     
--f The json file which contains images clusers  
--i Elasticsearch Index
+Where -i is the parameter for the Elasticsearch index you want to associate the image clusters to.
 
 This process adds a new field to the tweets in elasticsearch, called "imagesCluster", which is used by es_corpus.py to retrieve the tweet corpus with an extra feature integrated to the textual value:
 
     tweet_text = tweet_text + cluster_str
 
-If you execute the images.py script more than one, the values are updated, not duplicated. You can delete the field from Kibana by executing:
+If you execute the images.py script more than one, the values are updated, not duplicated. You can delete the generated field from Kibana by executing:
 
     POST twitterfdl2017/_update_by_query?conflicts=proceed
     {
