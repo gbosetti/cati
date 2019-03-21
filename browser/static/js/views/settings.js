@@ -113,11 +113,11 @@ app.views.settings = Backbone.View.extend({
             localStorage.removeItem('session');
             localStorage.removeItem('image_path')
 
-            localStorage.setItem('image_path',response.images_folder)
+            localStorage.setItem('image_path',response.images_folder);
+            app.image_path = response.images_folder;
             localStorage.setItem('session_id', response.body._id);
             localStorage.setItem('session', JSON.stringify(response.body._source));
-            console.log("sesssss");
-            console.log(response);
+
             if(response.body._source.events){
                 app.eventsCollection.reset();
               var collection = JSON.parse(response.body._source.events);
