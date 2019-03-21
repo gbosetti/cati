@@ -855,72 +855,78 @@ class Functions:
         return res
 
     # Add new session
-    def add_session(self, name, index, **kwargs):
+    def create_mabed_sessions_index(self, es):
 
-        try:
-            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
-
-            es = Elasticsearch([{'host': my_connector.host, 'port': my_connector.port}])
-            settings = {
-                "settings": {
-                    "number_of_shards": 1,
-                    "number_of_replicas": 0
-                },
-                "mappings": {
-                    "session": {
-                        "properties": {
-                            "events": {
-                                "type": "text",
-                                "fields": {
-                                    "keyword": {
-                                        "type": "keyword",
-                                        "ignore_above": 256
-                                    }
+        settings = {
+            "settings": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0
+            },
+            "mappings": {
+                "session": {
+                    "properties": {
+                        "events": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "ignore_above": 256
                                 }
-                            },
-                            "impact_data": {
-                                "type": "text",
-                                "fields": {
-                                    "keyword": {
-                                        "type": "keyword",
-                                        "ignore_above": 256
-                                    }
+                            }
+                        },
+                        "impact_data": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "ignore_above": 256
                                 }
-                            },
-                            "s_index": {
-                                "type": "text",
-                                "fields": {
-                                    "keyword": {
-                                        "type": "keyword",
-                                        "ignore_above": 256
-                                    }
+                            }
+                        },
+                        "s_index": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "ignore_above": 256
                                 }
-                            },
-                            "s_name": {
-                                "type": "text",
-                                "fields": {
-                                    "keyword": {
-                                        "type": "keyword",
-                                        "ignore_above": 256
-                                    }
+                            }
+                        },
+                        "s_name": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "ignore_above": 256
                                 }
-                            },
-                            "s_type": {
-                                "type": "text",
-                                    "fields": {
-                                    "keyword": {
-                                        "type": "keyword",
-                                        "ignore_above": 256
-                                    }
+                            }
+                        },
+                        "s_type": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "ignore_above": 256
                                 }
                             }
                         }
                     }
                 }
             }
-            es.indices.create(index=self.sessions_index, ignore=400, body=settings)
+        }
+        es.indices.create(index=self.sessions_index, ignore=400, body=settings)
 
-            kwargs["logger"].add_log("The existence of the " + self.sessions_index + " index was checked")
+    # Add new session
+    def add_session(self, name, index, **kwargs):
+
+        try:
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+            es = Elasticsearch([{'host': my_connector.host, 'port': my_connector.port}])
+
+            if not es.indices.exists(index=self.sessions_index):
+                self.create_mabed_sessions_index(es)
+                kwargs["logger"].add_log("The existence of the " + self.sessions_index + " index was checked")
 
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
             session = self.get_session_by_Name(name)
