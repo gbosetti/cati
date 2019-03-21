@@ -253,6 +253,10 @@ app.views.client = Backbone.View.extend({
 			var cbtn = "", state_btns="";
 			var i = 0;
 
+			if(app.imagesPath == null || app.imagesPath == undefined){
+
+			}
+
 			 //$.post(app.appURL+'get_image_folder', [
              //       { name: "index", value: app.session.s_index },
              //       { name: "session", value: app.session.s_name }

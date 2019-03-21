@@ -28,10 +28,16 @@ var app = (function() {
                     this.eventsCollection.add_json_events(collection);
                 }
             }
-
-            $.post(app.appURL+'get_image_folder', [{name:"index", value:app.session.s_index}], response => {
-                this.imagesPath = response;
-            }, 'json');
+            if (localStorage.getItem('image_path') !== null) {
+                this.imagesPath = localStorage.getItem('image_path');
+            }
+            /*else{
+                $.post(app.appURL+'get_image_folder', [{name:"index", value:app.session.s_index}], response => {
+                    console.log(response);
+                    this.imagesPath = response;
+                    console.log("--------------", this.imagesPath);
+                }, 'json');
+            }*/
 
             Backbone.history.start();
             return this;
