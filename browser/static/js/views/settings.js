@@ -61,7 +61,7 @@ app.views.settings = Backbone.View.extend({
       }
 
       var keepLoggingKey = 'keepLogging';
-      //this.showProcessingEventsPopup('Creating Session', keepLoggingKey);
+      this.showProcessingEventsPopup('Creating Session', keepLoggingKey);
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
 

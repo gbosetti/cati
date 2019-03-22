@@ -943,9 +943,12 @@ class Functions:
 
     def fix_read_only_allow_delete(self, index, connector):
 
+        print("index: ", index)
         connector.es.indices.put_settings(index=index, body={
-            "blocks": {
-                "read_only_allow_delete": "false"
+            "index": {
+                "blocks": {
+                    "read_only_allow_delete": "false"
+                }
             }
         })
 
