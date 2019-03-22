@@ -112,7 +112,7 @@ app.views.mabed = Backbone.View.extend({
         return false;
     },
     showProcessingEventsPopup: function(){
-        barHtml = 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
+        barHtml = 'Please, don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
 			'<div class="mt-3 form-group"> ' +
                 '<textarea class="form-control rounded-0" id="backend_logs" rows="10">Starting...\n</textarea> ' +
             '</div>';

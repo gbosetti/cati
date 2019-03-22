@@ -19,7 +19,7 @@ app.views.settings = Backbone.View.extend({
         return this;
     },
     showProcessingEventsPopup: function(popupTitle, loggingKey){
-        barHtml = 'Please Don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
+        barHtml = 'Please, don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
 			'<div class="mt-3 form-group"> ' +
                 '<textarea class="form-control rounded-0" id="backend_logs" rows="10">Starting...\n</textarea> ' +
             '</div>';
@@ -50,8 +50,6 @@ app.views.settings = Backbone.View.extend({
                 }
             }, 'json');
         }, 7000);
-
-
     },
     create_session: function(e){
       e.preventDefault();
@@ -63,7 +61,7 @@ app.views.settings = Backbone.View.extend({
       }
 
       var keepLoggingKey = 'keepLogging';
-      this.showProcessingEventsPopup('Creating Session', keepLoggingKey);
+      //this.showProcessingEventsPopup('Creating Session', keepLoggingKey);
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
 
@@ -83,13 +81,13 @@ app.views.settings = Backbone.View.extend({
             });
           self[keepLoggingKey] = false;
 
-      }, 'json').fail(function() {
+      }, 'json').fail(function(err) {
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',
                 theme: 'pix-danger-modal',
                 backgroundDismiss: true,
-                content: "An error was encountered while connecting to the server, please try again.",
+                content: "An error was encountered while connecting to the server. Please, try again.",
                 buttons: {
                     cancel: {
                         text: 'CANCEL',
@@ -97,6 +95,7 @@ app.views.settings = Backbone.View.extend({
                     }
                 }
             });
+            console.log(err);
         });
       return false;
     },
