@@ -96,6 +96,7 @@ app.views.settings = Backbone.View.extend({
                 }
             });
             console.log(err);
+            self[keepLoggingKey] = false;
         });
       return false;
     },
