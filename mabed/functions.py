@@ -966,6 +966,7 @@ class Functions:
 
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
             session = self.get_session_by_Name(name)
+            print("SESSION ", session, " - ", session)
 
             if session['hits']['total'] == 0:
                 self.fix_read_only_allow_delete(self.sessions_index, my_connector)  # Just in case we import it and the property isn't there
