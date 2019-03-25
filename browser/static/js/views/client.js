@@ -9,9 +9,7 @@ app.views.client = Backbone.View.extend({
         		'click .scroll_tweets': 'scroll_tweets',
 				'click .cluster_state': 'cluster_state',
 				'click .btn_filter': 'filter_tweets',
-				'click .event-tweets-tab': 'filter_tweets_matching_tab',
-				'click .options_btn_negative': 'options_btn_negative',
-				'click .options_btn_valid': 'options_btn_valid'
+				'click .event-tweets-tab': 'filter_tweets_matching_tab'
 		},
 	  initialize: function() {
             this.render();
@@ -20,14 +18,6 @@ app.views.client = Backbone.View.extend({
             $(document).on("click","body .tweet_state",function(e){ // Search tweets
                 self.tweet_state(e);
             });
-	  },
-	  options_btn_negative: function(){
-	    console.log("Rejecting");
-
-	    "individual_tweets_result"
-	  },
-	  options_btn_valid: function(){
-	    console.log("Accepting");
 	  },
 	  render: function(){
 	    var html = this.template({});
@@ -43,7 +33,6 @@ app.views.client = Backbone.View.extend({
 		load_timeline: function(){
 			var self = this;
 			app.eventsCollection.get_timeline_events().then(data => {
-			    console.log("load_timeline", data);
 
                 if($('#timeline-embed').length){
                     timeline = new TL.Timeline('timeline-embed',data,{
@@ -53,10 +42,12 @@ app.views.client = Backbone.View.extend({
                     var s_ev = app.eventsCollection.get({ cid: timeline.config.events[0].unique_id }).toJSON();
                     self.currentClusterId = timeline.config.events[0].unique_id;
                     var t0 = performance.now();
+                    self.eventTweetsParams = {obj: JSON.stringify(s_ev), index: app.session.s_index};
 
-                    $.post(app.appURL+'event_tweets', {obj: JSON.stringify(s_ev), index: app.session.s_index}, function(response){
+                    $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
+                        console.log("load_timeline");
                         try{
-                        self.display_tweets(response, t0, timeline.config.events[0].unique_id);
+                            self.display_tweets(response, t0, timeline.config.events[0].unique_id);
                         }catch(err){console.log(err)}
                     }, 'json').fail(function(err) {
                           console.log(err);
@@ -70,7 +61,9 @@ app.views.client = Backbone.View.extend({
                             $('.tweets_results').fadeOut('slow');
                             $('.loading_text').fadeIn('slow');
                             var t0 = performance.now();
-                            $.post(app.appURL+'event_tweets', {obj: JSON.stringify(ev), index: app.session.s_index}, function(response){
+                            self.eventTweetsParams = {obj: JSON.stringify(ev), index: app.session.s_index};
+
+                            $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                                 try{
                                     self.display_tweets(response, t0, data.unique_id);
                                 }catch(err){console.log(err)}
@@ -140,13 +133,14 @@ app.views.client = Backbone.View.extend({
 		},
 		mark_event: function(e){
 			e.preventDefault();
+			console.log("Updating event values");
 			var self = this;
 			var s_ev = JSON.stringify(app.eventsCollection.get({ cid: $(e.currentTarget).data("cid") }).toJSON());
 			var data = [];
 			data.push({name: "index", value: app.session.s_index});
 			data.push({name: "session", value: app.session.s_name});
 			data.push({name: "event", value: s_ev});
-			data.push({name: "status", value: $(e.currentTarget).data("status")});
+			data.push({name: "labeling_class", value: $(e.currentTarget).data("status")});
 
 			 var jc = $.confirm({
 				theme: 'pix-default-modal',
@@ -164,9 +158,9 @@ app.views.client = Backbone.View.extend({
 				}
 			});
 
-			$.post(app.appURL+'mark_event', data, function(response){
+			$.post(app.appURL+'massive_tag_event_tweets', data, function(response){ //mark_event
 				jc.close();
-						//console.log(response);
+				console.log(response);
 			}, 'json');
 			return false;
 		},

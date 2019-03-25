@@ -396,6 +396,20 @@ def event_tweets():
     clusters = functions.get_event_clusters(source_index, main_term, related_terms)
     return jsonify({"tweets": tweets, "clusters": clusters})
 
+# Get Event related tweets
+@app.route('/massive_tag_event_tweets', methods=['POST'])
+# @cross_origin()
+def massive_tag_event_tweets():
+    data = request.form
+
+    print("---", data)
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+
+    res = functions.massive_tag_event_tweets(index=data['index'], session=data['index'], labeling_class=data['labeling_class'], main_term=main_term, related_terms=related_terms)
+    return jsonify(res)
+
 
 # Get Event related tweets
 @app.route('/event_filter_tweets', methods=['POST'])

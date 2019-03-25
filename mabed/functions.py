@@ -16,6 +16,8 @@ import elasticsearch.helpers
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 from elasticsearch import Elasticsearch
+from elasticsearch_dsl import UpdateByQuery
+
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
@@ -430,36 +432,8 @@ class Functions:
 
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
-        terms = []
-        words = main_term + ' '
-        for t in related_terms:
-            terms.append({"match": {
-                "text": {
-                    "query": t['word'],
-                    "boost": t['value']
-                }
-            }})
-            words += t['word'] + " "
-        terms.append({"match": {
-            "text": {
-                "query": main_term,
-                "boost": 2
-            }
-        }})
-        # res = my_connector.search({"query": {"term" : { "text" : word }}})
-        # query = {
-        #     "bool": {
-        #         "must": {
-        #             "match": {
-        #                 "text": {
-        #                     "query": main_term,
-        #                     "operator": "or"
-        #                 }
-        #             }
-        #         },
-        #         "should": terms
-        #     }
-        # }
+        terms = self.get_retated_terms(main_term, related_terms)
+
         query = {
             "sort": [
                 "_score"
@@ -470,10 +444,46 @@ class Functions:
                 }
             }
         }
-        # print(query)
-        # res = my_connector.search(query)
         res = my_connector.init_paginatedSearch(query)
         return res
+
+    def get_retated_terms(self, main_term, related_terms):
+
+        terms = []
+        words = main_term + ' '
+
+        for t in related_terms:
+            terms.append({"match": {
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
+            words += t['word'] + " "
+
+        terms.append({"match": {
+            "text": {
+                "query": main_term,
+                "boost": 2
+            }
+        }})
+
+        return terms
+
+    def massive_tag_event_tweets(self, index="test3", session="", labeling_class="", main_term="", related_terms=""):
+
+        try:
+            my_connector = Es_connector(index=index)
+            terms = self.get_retated_terms(main_term, related_terms)
+            # UpdateByQuery.using
+            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({"query": {"bool": {"should": terms}}}).script(source="ctx._source.session_" + session + " = '" + labeling_class + "'" )
+            response = ubq.execute()
+
+        except RequestError as err:
+            print("Error: ", err)
+            return False
+
+        return True
 
     def get_event_filter_tweets(self, index="test3", main_term="", related_terms="", state="proposed", session=""):
         my_connector = Es_connector(index=index)
@@ -1048,11 +1058,6 @@ class Functions:
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         # All tweets
         event = json.loads(data['event'])
-        # print("------------------------")
-        # print(data)
-        # print("------------------------")
-        # print(event)
-        # print(event['main_term'])
         terms = []
         words = event['main_term'] + ' '
         for t in event['related_terms']:
@@ -1069,13 +1074,6 @@ class Functions:
                 "boost": 2
             }
         }})
-        # query = {
-        #     "query": {
-        #         "bool": {
-        #             "should": terms
-        #         }
-        #     }
-        # }
 
         query = {
             "query": {
