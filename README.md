@@ -108,11 +108,15 @@ If you execute the images.py script more than one, the values are updated, not d
 
 ### Start the web application
 
-Start the elasticsearchserver:
+First, configure the URL that the client should use to communicate with the server. To do so, edut the first line of the mabed/browser/static/App.js file. E.g.
+
+    var app_url = "http://localhost:5000/";  // Or some url like: https://your_sub_domain.your_domain.fr/
+
+Then, start the elasticsearchserver:
 
     python3 server.py
 
-And visit localhost:5000. The first time the system is running, a new “mabed_sessions” index will be automatically created. Just in case a read-only error arises, please run the following using Kibana:
+And visit localhost:5000 by using, preferably, Google Chrome. The first time the system is running, a new “mabed_sessions” index will be automatically created. Just in case a read-only error arises, please run the following using Kibana:
     
     PUT mabed_sessions/_settings { "index": { "blocks": { "read_only_allow_delete": "false" } } } 
 

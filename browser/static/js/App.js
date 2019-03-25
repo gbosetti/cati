@@ -1,4 +1,4 @@
-var app_url = "https://idenum.liris.cnrs.fr/";
+var app_url = "http://localhost:5000/";
 app_url = (app_url.lastIndexOf("/") == app_url.length -1)? app_url : app_url + "/";
 
 var app = (function() {
