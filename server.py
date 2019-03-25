@@ -1149,5 +1149,5 @@ def index(user):
 if __name__ == '__main__':
     #
     # app.run(debug=True, host='localhost', port=5000, threaded=True, ssl_context=())
-    app.run(debug=True, host='localhost', port=5000, threaded=True)
+    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
     # app.run(debug=False, host='mediamining.univ-lyon2.fr', port=5000, threaded=True)
