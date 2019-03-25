@@ -9,7 +9,9 @@ app.views.client = Backbone.View.extend({
         		'click .scroll_tweets': 'scroll_tweets',
 				'click .cluster_state': 'cluster_state',
 				'click .btn_filter': 'filter_tweets',
-				'click .event-tweets-tab': 'filter_tweets_matching_tab'
+				'click .event-tweets-tab': 'filter_tweets_matching_tab',
+				'click .options_btn_negative': 'options_btn_negative',
+				'click .options_btn_valid': 'options_btn_valid'
 		},
 	  initialize: function() {
             this.render();
@@ -18,6 +20,14 @@ app.views.client = Backbone.View.extend({
             $(document).on("click","body .tweet_state",function(e){ // Search tweets
                 self.tweet_state(e);
             });
+	  },
+	  options_btn_negative: function(){
+	    console.log("Rejecting");
+
+	    "individual_tweets_result"
+	  },
+	  options_btn_valid: function(){
+	    console.log("Accepting");
 	  },
 	  render: function(){
 	    var html = this.template({});
@@ -33,7 +43,7 @@ app.views.client = Backbone.View.extend({
 		load_timeline: function(){
 			var self = this;
 			app.eventsCollection.get_timeline_events().then(data => {
-			    console.log("Timeline data", data);
+			    console.log("load_timeline", data);
 
                 if($('#timeline-embed').length){
                     timeline = new TL.Timeline('timeline-embed',data,{
@@ -254,7 +264,7 @@ app.views.client = Backbone.View.extend({
 			var i = 0;
 
 			if(app.imagesPath == null || app.imagesPath == undefined){
-
+                console.log("NO imagesPath");
 			}
 
 			 //$.post(app.appURL+'get_image_folder', [
@@ -296,6 +306,7 @@ app.views.client = Backbone.View.extend({
                     }
                 //}
             //);
+            console.log("individual_tweets_result");
 			$('.individual_tweets_result:visible:last').html(html);
 			$('.loading_text').fadeOut('slow');
 			$('.tweets_results').fadeIn('slow');
