@@ -474,15 +474,9 @@ class Functions:
     def get_elastic_logs(self, index=""):
 
         my_connector = Es_connector(index=index)
-        #res = my_connector.es.cluster.pending_tasks()
-        #res2 = my_connector.es.tasks.list()
-
-        print(my_connector.host + ':' + str(my_connector.port))
-        res = requests.get( my_connector.host + ':' + str(my_connector.port) + '/_tasks?detailed=true&action s=*byquery')
-        #r.json()
-        print("cluster.pending_tasks", res)
-        print("es.tasks.list", res)
-        return res
+        print(my_connector.protocol + '://' + my_connector.host + ':' + str(my_connector.port))
+        res = requests.get(my_connector.protocol + '://' + my_connector.host + ':' + str(my_connector.port) + '/_tasks?detailed=true&actions=*byquery')
+        return res.json()
         # GET _tasks?detailed=true&actions=*byquery
 
 

@@ -18,11 +18,16 @@ app.views.settings = Backbone.View.extend({
 
         return this;
     },
-    showProcessingEventsPopup: function(popupTitle, loggingKey){
+    showProcessingEventsPopup: function(popupTitle){
         barHtml = 'Please, don\'t close the page until you get the success message.<br>This may take a long time (more than 10 minutes). ' +
-			'<div class="mt-3 form-group"> ' +
-                '<textarea class="form-control rounded-0" id="backend_logs" rows="10">Starting...\n</textarea> ' +
-            '</div>';
+               '<div class="mt-3 progress"> ' +
+           '<div id="session-creation-progress" class="progress-bar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" role="progressbar" style="width:0%"> ' +
+            '  0% ' +
+           ' </div> ' +
+          '</div>';
+          			//'<div lclass="mt-3 form-group"> ' +
+                //'<textarea class="form-control rounded-0" id="backend_logs" rows="10">Starting...\n</textarea> ' +
+           // '</div>';
 
         var jc = $.confirm({
             title:popupTitle,
@@ -36,23 +41,23 @@ app.views.settings = Backbone.View.extend({
             }
         });
         var self = this;
-        self[loggingKey] = true;
-        var askForLogs = setInterval(function(){
+        self.askForLogs = setInterval(function(){
             $.post(app.appURL+'get_backend_logs', [{name: "index", value: app.session.s_index}], function(response){
 
-                //GET _tasks?detailed=true&actions=*
-                console.log(response);
+                if (response["nodes"] == undefined || Object.keys(response["nodes"]).length == 0)
+                    return;
 
-//                response.forEach(log => {
-//                    $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");
-//                });
-//                $("#backend_logs")[0].scrollTop = $("#backend_logs")[0].scrollHeight - $("#backend_logs").height();
+                var taskIndex = Object.keys(response["nodes"])[0];
+                var taskIndexWithProc = Object.keys(response["nodes"][taskIndex]['tasks'])[0];
+                var task = response["nodes"][taskIndex]['tasks'][taskIndexWithProc];
+                var accum = (task.status.updated * 100 / task.status.total).toFixed(0);
 
-                if(self[loggingKey] == false){
-                    clearInterval(askForLogs);
-                }
+                $("#session-creation-progress").text(accum + "%");
+                $("#session-creation-progress").css("width", accum + "%");
+
             }, 'json');
         }, 7000);
+        return jc;
     },
     create_session: function(e){
       e.preventDefault();
@@ -63,8 +68,7 @@ app.views.settings = Backbone.View.extend({
         return;
       }
 
-      var keepLoggingKey = 'keepLogging';
-      this.showProcessingEventsPopup('Creating Session', keepLoggingKey);
+      var processingPopup = this.showProcessingEventsPopup('Creating Session');
 
       $.post(app.appURL+'add_session', $('#settings_form').serialize(), function(){
 
@@ -82,7 +86,8 @@ app.views.settings = Backbone.View.extend({
                     }
                 }
             });
-          self[keepLoggingKey] = false;
+          clearInterval(self.askForLogs);
+          processingPopup.close()
 
       }, 'json').fail(function(err) {
             $.confirm({
@@ -99,7 +104,7 @@ app.views.settings = Backbone.View.extend({
                 }
             });
             console.log(err);
-            self[keepLoggingKey] = false;
+            clearInterval(self.askForLogs);
         });
       return false;
     },

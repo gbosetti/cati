@@ -37,7 +37,7 @@ for source in config['elastic_search_sources']:
 
 class Es_connector:
     def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
-    timeout=default_timeout, index=default_index, doc_type=default_doc_type):
+    timeout=default_timeout, index=default_index, doc_type=default_doc_type, protocol='http'):
     # def __init__(self, host='localhost', port=9200, user='', password='', timeout=1000, index="test2", doc_type="tweet"):
 
         available = False
@@ -80,6 +80,7 @@ class Es_connector:
 
         self.size = 500
         self.body = {"query": {"match_all": {}}}
+        self.protocol = protocol
         self.result = []
 
         # Init Elasticsearch instance
