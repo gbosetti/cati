@@ -3,6 +3,7 @@
 import timeit
 import json
 import time
+import requests
 
 from flask import jsonify
 from mabed.es_corpus import Corpus
@@ -469,6 +470,21 @@ class Functions:
         }})
 
         return terms
+
+    def get_elastic_logs(self, index=""):
+
+        my_connector = Es_connector(index=index)
+        #res = my_connector.es.cluster.pending_tasks()
+        #res2 = my_connector.es.tasks.list()
+
+        print(my_connector.host + ':' + str(my_connector.port))
+        res = requests.get( my_connector.host + ':' + str(my_connector.port) + '/_tasks?detailed=true&action s=*byquery')
+        #r.json()
+        print("cluster.pending_tasks", res)
+        print("es.tasks.list", res)
+        return res
+        # GET _tasks?detailed=true&actions=*byquery
+
 
     def massive_tag_event_tweets(self, index="test3", session="", labeling_class="", main_term="", related_terms=""):
 

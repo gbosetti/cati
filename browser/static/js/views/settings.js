@@ -38,12 +38,15 @@ app.views.settings = Backbone.View.extend({
         var self = this;
         self[loggingKey] = true;
         var askForLogs = setInterval(function(){
-            $.get(app.appURL+'get_backend_logs', function(response){
+            $.post(app.appURL+'get_backend_logs', [{name: "index", value: app.session.s_index}], function(response){
 
-                response.forEach(log => {
-                    $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");
-                });
-                $("#backend_logs")[0].scrollTop = $("#backend_logs")[0].scrollHeight - $("#backend_logs").height();
+                //GET _tasks?detailed=true&actions=*
+                console.log(response);
+
+//                response.forEach(log => {
+//                    $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");
+//                });
+//                $("#backend_logs")[0].scrollTop = $("#backend_logs")[0].scrollHeight - $("#backend_logs").height();
 
                 if(self[loggingKey] == false){
                     clearInterval(askForLogs);
