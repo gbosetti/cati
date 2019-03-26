@@ -21,7 +21,7 @@ app.views.tweets = Backbone.View.extend({
 
         this.render();
 
-        this.updatingSearchDatesRange();
+        //this.updatingSearchDatesRange();
         var handler = _.bind(this.render, this);
         var self = this;
         $(document).on("click","body .tweet_state",function(e){
@@ -32,14 +32,14 @@ app.views.tweets = Backbone.View.extend({
 			    e.target.querySelector("a").click();
 		});
     },
-    updatingSearchDatesRange: function(){
+    /*updatingSearchDatesRange: function(){
 
         var data = this.getIndexAndSession();
         $.post(app.appURL+'get_dataset_date_range', data, function(response){
             $("#search-start-date")[0].valueAsDate = new Date(response.min_timestamp.value);
             $("#search-end-date")[0].valueAsDate = new Date(response.max_timestamp.value);
         }, 'json').fail(self.cnxError);
-    },
+    },*/
     render: function(){
         var html = this.template();
         this.$el.html(html);
