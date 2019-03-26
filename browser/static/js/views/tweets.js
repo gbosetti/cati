@@ -45,6 +45,7 @@ app.views.tweets = Backbone.View.extend({
         this.$el.html(html);
         this.delegateEvents();
         app.views.mabed.prototype.getClassificationStats();
+        app.views.mabed.prototype.setSessionTopBar();
         $('.popover-dismiss').popover({
           trigger: 'focus',
           html: true,

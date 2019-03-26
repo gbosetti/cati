@@ -135,6 +135,7 @@ app.views.settings = Backbone.View.extend({
               localStorage.removeItem('events');
             }
           app.views.mabed.prototype.getClassificationStats();
+          app.views.mabed.prototype.setSessionTopBar();
           }
       }, 'json');
       return false;

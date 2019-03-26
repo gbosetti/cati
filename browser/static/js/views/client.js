@@ -25,6 +25,7 @@ app.views.client = Backbone.View.extend({
 	  	this.delegateEvents();
 	  	$('#timeline_div').html('<div id="timeline-embed" style="width: 100%; height: 800px;box-shadow: 0 4px 2px -2px rgba(0,0,0,0.2)"></div>');
 		app.views.mabed.prototype.getClassificationStats();
+        app.views.mabed.prototype.setSessionTopBar();
 
 		this.load_timeline();
 		this.load_impact();

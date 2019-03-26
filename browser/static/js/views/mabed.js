@@ -57,7 +57,6 @@ app.views.mabed = Backbone.View.extend({
             document.querySelector('#classification_proposed').setAttribute("style", "width: "+Math.trunc(1000*total_proposed/total)/10.0+"%");
             document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+
                 " , Negative: "+total_negative+", Unlabeled : "+total_proposed);
-            app.views.mabed.prototype.setSessionTopBar();
         }).fail(function (err) {
             console.log(err);
         });
