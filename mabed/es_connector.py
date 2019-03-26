@@ -7,6 +7,7 @@ import gensim
 import mabed.utils as utils
 import string
 import re
+from elasticsearch_dsl import UpdateByQuery
 from pathlib import Path
 
 __author__ = "Firas Odeh"
@@ -386,9 +387,9 @@ class Es_connector:
 
     def update_all(self, field, value, **kwargs):
         # Process hits here
-        def process_hits(hits):
-            for item in hits:
-                self.update_field(item['_id'], field, value)
+        # def process_hits(hits):
+        #     for item in hits:
+        #         self.update_field(item['_id'], field, value)
 
         logger = kwargs.get("logger", None)
 
@@ -397,40 +398,44 @@ class Es_connector:
             # print("Index " + self.index + " not exists")
             exit()
 
-        # Init scroll by search
-        data = self.es.search(
-            index=self.index,
-            doc_type=self.doc_type,
-            scroll='15m',
-            size=self.size,
-            body=self.body
-        )
+        ubq = UpdateByQuery(using=self.es, index=self.index).update_from_dict({"query": {"match_all": {}}}).script(
+            source="ctx._source." + field + " = '" + value + "'")
+        response = ubq.execute()
 
-        # Get the scroll ID
-        sid = data['_scroll_id']
-        scroll_size = len(data['hits']['hits'])
-
-        # Before scroll, process current batch of hits
-        # print(data['hits']['total'])
-        process_hits(data['hits']['hits'])
-        processed_docs = 0
-
-        while scroll_size > 0:
-
-            data = self.es.scroll(scroll_id=sid, scroll='15m')
-
-            # Process current batch of hits
-            process_hits(data['hits']['hits'])
-
-            # Update the scroll ID
-            sid = data['_scroll_id']
-
-            # Get the number of results that returned in the last scroll
-            scroll_size = len(data['hits']['hits'])
-
-            if (logger):
-                processed_docs += scroll_size
-                logger.add_log("Scrolling " + str(round(processed_docs * 100 / data['hits']['total'],2)) + "% documents")
+        # # Init scroll by search
+        # data = self.es.search(
+        #     index=self.index,
+        #     doc_type=self.doc_type,
+        #     scroll='15m',
+        #     size=self.size,
+        #     body=self.body
+        # )
+        #
+        # # Get the scroll ID
+        # sid = data['_scroll_id']
+        # scroll_size = len(data['hits']['hits'])
+        #
+        # # Before scroll, process current batch of hits
+        # # print(data['hits']['total'])
+        # process_hits(data['hits']['hits'])
+        # processed_docs = 0
+        #
+        # while scroll_size > 0:
+        #
+        #     data = self.es.scroll(scroll_id=sid, scroll='15m')
+        #
+        #     # Process current batch of hits
+        #     process_hits(data['hits']['hits'])
+        #
+        #     # Update the scroll ID
+        #     sid = data['_scroll_id']
+        #
+        #     # Get the number of results that returned in the last scroll
+        #     scroll_size = len(data['hits']['hits'])
+        #
+        #     if (logger):
+        #         processed_docs += scroll_size
+        #         logger.add_log("Scrolling " + str(round(processed_docs * 100 / data['hits']['total'],2)) + "% documents")
         return True
 
     def update_query(self, query, field, value):
