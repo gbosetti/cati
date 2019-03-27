@@ -5,7 +5,6 @@ app.views.mabed = Backbone.View.extend({
     },
     initialize: function() {
         var handler = _.bind(this.render, this);
-        this.keepaskingForLogs = false;
     },
     render: function () {
         var html = this.template();
@@ -134,8 +133,7 @@ app.views.mabed = Backbone.View.extend({
             }
         });
         var self = this;
-        this.keepaskingForLogs = true;
-        var askForLogs = setInterval(function(){
+        self.askForLogs = setInterval(function(){
             $.get(app.appURL+'get_backend_logs', function(response){
 
                 response = JSON.parse(response);
@@ -146,9 +144,6 @@ app.views.mabed = Backbone.View.extend({
                 });
                 $("#backend_logs")[0].scrollTop = $("#backend_logs")[0].scrollHeight - $("#backend_logs").height();
 
-                if(self.keepaskingForLogs == false){
-                    clearInterval(askForLogs);
-                }
             }, 'json');
         }, 7000);
         return jc;
@@ -165,11 +160,9 @@ app.views.mabed = Backbone.View.extend({
       data.push({name: "index", value: app.session.s_index});
       data.push({name: "session", value: app.session.s_name});
 
-      this.showProcessingEventsPopup();
+      var progressPopup = this.showProcessingEventsPopup();
 
       $.post(app.appURL+'detect_events', data, function(response){
-
-          self.keepaskingForLogs = false;
 
           if(response.result){
               self.model.reset();
@@ -200,7 +193,9 @@ app.views.mabed = Backbone.View.extend({
                             btnClass: 'btn-cancel'
                         }
                     }
-                });
+                   });
+                   clearInterval(self.askForLogs);
+                   progressPopup.close();
               });
           }else{
               console.log("No result");
