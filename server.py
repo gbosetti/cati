@@ -247,7 +247,6 @@ def search_for_tweets():
 # @cross_origin()
 def get_image_folder():
     data = request.form
-    print("Reading images folder from:", data)
     folder_name = functions.get_image_folder(data["index"])
     print("folder: ", folder_name)
     return folder_name
