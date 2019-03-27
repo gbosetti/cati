@@ -21,5 +21,7 @@ key.pem
 cert.pem
 config.json
 .rnd
+cati-logs.txt	
+mabed-logs.txt
 
 

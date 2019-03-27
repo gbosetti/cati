@@ -138,6 +138,9 @@ app.views.mabed = Backbone.View.extend({
         var askForLogs = setInterval(function(){
             $.get(app.appURL+'get_backend_logs', function(response){
 
+                response = JSON.parse(response);
+                console.log(response);
+
                 response.forEach(log => {
                     $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");
                 });

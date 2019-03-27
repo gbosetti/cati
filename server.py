@@ -150,16 +150,22 @@ def produce_classification_stats():
         "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
     })
 
-# Run MABED
-@app.route('/get_backend_logs', methods=['POST', 'GET'])
+@app.route('/get_elastic_logs', methods=['POST', 'GET'])
 # @cross_origin()
-def get_backend_logs():
+def get_elastic_logs():
     data = request.form
 
     return jsonify(functions.get_elastic_logs(data['index']))
     # logs = jsonify(app.backend_logger.get_logs())
     # app.backend_logger.clear_logs()
     #return logs
+
+@app.route('/get_backend_logs', methods=['POST', 'GET'])
+# @cross_origin()
+def get_backend_logs():
+    logs = jsonify(app.backend_logger.get_logs())
+    app.backend_logger.clear_logs()
+    return logs
 
 # Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])
