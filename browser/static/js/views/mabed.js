@@ -13,6 +13,7 @@ app.views.mabed = Backbone.View.extend({
         this.delegateEvents();
         console.log("Rendering the doc");
         this.getDatasetInfo();
+        this.setSessionTopBar();
         return this;
     },
     getClassificationStats: function () {
@@ -63,7 +64,58 @@ app.views.mabed = Backbone.View.extend({
     },
     setSessionTopBar: function() {
         console.log("The current session is "+app.session.s_name);
-        document.querySelector('#current_session').textContent = app.session.s_name;
+        $.get(app.appURL+'sessions', null, function(response){
+            var html = "";
+            $.each(response, function(i, s){
+                if(i==0 && app.session_id==null){
+                    app.session_id = s._id;
+                    app.session = s._source;
+                    localStorage.removeItem('session_id');
+                    localStorage.removeItem('session');
+                    localStorage.setItem('session_id', s._id);
+                    localStorage.setItem('session', JSON.stringify(s._source));
+                }
+                if(s._id==app.session_id){
+                    html+= '<option selected value="'+s._id+'">'+s._source.s_name+'</option>';
+                }else{
+                    html+= '<option value="'+s._id+'">'+s._source.s_name+'</option>';
+                }
+            });
+            $('#session_topbar').html(html);
+        }, 'json');
+        //document.querySelector('#session_dropdown').textContent = app.session.s_name;
+    },
+    switchSession: function(){
+        //e.preventDefault();
+        var self = this;
+        var id = $( "#session_topbar option:selected").attr('value');
+        console.log("id = "+ id);
+        $.post(app.appURL+'get_session',  $('#topbar_session_form').serialize(), function(response){
+            if(response.result==true){
+                app.session_id = response.body._id;
+                app.session = response.body._source;
+                localStorage.removeItem('session_id');
+                localStorage.removeItem('session');
+                localStorage.removeItem('image_path')
+
+                localStorage.setItem('image_path',response.images_folder);
+                app.imagesPath = response.images_folder;
+                localStorage.setItem('session_id', response.body._id);
+                localStorage.setItem('session', JSON.stringify(response.body._source));
+
+                if(response.body._source.events){
+                    app.eventsCollection.reset();
+                    var collection = JSON.parse(response.body._source.events);
+                    app.eventsCollection.add_json_events(collection);
+                }else{
+                    app.eventsCollection.reset();
+                    localStorage.removeItem('events');
+                }
+                app.views.mabed.prototype.getClassificationStats();
+                //app.views.mabed.prototype.setSessionTopBar();
+            }
+        }, 'json');
+        return false;
     },
     getDatasetInfo: function () {
         if (!app.session) {

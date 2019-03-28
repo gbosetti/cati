@@ -13,6 +13,8 @@ app.views.home = Backbone.View.extend({
         jarallax(document.querySelectorAll('.jarallax-keep-img'), {
             keepImg: true,
         });
+        app.views.mabed.prototype.setSessionTopBar();
+        app.views.mabed.prototype.getClassificationStats();
         return this;
     }
 });
