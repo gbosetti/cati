@@ -13,6 +13,7 @@ app.views.mabed = Backbone.View.extend({
         console.log("Rendering the doc");
         this.getDatasetInfo();
         this.setSessionTopBar();
+        this.getClassificationStats();
         return this;
     },
     getClassificationStats: function () {
