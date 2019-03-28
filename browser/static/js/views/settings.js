@@ -152,6 +152,7 @@ app.views.settings = Backbone.View.extend({
       var self = this;
       $.get(app.appURL+'sessions', null, function(response){
           var html = "";
+          sessions = []
           $.each(response, function(i, s){
             if(i==0&&app.session_id==null){
               app.session_id = s._id;
@@ -162,12 +163,17 @@ app.views.settings = Backbone.View.extend({
               localStorage.setItem('session_id', s._id);
               localStorage.setItem('session', JSON.stringify(s._source));
             }
-            if(s._id==app.session_id){
-                html+= '<option selected value="'+s._id+'">'+s._source.s_name+'</option>';
-            }else{
-                html+= '<option value="'+s._id+'">'+s._source.s_name+'</option>';
-            }
+              sessions.push([s._source.s_name,s._id]);
           });
+          //TODO: make a fucntion instead of duplicating code
+          sessions.sort((a,b) => (a[0]>b[0]));
+          for(sessionTuple of sessions){
+              if(sessionTuple[1]===app.session_id){
+                  html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+              }else{
+                  html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+              }
+          }
           $('#sessionsList').html(html);
           self.show_seesion_info();
       }, 'json');
