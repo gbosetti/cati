@@ -73,7 +73,10 @@ class Functions:
                         "exists": {"field": "entities.user_mentions"}
                     }
             })
-            return res['hits']['total']
+            if my_connector.field_exists(field="entities.user_mentions*"):
+                return res['hits']['total']
+            else:
+                return '...'
         except RequestError:
             return 'None  Found'
 
