@@ -62,7 +62,11 @@ app.views.mabed = Backbone.View.extend({
         });
     },
     setSessionTopBar: function() {
-        console.log("The current session is "+app.session.s_name);
+        if(!app.session){
+           console.log("There is no session set")
+        }else{
+            console.log("The current session is "+app.session.s_name);
+        }
         $.get(app.appURL+'sessions', null,function(response){
             app.views.settings.prototype.handleSessions(response,'#session_topbar')
         } , 'json');

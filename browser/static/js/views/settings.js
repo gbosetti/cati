@@ -170,7 +170,6 @@ app.views.settings = Backbone.View.extend({
             }
             sessions.push([s._source.s_name,s._id]);
         });
-        //TODO: make a fucntion instead of duplicating code
         sessions.sort((a,b) => (a[0]>b[0]));
         for(sessionTuple of sessions){
             if(sessionTuple[1]===app.session_id){
