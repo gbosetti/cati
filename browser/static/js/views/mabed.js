@@ -66,6 +66,7 @@ app.views.mabed = Backbone.View.extend({
         console.log("The current session is "+app.session.s_name);
         $.get(app.appURL+'sessions', null, function(response){
             var html = "";
+            let sessions= [];
             $.each(response, function(i, s){
                 if(i==0 && app.session_id==null){
                     app.session_id = s._id;
@@ -75,12 +76,16 @@ app.views.mabed = Backbone.View.extend({
                     localStorage.setItem('session_id', s._id);
                     localStorage.setItem('session', JSON.stringify(s._source));
                 }
-                if(s._id==app.session_id){
-                    html+= '<option selected value="'+s._id+'">'+s._source.s_name+'</option>';
-                }else{
-                    html+= '<option value="'+s._id+'">'+s._source.s_name+'</option>';
-                }
+                sessions.push([s._source.s_name,s._id]);
             });
+            sessions.sort((a,b) => (a[0]>b[0]));
+            for(sessionTuple of sessions){
+                if(sessionTuple[1]===app.session_id){
+                    html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }else{
+                    html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }
+            }
             $('#session_topbar').html(html);
         }, 'json');
         //document.querySelector('#session_dropdown').textContent = app.session.s_name;
