@@ -11,10 +11,10 @@ app.views.settings = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+        app.views.mabed.prototype.setSessionTopBar();
         this.all_sessions();
         this.show_seesion_info();
         this.update_available_indexes_list();
-        //app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
@@ -149,34 +149,38 @@ app.views.settings = Backbone.View.extend({
         } //else { this.all_sessions(); }
     },
     all_sessions: function(){
-      var self = this;
-      $.get(app.appURL+'sessions', null, function(response){
-          var html = "";
-          sessions = []
-          $.each(response, function(i, s){
+        let self =this;
+      $.get(app.appURL+'sessions', null, function(response){self.handleSessions(response,'#sessionsList')}, 'json');
+    },
+    handleSessions(response,stringComponent){
+        var self = this;
+        console.log(response);
+        console.log(stringComponent);
+        var html = "";
+        sessions = []
+        $.each(response, function(i, s){
             if(i==0&&app.session_id==null){
-              app.session_id = s._id;
-              app.session = s._source;
-              self.show_seesion_info();
-              localStorage.removeItem('session_id');
-              localStorage.removeItem('session');
-              localStorage.setItem('session_id', s._id);
-              localStorage.setItem('session', JSON.stringify(s._source));
+                app.session_id = s._id;
+                app.session = s._source;
+                self.show_seesion_info();
+                localStorage.removeItem('session_id');
+                localStorage.removeItem('session');
+                localStorage.setItem('session_id', s._id);
+                localStorage.setItem('session', JSON.stringify(s._source));
             }
-              sessions.push([s._source.s_name,s._id]);
-          });
-          //TODO: make a fucntion instead of duplicating code
-          sessions.sort((a,b) => (a[0]>b[0]));
-          for(sessionTuple of sessions){
-              if(sessionTuple[1]===app.session_id){
-                  html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
-              }else{
-                  html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
-              }
-          }
-          $('#sessionsList').html(html);
-          self.show_seesion_info();
-      }, 'json');
+            sessions.push([s._source.s_name,s._id]);
+        });
+        //TODO: make a fucntion instead of duplicating code
+        sessions.sort((a,b) => (a[0]>b[0]));
+        for(sessionTuple of sessions){
+            if(sessionTuple[1]===app.session_id){
+                html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+            }else{
+                html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+            }
+        }
+        $(stringComponent).html(html);
+        self.show_seesion_info();
     },
     regenerateNgramsWithUserParams: function(evt){
         evt.preventDefault();
