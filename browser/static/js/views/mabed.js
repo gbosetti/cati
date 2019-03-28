@@ -19,7 +19,7 @@ app.views.mabed = Backbone.View.extend({
         if (!app.session) {
             return this.notifyNoSession();
         }
-        var data = $('#run_mabed').serializeArray();
+        let data=[];
         data.push({name: "index", value: app.session.s_index});
         data.push({name: "session", value: app.session.s_name});
 
