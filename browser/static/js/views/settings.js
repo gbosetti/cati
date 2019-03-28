@@ -42,7 +42,7 @@ app.views.settings = Backbone.View.extend({
         });
         var self = this;
         self.askForLogs = setInterval(function(){
-            $.post(app.appURL+'get_backend_logs', [{name: "index", value: app.session.s_index}], function(response){
+            $.post(app.appURL+'get_elastic_logs', [{name: "index", value: app.session.s_index}], function(response){
 
                 if (response["nodes"] == undefined || Object.keys(response["nodes"]).length == 0)
                     return;

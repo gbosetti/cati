@@ -28,16 +28,19 @@ var app = (function() {
                     this.eventsCollection.add_json_events(collection);
                 }
             }
-            //if (localStorage.getItem('image_path') != undefined || localStorage.getItem('image_path') !== null) {
+            if (localStorage.getItem('image_path') != undefined || localStorage.getItem('image_path') != null) {
                 this.imagesPath = localStorage.getItem('image_path');
-            //}
-            /*else{
-                $.post(app.appURL+'get_image_folder', [{name:"index", value:app.session.s_index}], response => {
-                    console.log(response);
-                    this.imagesPath = response;
-                    console.log("--------------", this.imagesPath);
-                }, 'json');
-            }*/
+
+            }
+            else{
+                var self = this;
+                console.log('get_image_folder');
+                $.post(app.appURL+'get_image_folder', [{name:"index", value:app.session.s_index}],  function(folderName){
+                    console.log('folderName: ', folderName);
+                    self.imagesPath = folderName;
+                    localStorage.setItem('image_path', folderName);
+                });
+            }
 
             Backbone.history.start();
             return this;

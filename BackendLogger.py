@@ -1,18 +1,42 @@
 import time
+import os
+from flask import jsonify
 
 class BackendLogger:
 
     def __init__(self):
-        self.logs = []
-
+        #self.logs = []
+        self.filename = 'cati-logs.txt'
 
     def add_log(self, message):
         curr_timestamp = time.time()
-        self.logs.append({"timestamp": curr_timestamp, "content": message})
+        #self.logs.append({"timestamp": curr_timestamp, "content": message})
+        message = message.replace('\r', '').replace('\n', '')
         print(curr_timestamp, message)
+        file = open(self.filename, "a+")
+        file.write('{"timestamp": ' + str(curr_timestamp) + ', "content": "' + message + '"},')
+        file.close()
 
     def clear_logs(self):
-        self.logs = []
+        #self.logs = []
+        if os.path.isfile(self.filename):
+            os.remove(self.filename)
 
     def get_logs(self):
-        return self.logs
+
+        try:
+            file = open(self.filename, "r")
+            logs = '['
+            for line in file:
+                logs = logs + line
+
+            logs = logs[:-1]
+            logs = logs + ']'
+
+            print('logs', logs)
+            return logs
+
+        except IOError as err:
+            print(self.filename + ": the file was not found.", err)
+            return '[]'
+
