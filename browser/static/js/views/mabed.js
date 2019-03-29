@@ -6,19 +6,21 @@ app.views.mabed = Backbone.View.extend({
     initialize: function() {
         var handler = _.bind(this.render, this);
     },
-    render: function () {
+    render: async function () {
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
         console.log("Rendering the doc");
         this.getDatasetInfo();
+        await this.setSessionTopBar();
+        this.getClassificationStats();
         return this;
     },
     getClassificationStats: function () {
         if (!app.session) {
             return this.notifyNoSession();
         }
-        var data = $('#run_mabed').serializeArray();
+        let data=[];
         data.push({name: "index", value: app.session.s_index});
         data.push({name: "session", value: app.session.s_name});
 
@@ -56,14 +58,57 @@ app.views.mabed = Backbone.View.extend({
             document.querySelector('#classification_proposed').setAttribute("style", "width: "+Math.trunc(1000*total_proposed/total)/10.0+"%");
             document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+
                 " , Negative: "+total_negative+", Unlabeled : "+total_proposed);
-            app.views.mabed.prototype.setSessionTopBar();
         }).fail(function (err) {
             console.log(err);
         });
     },
     setSessionTopBar: function() {
-        console.log("The current session is "+app.session.s_name);
-        document.querySelector('#current_session').textContent = app.session.s_name;
+        if(!app.session){
+           console.log("There is no session set")
+        }else{
+            console.log("The current session is "+app.session.s_name);
+        }
+        let self =this;
+        return new Promise(resolve => {
+            $.get(app.appURL+'sessions', null, function(response){
+                resolve(response);
+            }, 'json');
+        }).then(value => {
+            return app.views.settings.prototype.handleSessions(value,'#session_topbar')
+        })
+        //document.querySelector('#session_dropdown').textContent = app.session.s_name;
+    },
+    switchSession: function(){
+        //e.preventDefault();
+        var self = this;
+        var id = $( "#session_topbar option:selected").attr('value');
+        console.log("id = "+ id);
+        $.post(app.appURL+'get_session',  $('#topbar_session_form').serialize(), function(response){
+            if(response.result==true){
+                app.session_id = response.body._id;
+                app.session = response.body._source;
+                localStorage.removeItem('session_id');
+                localStorage.removeItem('session');
+                localStorage.removeItem('image_path')
+
+                localStorage.setItem('image_path',response.images_folder);
+                app.imagesPath = response.images_folder;
+                localStorage.setItem('session_id', response.body._id);
+                localStorage.setItem('session', JSON.stringify(response.body._source));
+
+                if(response.body._source.events){
+                    app.eventsCollection.reset();
+                    var collection = JSON.parse(response.body._source.events);
+                    app.eventsCollection.add_json_events(collection);
+                }else{
+                    app.eventsCollection.reset();
+                    localStorage.removeItem('events');
+                }
+                app.views.mabed.prototype.getClassificationStats();
+                //app.views.mabed.prototype.setSessionTopBar();
+            }
+        }, 'json');
+        return false;
     },
     getDatasetInfo: function () {
         if (!app.session) {

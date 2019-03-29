@@ -6,15 +6,15 @@ app.views.settings = Backbone.View.extend({
         'click #deleteSession': 'deleteSession',
         'click #regenerate-ngrams': 'regenerateNgramsWithUserParams',
     },
-    initialize: function() {
+    initialize: async function() {
 
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+        await app.views.mabed.prototype.setSessionTopBar();
         this.all_sessions();
         this.show_seesion_info();
         this.update_available_indexes_list();
-        //app.views.mabed.prototype.getClassificationStats();
 
         return this;
     },
@@ -112,7 +112,7 @@ app.views.settings = Backbone.View.extend({
       e.preventDefault();
       var self = this;
       var id = $( "#sessionsList option:selected").attr('value');
-      $.post(app.appURL+'get_session',  $('#session_form').serialize(), function(response){
+      $.post(app.appURL+'get_session',  $('#session_form').serialize(), async function(response){
           if(response.result==true){
             app.session_id = response.body._id;
             app.session = response.body._source;
@@ -134,6 +134,7 @@ app.views.settings = Backbone.View.extend({
               app.eventsCollection.reset();
               localStorage.removeItem('events');
             }
+          await app.views.mabed.prototype.setSessionTopBar();
           app.views.mabed.prototype.getClassificationStats();
           }
       }, 'json');
@@ -148,28 +149,46 @@ app.views.settings = Backbone.View.extend({
         } //else { this.all_sessions(); }
     },
     all_sessions: function(){
-      var self = this;
-      $.get(app.appURL+'sessions', null, function(response){
-          var html = "";
-          $.each(response, function(i, s){
-            if(i==0&&app.session_id==null){
-              app.session_id = s._id;
-              app.session = s._source;
-              self.show_seesion_info();
-              localStorage.removeItem('session_id');
-              localStorage.removeItem('session');
-              localStorage.setItem('session_id', s._id);
-              localStorage.setItem('session', JSON.stringify(s._source));
+        let self =this;
+        return new Promise(resolve => {
+            $.get(app.appURL+'sessions', null, function(response){
+                resolve(response);
+            }, 'json');
+        }).then(value => {
+            return self.handleSessions(value,'#sessionsList')
+        })
+    },
+    handleSessions(response,stringComponent){
+        var self = this;
+        return new Promise(resolve => {
+            let html = "";
+            let sessions = [];
+            response.forEach((element,index) => {
+                if(index == 0 && app.session_id == null){
+                    app.session_id = element._id;
+                    app.session = element._source;
+                    localStorage.removeItem('session_id');
+                    localStorage.removeItem('session');
+                    localStorage.setItem('session_id', element._id);
+                    localStorage.setItem('session', JSON.stringify(element._source));
+                }
+                sessions.push([element._source.s_name, element._id]);
+            });
+            sessions.sort((a,b) => (a[0]>b[0]));
+            for(sessionTuple of sessions){
+                if(sessionTuple[1]===app.session_id){
+                    html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }else{
+                    html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }
             }
-            if(s._id==app.session_id){
-                html+= '<option selected value="'+s._id+'">'+s._source.s_name+'</option>';
-            }else{
-                html+= '<option value="'+s._id+'">'+s._source.s_name+'</option>';
-            }
-          });
-          $('#sessionsList').html(html);
-          self.show_seesion_info();
-      }, 'json');
+            console.log(html);
+            resolve(html);
+        }).then(value => {
+            $(stringComponent).html(value);
+        }).then( value => {
+            return self.show_seesion_info();
+        });
     },
     regenerateNgramsWithUserParams: function(evt){
         evt.preventDefault();

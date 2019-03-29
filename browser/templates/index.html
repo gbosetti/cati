@@ -51,7 +51,14 @@
 							<a class="nav-link" href="#events"><i class="pixicon-map-pin-1-place-2" style="margin-right:5px;position:relative;top:2px;"></i> Review & Export</a>
 						</li>
 						<li class="nav-item" id="nav-settings">
-							<span class="nav-link"><i class="pixicon-user-male-cog" style="margin-right:5px;position:relative;top:2px;"></i > Session:<span id="current_session">Session</span></span>
+								<form id="topbar_session_form">
+									<div class="input-group">
+										<label class="nav-link" for="session_topbar">
+											<i class="pixicon-user-male-cog" style="margin-right:5px;position:relative;top:2px;"></i >Session :</label>
+										<select name="id" class="custom-select" id="session_topbar" onchange="app.views.mabed.prototype.switchSession()">
+										</select>
+									</div>
+								</form>
 						</li>
 					</ul>
 				</div>

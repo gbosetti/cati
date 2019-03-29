@@ -19,11 +19,12 @@ app.views.client = Backbone.View.extend({
                 self.tweet_state(e);
             });
 	  },
-	  render: function(){
+	  render: async function(){
 	    var html = this.template({});
 	  	this.$el.html(html);
 	  	this.delegateEvents();
 	  	$('#timeline_div').html('<div id="timeline-embed" style="width: 100%; height: 800px;box-shadow: 0 4px 2px -2px rgba(0,0,0,0.2)"></div>');
+		await app.views.mabed.prototype.setSessionTopBar();
 		app.views.mabed.prototype.getClassificationStats();
 
 		this.load_timeline();

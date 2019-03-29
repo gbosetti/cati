@@ -38,6 +38,7 @@ app.views.classification = Backbone.View.extend({
 
         $("#remove-stopwords-al").bootstrapToggle();
         app.views.mabed.prototype.getClassificationStats();
+        //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
     },

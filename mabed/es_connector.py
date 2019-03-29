@@ -2,6 +2,7 @@
 import json
 import time
 from elasticsearch import Elasticsearch
+from elasticsearch.client import IndicesClient
 import os
 import gensim
 import mabed.utils as utils
@@ -92,6 +93,7 @@ class Es_connector:
             # TODO: use SSL
             use_ssl=False
         )
+        self.ic = IndicesClient(self.es)
 
     # def search(self, query):
     #     res = self.es.search(
@@ -921,3 +923,11 @@ class Es_connector:
         # context = model.similar_by_vector(vector=['lyon','fdl','fdl2017'], topn=5)
 
         return context
+
+    def field_exists(self, field):
+        res = self.ic.get_field_mapping(
+            index=self.index,
+            doc_type=self.doc_type,
+            fields=[field]
+        )
+        return len(res[(next(iter(res)))]['mappings'])  > 0
