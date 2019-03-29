@@ -6,13 +6,13 @@ app.views.mabed = Backbone.View.extend({
     initialize: function() {
         var handler = _.bind(this.render, this);
     },
-    render: function () {
+    render: async function () {
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
         console.log("Rendering the doc");
         this.getDatasetInfo();
-        this.setSessionTopBar();
+        await this.setSessionTopBar();
         this.getClassificationStats();
         return this;
     },
@@ -68,9 +68,14 @@ app.views.mabed = Backbone.View.extend({
         }else{
             console.log("The current session is "+app.session.s_name);
         }
-        $.get(app.appURL+'sessions', null,function(response){
-            app.views.settings.prototype.handleSessions(response,'#session_topbar')
-        } , 'json');
+        let self =this;
+        return new Promise(resolve => {
+            $.get(app.appURL+'sessions', null, function(response){
+                resolve(response);
+            }, 'json');
+        }).then(value => {
+            return app.views.settings.prototype.handleSessions(value,'#session_topbar')
+        })
         //document.querySelector('#session_dropdown').textContent = app.session.s_name;
     },
     switchSession: function(){

@@ -40,12 +40,12 @@ app.views.tweets = Backbone.View.extend({
             $("#search-end-date")[0].valueAsDate = new Date(response.max_timestamp.value);
         }, 'json').fail(self.cnxError);
     },*/
-    render: function(){
+    render: async function(){
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+        await app.views.mabed.prototype.setSessionTopBar();
         app.views.mabed.prototype.getClassificationStats();
-        app.views.mabed.prototype.setSessionTopBar();
         $('.popover-dismiss').popover({
           trigger: 'focus',
           html: true,

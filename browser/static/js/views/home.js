@@ -4,7 +4,7 @@ app.views.home = Backbone.View.extend({
         this.render();
         var handler = _.bind(this.render, this);
     },
-    render: function(){
+    render: async function(){
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
@@ -13,7 +13,7 @@ app.views.home = Backbone.View.extend({
         jarallax(document.querySelectorAll('.jarallax-keep-img'), {
             keepImg: true,
         });
-        app.views.mabed.prototype.setSessionTopBar();
+        await app.views.mabed.prototype.setSessionTopBar();
         app.views.mabed.prototype.getClassificationStats();
         return this;
     }
