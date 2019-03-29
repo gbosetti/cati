@@ -32,7 +32,7 @@ var app = (function() {
                 this.imagesPath = localStorage.getItem('image_path');
 
             }
-            else{
+            /*else{
                 var self = this;
                 console.log('get_image_folder');
                 $.post(app.appURL+'get_image_folder', [{name:"index", value:app.session.s_index}],  function(folderName){
@@ -40,7 +40,7 @@ var app = (function() {
                     self.imagesPath = folderName;
                     localStorage.setItem('image_path', folderName);
                 });
-            }
+            }*/
 
             Backbone.history.start();
             return this;
