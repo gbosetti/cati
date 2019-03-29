@@ -158,7 +158,7 @@ app.views.settings = Backbone.View.extend({
             return self.handleSessions(value,'#sessionsList')
         })
     },
-    handleSessions(response,stringComponent){
+    handleSessions(response,componentSelector){
         var self = this;
         return new Promise(resolve => {
             let html = "";
@@ -174,7 +174,7 @@ app.views.settings = Backbone.View.extend({
                 }
                 sessions.push([element._source.s_name, element._id]);
             });
-            sessions.sort((a,b) => (a[0]>b[0]));
+            sessions.sort((a,b) => (a[0]>b[0])? 1:-1);
             for(sessionTuple of sessions){
                 if(sessionTuple[1]===app.session_id){
                     html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
@@ -185,7 +185,7 @@ app.views.settings = Backbone.View.extend({
             console.log(html);
             resolve(html);
         }).then(value => {
-            $(stringComponent).html(value);
+            $(componentSelector).html(value);
         }).then( value => {
             return self.show_seesion_info();
         });
