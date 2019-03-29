@@ -182,7 +182,6 @@ app.views.settings = Backbone.View.extend({
                     html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
                 }
             }
-            console.log(html);
             resolve(html);
         }).then(value => {
             $(componentSelector).html(value);

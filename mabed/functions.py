@@ -437,6 +437,7 @@ class Functions:
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = self.get_retated_terms(main_term, related_terms)
+        print("get_event_tweets", terms)
 
         query = {
             "sort": [
@@ -489,7 +490,17 @@ class Functions:
             my_connector = Es_connector(index=index)
             terms = self.get_retated_terms(main_term, related_terms)
             # UpdateByQuery.using
-            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({"query": {"bool": {"should": terms}}}).script(source="ctx._source.session_" + session + " = '" + labeling_class + "'" )
+            self.fix_read_only_allow_delete(index, my_connector)
+            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({"query": {"bool": {"should": terms}}}).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
+
+            # CADA ELEM {'match': {'text': {'query': 'costs', 'boost': '1.23'}}}
+            #           {'match': {'text': {'query': 'costs', 'boost': '1.23'}}}
+
+            # "should": [
+            #     {"term": {"tag": "wow"}},
+            #     {"term": {"tag": "elasticsearch"}}
+            # ],
+            # "minimum_should_match": 1,
             response = ubq.execute()
 
         except RequestError as err:
@@ -989,7 +1000,6 @@ class Functions:
 
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
             session = self.get_session_by_Name(name)
-            print("SESSION ", session, " - ", session)
 
             if session['hits']['total'] == 0:
                 self.fix_read_only_allow_delete(self.sessions_index, my_connector)  # Just in case we import it and the property isn't there

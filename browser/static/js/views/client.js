@@ -134,9 +134,10 @@ app.views.client = Backbone.View.extend({
 		},
 		mark_event: function(e){
 			e.preventDefault();
-			console.log("Updating event values");
+			console.log("Updating event values (mark_event)");
 			var self = this;
-			var s_ev = JSON.stringify(app.eventsCollection.get({ cid: $(e.currentTarget).data("cid") }).toJSON());
+			var targetEvent = { cid: $(e.currentTarget).data("cid")};
+			var s_ev = JSON.stringify(app.eventsCollection.get(targetEvent));
 			var data = [];
 			data.push({name: "index", value: app.session.s_index});
 			data.push({name: "session", value: app.session.s_name});
@@ -161,7 +162,7 @@ app.views.client = Backbone.View.extend({
 
 			$.post(app.appURL+'massive_tag_event_tweets', data, function(response){ //mark_event
 				jc.close();
-				console.log(response);
+                app.views.mabed.prototype.getClassificationStats();
 			}, 'json');
 			return false;
 		},
