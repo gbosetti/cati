@@ -1,7 +1,7 @@
 app.views.events = Backbone.View.extend({
 	template: _.template($("#tpl-page-events").html()),
 	events: {
-		'click .export_tweets': 'imageexport_tweets',
+		'click .export_tweets': 'export_tweets',
 		'click .tweet_state': 'tweet_state',
 		'click .scroll_tweets': 'scroll_tweets',
 		'click .btn_review': 'review_tweets'
@@ -40,8 +40,12 @@ app.views.events = Backbone.View.extend({
 		return this;
 	},
 	export_tweets: function(e){
-		e.preventDefault();
-		var win = window.open(app.appURL+'export_confirmed_tweets?session='+app.session_id, '_blank');
+	    try{
+            e.preventDefault();
+            var win = window.open(app.appURL+'export_confirmed_tweets?session='+app.session_id, '_blank');
+        }catch(err){
+            console.log("Error:", err)
+        }
 		return false;
 	},
 	review_tweets: function(e){
