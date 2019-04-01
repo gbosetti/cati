@@ -2,7 +2,6 @@ app.views.settings = Backbone.View.extend({
     template: _.template($("#tpl-page-settings").html()),
     events: {
         'submit #settings_form': 'create_session',
-        'submit #session_form': 'switchSession',
         'click #deleteSession': 'deleteSession',
         'click #regenerate-ngrams': 'regenerateNgramsWithUserParams',
     },
@@ -108,38 +107,6 @@ app.views.settings = Backbone.View.extend({
         });
       return false;
     },
-    switchSession: function(e){
-      e.preventDefault();
-      var self = this;
-      var id = $( "#sessionsList option:selected").attr('value');
-      $.post(app.appURL+'get_session',  $('#session_form').serialize(), async function(response){
-          if(response.result==true){
-            app.session_id = response.body._id;
-            app.session = response.body._source;
-            self.show_seesion_info();
-            localStorage.removeItem('session_id');
-            localStorage.removeItem('session');
-            localStorage.removeItem('image_path')
-
-            localStorage.setItem('image_path',response.images_folder);
-            app.imagesPath = response.images_folder;
-            localStorage.setItem('session_id', response.body._id);
-            localStorage.setItem('session', JSON.stringify(response.body._source));
-
-            if(response.body._source.events){
-                app.eventsCollection.reset();
-              var collection = JSON.parse(response.body._source.events);
-              app.eventsCollection.add_json_events(collection);
-            }else{
-              app.eventsCollection.reset();
-              localStorage.removeItem('events');
-            }
-          await app.views.mabed.prototype.setSessionTopBar();
-          app.views.mabed.prototype.getClassificationStats();
-          }
-      }, 'json');
-      return false;
-    },
     show_seesion_info: function(){
         if(app.session){
           $('#cs_name').html(app.session.s_name);
@@ -155,7 +122,7 @@ app.views.settings = Backbone.View.extend({
                 resolve(response);
             }, 'json');
         }).then(value => {
-            return self.handleSessions(value,'#sessionsList')
+            //return self.handleSessions(value,'#sessionsList')
         })
     },
     handleSessions(response,componentSelector){
