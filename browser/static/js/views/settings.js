@@ -159,7 +159,7 @@ app.views.settings = Backbone.View.extend({
     regenerateNgramsWithUserParams: function(evt){
         evt.preventDefault();
         evt.stopImmediatePropagation();
-        this.regenerateNgrams($("#ngrams_length").val(), $("#session_index").val());
+        this.regenerateNgrams($("#ngrams_length").val(), $("#session_index_for_ngrams").val());
     },
     regenerateNgrams: function(ngrams_length, index){
 
@@ -182,7 +182,7 @@ app.views.settings = Backbone.View.extend({
              }, 0); //New thread
 
             $.confirm({
-                title:"(Re)generating " + ngrams_length + "-grams",
+                title:"(Re)generating " + ngrams_length + "-grams for the " + index+ " index",
                 columnClass: 'medium',
                 content: ' \
                         Please, don\'t close this popup until the process is 100% finished. Click on "cancel" if you want to stop it. \
@@ -236,6 +236,7 @@ app.views.settings = Backbone.View.extend({
                 option.setAttribute('value',index_name);
                 option.appendChild(document.createTextNode(index_name));
                 document.querySelector('#session_index').appendChild(option);
+                document.querySelector('#session_index_for_ngrams').appendChild(option.cloneNode(true));
            }
         },'json');
     },
