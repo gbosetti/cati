@@ -104,8 +104,9 @@ app.views.mabed = Backbone.View.extend({
                     app.eventsCollection.reset();
                     localStorage.removeItem('events');
                 }
-                app.views.mabed.prototype.getClassificationStats();
+                //app.views.mabed.prototype.getClassificationStats();
                 //app.views.mabed.prototype.setSessionTopBar();
+                location.reload();
             }
         }, 'json');
         return false;
