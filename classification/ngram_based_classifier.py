@@ -97,7 +97,6 @@ class NgramBasedClasifier:
             my_connector = Es_connector(index=kwargs["index"])
 
             if kwargs.get('full_search', False):
-                print("Query matching full search 2")
                 query = {
                     "bool": {
                         "must": [

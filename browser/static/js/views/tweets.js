@@ -101,33 +101,57 @@ app.views.tweets = Backbone.View.extend({
         $('.loading_text:visible:last').fadeIn('slow');
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
+        var retweetsContainer="#top_retweets_results";
 
         var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
 
-        if(query && query.trim() != ""){
+
+        if(query && query.trim() != ""){ //If the user has entered at least a keyword
             this.requestTweets(data, startingReqTime);
             this.requestNgrams(data);
+            this.requestReTweets(data).then(
+                res => {
+                    this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
+                }
+            );
 
-        } else {
+        } else { //If the user has entered no keyword
+
+            this.hideNotFullSearchSearch();
             this.requestNgrams(data).then(
-            (res) => { //In case of success
-                this.showResultsWarning();
-                this.hideNotFullSearchSearch();
-                this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
-            },
-            (err) => { //In case of failing
-                this.showNoBigramsFound(".ngrams-search-classif:visible:last");
+                (res) => { //In case of success
+                    this.showResultsWarning();
+                    this.showResultsStats(res["total_matching_tweets"], startingReqTime, "all the tweets in the dataset");
+                },
+                (err) => { //In case of failing
+                    this.showNoBigramsFound(".ngrams-search-classif:visible:last");
+            });
+            this.requestReTweets(data).then(
+                res => {
+                    this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
+                },
+                err => { //In case of failing
+                    this.clearContainer(retweetsContainer);
+                    this.showNoRetweetsFound(retweetsContainer);
             });
         }
         app.views.mabed.prototype.getClassificationStats();
     },
+    presentRetweets(res, selector){
+        console.log("R E S ", res);
+        var html = this.get_retweets_html(res);
+        console.log("HTML", html);
+        try{
+        $(selector).html(html);
+        }catch(err){console.log(err)}
+    },
     hideNotFullSearchSearch: function(){
 
         $(".card").each((key, cardElem) => {
-            if(!cardElem.querySelector(".collapse").classList.contains("collapseNgrams"))
+            if(!cardElem.querySelector(".collapse").classList.contains("collapseNgrams") && !cardElem.querySelector(".collapse").classList.contains("collapseRetweets"))
                 cardElem.hidden = true;
         });
     },
@@ -157,7 +181,7 @@ app.views.tweets = Backbone.View.extend({
     renderAccordionInTab: function(tab, label){
 
         $(tab).html(`<div class="full-search-warning mt-4 alert alert-warning" hidden>
-                        <strong>You have not specified keywords for the search.</strong> You can try with some combination of the words appearing below:
+                        <strong>You have not specified keywords for the search.</strong> You can explore the full dataset and try searching for some combination of the words below:
                             <span class="close">
                             <span aria-hidden="true"><i class="fa fa-info-circle"></i></span>
                         </button>
@@ -206,6 +230,18 @@ app.views.tweets = Backbone.View.extend({
                                 </div>
 
                                 <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseRetweets">Top retweets</a></div>
+                                  <div id="collapseRetweets" class="collapse show collapseRetweets">
+                                    <div class="card-body">
+
+                                        <!-- POPULAR RETWEETS RESULTS -->
+                                        <div class="col-12 top_retweets_results"></div>
+
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseIndividual">Individual results</a></div>
                                   <div id="collapseIndividual" class="collapse show collapseIndividual">
                                     <div class="card-body">
@@ -215,7 +251,7 @@ app.views.tweets = Backbone.View.extend({
 
                                     </div>
                                   </div>
-                            </div>
+                                </div>
                       </div>
                     </div>`);
     },
@@ -260,6 +296,16 @@ app.views.tweets = Backbone.View.extend({
             self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
         }, 'json').fail(self.cnxError);
     },
+    requestReTweets: function(data){
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'top_retweets', data, (response) => {
+                resolve(response);
+            }, 'json').fail(function(err){
+                self.cnxError(err);
+                reject(err)
+            });
+        });
+    },
     requestNgrams: function(data, containerSelector){
 
         this.bigrams.lastQueryParams = data;
@@ -286,8 +332,14 @@ app.views.tweets = Backbone.View.extend({
             });
         });
     },
+    clearContainer: function(selector){
+        $(selector).html("");
+    },
     clearNgramsGraph: function(){
-        $(".bigrams-graph-area:visible").html("");
+        this.clearContainer(".bigrams-graph-area:visible");
+    },
+    showNoRetweetsFound: function(containerSelector){
+        $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
     },
     showNoBigramsFound: function(containerSelector){
         $(containerSelector).html("Sorry, no bigrams were found under this criteria.");
@@ -331,6 +383,46 @@ app.views.tweets = Backbone.View.extend({
                 }
             }
         });
+    },
+    get_retweets_html: function(aggregations, classes){
+
+        var html = "";
+        var template = _.template($("#tpl-item-retweet").html());
+
+        $.each(aggregations, function(i, aggregation){
+            var imgs = "";
+            var retweet = aggregation.top_text_hits.hits.hits[0];
+
+            if('extended_entities' in retweet._source){
+              $.each(retweet._source.extended_entities.media, function(i, media){
+                    var ext = "jpg";
+                    if(media.media_url.endsWith("png")){
+                        ext = "png";
+                    }
+                        imgs += '<a href="'+app.imagesURL+app.imagesPath+'/'+retweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="'+app.imagesURL+app.imagesPath+'/'+retweet._source.id_str+"_"+i+'.'+ext+'"></a>'
+              });
+            }
+            var state = retweet._source['session_'+app.session.s_name];
+				if(state === "confirmed"){
+					state = '<span class="badge badge-success">'+state+'</span>';
+				}else if (state === "negative"){
+					state = '<span class="badge badge-danger">'+state+'</span>';
+				}else{
+					state = '<span class="badge badge-secondary">'+state+'</span>';
+				}
+		    try{
+            html += template({
+                tid: retweet._id,
+                          created_at: retweet._source.created_at,
+                          link: retweet._source.link,
+                          text:  retweet._source.text,
+                          images: imgs,
+                          classes: "",
+                          state: state
+                        });
+            }catch(err){console.log(err)}
+        });
+        return html;
     },
     get_tweets_html: function(response, classes, loadMoreButtonClass){
 

@@ -163,6 +163,55 @@ class Functions:
               # }
             return '...'
 
+    def top_retweets(self, **kwargs):
+
+        try:
+            my_connector = Es_connector(index=kwargs["index"])
+
+            if kwargs.get('full_search', False):
+                print("Query matching full search")
+                query = {
+                    "bool": {
+                        "must": [
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
+                }
+            else:
+                query = {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": kwargs["word"]}},
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
+                }
+
+            return my_connector.search({
+                "size": 0,
+                "query": query,
+                "aggs": {
+                    "top_text": {
+                        "terms": {
+                            "field": "text.keyword",
+                            "size": 3
+                        },
+                        "aggregations": {
+                            "top_text_hits": {
+                                "top_hits": {
+                                    "size" : 1
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return {}
+
+
     def get_classification_stats(self, index, session_name):
         session = "session_" + session_name
         keyword = session+".keyword"

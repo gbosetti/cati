@@ -501,6 +501,36 @@
 			  </div>
 			</div>
 		</script>
+		<script type="text/template" id="tpl-item-retweet">
+			<div class="pix-margin-top-10">
+			  <div class="media pix-padding-10 white-bg bs_box tweet_box <%= classes %>">
+			    <div class="media-body">
+			        <div class="tweet_options">
+			            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			            <b>Options</b>
+			          </button>
+			          <div class="dropdown-menu dropdown-menu-right">
+			              <a class="dropdown-item tweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
+			          </div>
+
+			            <a href="#" class="btn btn-sm tweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
+			                <strong>Confirmed</strong>
+			            </a>
+			            <a href="#" class="btn btn-sm tweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
+			                <strong>Negative</strong>
+			            </a>
+			        </div>
+
+				  <div class="t_state">
+			            <%= state %>
+			      </div>
+			      <a class="t_date" href="<%= link %>" target="_blank"><%= created_at %></a>
+				  <p class="pix-black t_text"><%= text %></p>
+			      <p><%= images %></p>
+			    </div>
+			  </div>
+			</div>
+		</script>
 		<script type="text/template" id="tpl-page-mabed">
 			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
 			  <div class="container">

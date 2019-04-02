@@ -298,6 +298,18 @@ def ngrams_with_higher_ocurrence():
     })
 
 
+@app.route('/top_retweets', methods=['POST'])
+# @cross_origin()
+def top_retweets():
+    data = request.form
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
+
+    retweets = functions.top_retweets(index=data['index'], word=data['word'], session=data['session'],
+                                      label=data['search_by_label'], full_search=full_search, retweets_number=5)
+
+    return jsonify(retweets)
+
 # Get Tweets
 @app.route('/generate_ngrams_for_index', methods=['POST'])
 # @cross_origin()
