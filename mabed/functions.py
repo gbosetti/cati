@@ -194,7 +194,7 @@ class Functions:
                     "top_text": {
                         "terms": {
                             "field": "text.keyword",
-                            "size": 3
+                            "size": kwargs["retweets_number"]
                         },
                         "aggregations": {
                             "top_text_hits": {
@@ -539,17 +539,9 @@ class Functions:
             my_connector = Es_connector(index=index)
             terms = self.get_retated_terms(main_term, related_terms)
             # UpdateByQuery.using
+            # TODO: replace by EsConnector . update_by_query ()
             self.fix_read_only_allow_delete(index, my_connector)
             ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({"query": {"bool": {"should": terms}}}).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
-
-            # CADA ELEM {'match': {'text': {'query': 'costs', 'boost': '1.23'}}}
-            #           {'match': {'text': {'query': 'costs', 'boost': '1.23'}}}
-
-            # "should": [
-            #     {"term": {"tag": "wow"}},
-            #     {"term": {"tag": "elasticsearch"}}
-            # ],
-            # "minimum_should_match": 1,
             response = ubq.execute()
 
         except RequestError as err:
@@ -1026,7 +1018,6 @@ class Functions:
 
     def fix_read_only_allow_delete(self, index, connector):
 
-        print("index: ", index)
         connector.es.indices.put_settings(index=index, body={
             "index": {
                 "blocks": {
@@ -1247,6 +1238,17 @@ class Functions:
         }
         res = tweets_connector.update(tid, query)
         return res
+
+    def set_retweets_state(self, **kwargs):
+
+        tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
+        return tweets_connector.update_by_query({
+            "query": {
+                "match_phrase": {
+                    "text": kwargs["text"]
+                }
+              }
+        }, "ctx._source." + kwargs["session"] + " = '" + kwargs["tag"] + "'")
 
     def export_event(self, index, session):
         my_connector = Es_connector(index=index)

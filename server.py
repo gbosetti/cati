@@ -306,7 +306,7 @@ def top_retweets():
     full_search = len(word) == 0
 
     retweets = functions.top_retweets(index=data['index'], word=data['word'], session=data['session'],
-                                      label=data['search_by_label'], full_search=full_search, retweets_number=5)
+                                      label=data['search_by_label'], full_search=full_search, retweets_number=data['retweets_number'])
 
     return jsonify(retweets)
 
@@ -567,6 +567,14 @@ def mark_tweet():
     val = data['val']
     functions.set_tweet_state(index, session, tid, val)
     return jsonify(data)
+
+
+@app.route('/mark_retweets', methods=['POST', 'GET'])
+# @cross_origin()
+def mark_retweets():
+    data = request.form
+    res = functions.set_retweets_state(index=data['index'], session=data['session'], tag=data['tag'], text=data['text'])
+    return jsonify(res)
 
 
 @app.route('/mark_bigram_tweets', methods=['POST', 'GET'])

@@ -510,21 +510,18 @@
 			            <b>Options</b>
 			          </button>
 			          <div class="dropdown-menu dropdown-menu-right">
-			              <a class="dropdown-item tweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
+			              <a class="dropdown-item retweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
 			          </div>
 
-			            <a href="#" class="btn btn-sm tweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
+			            <a href="#" class="btn btn-sm retweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
 			                <strong>Confirmed</strong>
 			            </a>
-			            <a href="#" class="btn btn-sm tweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
+			            <a href="#" class="btn btn-sm retweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
 			                <strong>Negative</strong>
 			            </a>
 			        </div>
 
-				  <div class="t_state">
-			            <%= state %>
-			      </div>
-			      <a class="t_date" href="<%= link %>" target="_blank"><%= created_at %></a>
+				  <div class="t_state mt-1 mb-1"><%= matching_tweets %></div>
 				  <p class="pix-black t_text"><%= text %></p>
 			      <p><%= images %></p>
 			    </div>

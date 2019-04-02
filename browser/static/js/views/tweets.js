@@ -3,6 +3,7 @@ app.views.tweets = Backbone.View.extend({
     events: {
         'submit #tweets_form': 'tweets_submit',
         'click .tweet_state': 'tweet_state',
+        'click .retweet_state': 'retweet_state',
         'click .cluster_tweets': 'cluster_tweets',
         'click .scroll_tweets': 'scroll_tweets',
         'click .cluster_state': 'cluster_state',
@@ -101,9 +102,10 @@ app.views.tweets = Backbone.View.extend({
         $('.loading_text:visible:last').fadeIn('slow');
         var tabData = this.getCurrentSearchTabData();
         this.renderAccordionInTab(tabData.target, tabData.label);
-        var retweetsContainer="#top_retweets_results";
+        var retweetsContainer=".top_retweets_results:last";
 
-        var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData);
+        var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
+            .concat([{name: "retweets_number", value: 20}]);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
@@ -141,9 +143,8 @@ app.views.tweets = Backbone.View.extend({
         app.views.mabed.prototype.getClassificationStats();
     },
     presentRetweets(res, selector){
-        console.log("R E S ", res);
+        console.log("R E S ", selector, res);
         var html = this.get_retweets_html(res);
-        console.log("HTML", html);
         try{
         $(selector).html(html);
         }catch(err){console.log(err)}
@@ -402,23 +403,17 @@ app.views.tweets = Backbone.View.extend({
                         imgs += '<a href="'+app.imagesURL+app.imagesPath+'/'+retweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="'+app.imagesURL+app.imagesPath+'/'+retweet._source.id_str+"_"+i+'.'+ext+'"></a>'
               });
             }
-            var state = retweet._source['session_'+app.session.s_name];
-				if(state === "confirmed"){
-					state = '<span class="badge badge-success">'+state+'</span>';
-				}else if (state === "negative"){
-					state = '<span class="badge badge-danger">'+state+'</span>';
-				}else{
-					state = '<span class="badge badge-secondary">'+state+'</span>';
-				}
+            //var state = retweet._source['session_'+app.session.s_name];
+			matchingTweets = '<h6><span class="badge badge-secondary"> Matching tweets: '+aggregation.doc_count+'</span></h6>';
+
 		    try{
             html += template({
                 tid: retweet._id,
-                          created_at: retweet._source.created_at,
                           link: retweet._source.link,
                           text:  retweet._source.text,
                           images: imgs,
                           classes: "",
-                          state: state
+                          matching_tweets: matchingTweets
                         });
             }catch(err){console.log(err)}
         });
@@ -877,6 +872,44 @@ app.views.tweets = Backbone.View.extend({
 		}, 'json').fail(this.cnxError);
 		return false;
 	},
+    retweet_state: function(e){
+		e.preventDefault();
+		var tag = $(e.currentTarget).data("val");
+		var el = $(e.currentTarget).closest('.media-body').find('.t_state');
+		var text = $(e.currentTarget).closest('.media-body').find('.t_text').text();
+
+		var jc = this.createChangingStatePopup();
+
+		// TODO: check if this text is in the aggregations (to avoid an error if users manipulate the dom)
+		$.post(app.appURL+'mark_retweets', {index: app.session.s_index, session: 'session_'+app.session.s_name, tag: tag, text: text }, function(response){
+		    jc.close();
+		    console.log("Updated: ", response)
+            app.views.mabed.prototype.getClassificationStats();
+            console.log("Updated classification")
+		}, 'json').fail(this.cnxError);
+		return false;
+	},
+	createChangingStatePopup: function(){
+	    return this.createPopupAlert('Changing tweets state', 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>');
+	},
+	createPopupAlert: function(title, message){
+
+	    return $.confirm({
+            theme: 'pix-default-modal',
+            title: title,
+            boxWidth: '600px',
+            useBootstrap: false,
+            backgroundDismiss: true,
+            content: message,
+            defaultButtons: false,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+	},
     scroll_tweets: function(e){
 
         e.preventDefault();
@@ -896,21 +929,7 @@ app.views.tweets = Backbone.View.extend({
     },
     markBigramTweets: function(label, graphBasedLabelNgram){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
 
-        var jc = $.confirm({
-            theme: 'pix-default-modal',
-            title: 'Changing tweets state',
-            boxWidth: '600px',
-            useBootstrap: false,
-            backgroundDismiss: true,
-            content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
-            defaultButtons: false,
-            buttons: {
-                cancel: {
-                    text: 'OK',
-                    btnClass: 'btn-cancel'
-                }
-            }
-        });
+        var jc = this.createChangingStatePopup();
 
     	var data = this.getIndexAndSession().concat([
     	    {name: "ngram", value: graphBasedLabelNgram },
@@ -954,21 +973,7 @@ app.views.tweets = Backbone.View.extend({
 		data.push({name: "session", value: 'session_'+app.session.s_name});
 		data.push({name: "state", value: state});
 		data.push({name: "cid", value: cid});
-		var jc = $.confirm({
-				theme: 'pix-default-modal',
-				title: 'Changing tweets state',
-				boxWidth: '600px',
-				useBootstrap: false,
-				backgroundDismiss: true,
-				content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
-				defaultButtons: false,
-				buttons: {
-					cancel: {
-						text: 'OK',
-						btnClass: 'btn-cancel'
-					}
-				}
-			});
+		var jc = this.createChangingStatePopup();
 		$.post(app.appURL+'mark_cluster', data, function(response){
 			jc.close();
             app.views.mabed.prototype.getClassificationStats();
@@ -1014,21 +1019,7 @@ app.views.tweets = Backbone.View.extend({
             data.push({name: "state", value: state});
 
         //Loading message
-        var jc = $.confirm({
-            theme: 'pix-default-modal',
-            title: 'Changing tweets state',
-            boxWidth: '600px',
-            useBootstrap: false,
-            backgroundDismiss: false,
-            content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
-            defaultButtons: false,
-            buttons: {
-                cancel: {
-                    text: 'OK',
-                    btnClass: 'btn-cancel'
-                }
-            }
-        });
+        var jc = this.createChangingStatePopup();
 
         var callback = (response)=>{
             jc.close();

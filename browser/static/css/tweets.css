@@ -1,6 +1,9 @@
 .search-accordion {
     padding-bottom: 5em;
 }
+
+.ui-dialog { z-index: 2147483647 !important }
+
 .search-accordion .card .card-header {
     background-color: #677079;
     cursor: pointer;

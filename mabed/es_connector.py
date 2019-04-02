@@ -388,6 +388,29 @@ class Es_connector:
         # date = self.result[0]['_source']['timestamp_ms']
         return self.result
 
+    def update_by_query(self, query, script_source):
+
+        try:
+            self.fix_read_only_allow_delete()
+            ubq = UpdateByQuery(using=self.es, index=self.index).update_from_dict(query).script(source=script_source)
+            ubq.execute()
+
+        except Exception as err:
+            print("Error: ", err)
+            return False
+
+        return True
+
+    def fix_read_only_allow_delete(self):
+
+        self.es.indices.put_settings(index=self.index, body={
+            "index": {
+                "blocks": {
+                    "read_only_allow_delete": "false"
+                }
+            }
+        })
+
     def update_all(self, field, value, **kwargs):
         # Process hits here
         # def process_hits(hits):
