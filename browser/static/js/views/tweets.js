@@ -307,7 +307,7 @@ app.views.tweets = Backbone.View.extend({
             });
         });
     },
-    requestNgrams: function(data, containerSelector){
+    requestNgrams: function(data){
 
         this.bigrams.lastQueryParams = data;
         this.updateBigramsFormData(data);

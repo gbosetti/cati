@@ -29,8 +29,57 @@ app.views.client = Backbone.View.extend({
 
 		this.load_timeline();
 		this.load_impact();
+		//this.load_ngrams();
+
+		this.enableAccordion();
 	  	return this;
 	  },
+	  enableAccordion: function(){
+	    $(".event-accordion-shrink").on( "click", evt => {
+
+            if (evt.target.tagName.toLocaleLowerCase() == "span")
+                return;
+                
+	        if(evt.target.classList.contains("event-accordion-shrink")){
+	            evt.target.classList.remove("event-accordion-shrink");
+	            evt.target.classList.add("event-accordion-expand");
+                $(evt.target.parentNode.nextElementSibling).hide();
+            }
+            else{
+                evt.target.classList.add("event-accordion-shrink");
+	            evt.target.classList.remove("event-accordion-expand");
+	            $(evt.target.parentNode.nextElementSibling).show();
+            }
+
+            evt.preventDefault();
+            evt.stopImmediatePropagation();
+        });
+	  },
+	    load_ngrams: function(){
+
+	        var data = app.views.tweets.prototype.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
+            .concat([{name: "retweets_number", value: 20}]);
+
+	        this.request_ngrams(data).then( response => {
+	            if($.isEmptyObject(response.ngrams)){
+                    alert("EMPTY");//self.showNoBigramsFound(containerSelector);
+                }else {
+                    console.log(response.ngrams);
+                    //self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+                }
+	        });
+	    },
+	    request_ngrams: function(data){
+
+	        return new Promise((resolve, reject)=>{
+                $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
+                    resolve(response)
+                }, 'json').fail(function(err){
+                    console.log(err);
+                    reject(err)
+                });
+	        });
+	    },
 		load_timeline: function(){
 			var self = this;
 			app.eventsCollection.get_timeline_events().then(data => {
