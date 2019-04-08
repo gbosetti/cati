@@ -56,7 +56,7 @@ def tweets2file(tw, f):
     for tweet in tw:
         res.append(tweet['_source'])
     with open(f, 'w') as output:
-        json.dump(tw, output, indent=4)
+        json.dump(res, output, indent=4)
 
 
 def select_images(tw):
