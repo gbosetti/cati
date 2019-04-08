@@ -52,6 +52,9 @@ def get_labeled_tweets(session, index):
 
 def tweets2file(tw, f):
     # Write to a file
+    res = []
+    for tweet in tw:
+        res.append(tweet['_source'])
     with open(f, 'w') as output:
         json.dump(tw, output, indent=4)
 
