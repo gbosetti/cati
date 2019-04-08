@@ -9,7 +9,8 @@ app.views.client = Backbone.View.extend({
         		'click .scroll_tweets': 'scroll_tweets',
 				'click .cluster_state': 'cluster_state',
 				'click .btn_filter': 'filter_tweets',
-				'click .event-tweets-tab': 'filter_tweets_matching_tab'
+				'click .event-tweets-tab': 'filter_tweets_matching_tab',
+				'click .event-ngrams-tab': 'filter_ngrams_matching_tab'
 		},
 	  initialize: function() {
             this.ngrams = { //Session data for the ngrams
@@ -65,14 +66,16 @@ app.views.client = Backbone.View.extend({
 	        var data = app.views.tweets.prototype.getIndexAndSession().concat(app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a")).concat(
 	            [{name: "event", value: JSON.stringify(event)}]
 	        );
-	        console.log("tab",app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a"));
-	        console.log("data", data);
-
 	        this.request_ngrams(data).then( response => {
+
+	            var containerSelector = ".event-ngrams:visible:last";
+
 	            if($.isEmptyObject(response.ngrams)){
-                    console.log("EMPTY");//self.showNoBigramsFound(containerSelector);
+                    app.views.tweets.prototype.showNoBigramsFound(containerSelector);
                 }else {
                     console.log(response.ngrams);
+                    app.views.tweets.prototype.renderBigramsChart(this.ngrams, containerSelector, response.ngrams, 600);
+                    //app.views.tweets.prototype.showNoBigramsFound(".event-ngrams:visible:last");
                     //self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
                 }
 	        });
@@ -106,7 +109,7 @@ app.views.client = Backbone.View.extend({
                         console.log("load_timeline & display_tweets & load_ngrams");
                         try{
                             self.display_tweets(response, t0, timeline.config.events[0].unique_id);
-                            //self.load_ngrams(timeline.config.events[0].unique_id);
+                            self.load_ngrams(timeline.config.events[0].unique_id);
                         }catch(err){console.log(err)}
                     }, 'json').fail(function(err) {
                           console.log(err);
@@ -125,7 +128,7 @@ app.views.client = Backbone.View.extend({
                             $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                                 try{
                                     self.display_tweets(response, t0, data.unique_id);
-                                    //self.load_ngrams(data.unique_id);
+                                    self.load_ngrams(data.unique_id);
                                 }catch(err){console.log(err)}
                             }, 'json');
                         }catch(err){console.log(err)}
@@ -473,9 +476,15 @@ app.views.client = Backbone.View.extend({
 	},
 	filter_tweets_matching_tab: function(evt){
 	    evt.preventDefault();
+	    console.log("filter_tweets");
 	    this.filter_tweets(evt, this.currentClusterId, evt.target.getAttribute("tag"));
         $('#event-results-tabs-area li').removeClass('active');
         $(evt.target).parent().addClass('active');
+    },
+    filter_ngrams_matching_tab: function(evt){
+
+        evt.preventDefault();
+	    console.log("filter_ngrams_matching_tab");
     },
 	filter_tweets: function(e, eid, state){
 	    e.preventDefault();

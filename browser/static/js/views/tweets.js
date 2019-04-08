@@ -627,7 +627,7 @@ app.views.tweets = Backbone.View.extend({
         //var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
         setTimeout(() => { this.renderBigramsStats(classifficationData); }, 0); //In a new thread
-        setTimeout(() => { this.renderBigramsChart(".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
+        setTimeout(() => { this.renderBigramsChart(this.bigrams, ".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
 
         this.updateBigramsControls(ngrams);
     },
@@ -666,18 +666,18 @@ app.views.tweets = Backbone.View.extend({
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart(".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
+        this.renderBigramsChart(this.bigrams, ".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
     },
     filterElemByKey: function(key, collection){
         var res = collection.filter(item => {return item.key == key});
         return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
     },
-    renderBigramsChart: function(domSelector, ngrams, graphHeight, maxBubblesToShow){
+    renderBigramsChart: function(client, domSelector, ngrams, graphHeight, maxBubblesToShow){
 
         this.clearNgramsGraph();
         //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
-        this.bigrams.bigrams = ngrams;
-        this.bigrams.graphHeight = graphHeight;
+        client.bigrams = ngrams;
+        client.graphHeight = graphHeight;
 
         formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
             return [
@@ -694,7 +694,7 @@ app.views.tweets = Backbone.View.extend({
         chart.onBubbleClick = (label, evt) => {
 
             var ngram = label.split(" ").join("-");
-            var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
+            var ngramsToGenerate = client.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
             this.showNgramTweets(ngramsToGenerate, label, ngram);
         };
         chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
