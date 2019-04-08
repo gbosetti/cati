@@ -64,7 +64,7 @@ app.views.mabed = Backbone.View.extend({
     },
     setSessionTopBar: function() {
         if(!app.session){
-           console.log("There is no session set")
+            console.log("There is no session set")
         }else{
             console.log("The current session is "+app.session.s_name);
         }

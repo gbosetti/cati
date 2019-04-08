@@ -90,33 +90,49 @@ class NgramBasedClasifier:
 
         return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
 
-
     def get_ngrams(self, **kwargs):
+
+        if kwargs.get('full_search', False):
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {kwargs["session"]: kwargs["label"]}}
+                    ]
+                }
+            }
+        else:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {"text": kwargs["word"]}},
+                        {"match": {kwargs["session"]: kwargs["label"]}}
+                    ]
+                }
+            }
+
+        return self.get_ngrams_by_query(query=query, **kwargs)
+
+    def get_ngrams_for_event(self, **kwargs):
+
+        query = {
+            "bool": {
+                "should": kwargs["target_terms"],
+                "minimum_should_match": 1,
+                "must": [
+                    {"match": {kwargs["session"]: kwargs["label"]}}
+                ]
+            }
+        }
+
+        return self.get_ngrams_by_query(query=query, **kwargs)
+
+    def get_ngrams_by_query(self, query="", **kwargs):
 
         try:
             my_connector = Es_connector(index=kwargs["index"])
-
-            if kwargs.get('full_search', False):
-                query = {
-                    "bool": {
-                        "must": [
-                            {"match": {kwargs["session"]: kwargs["label"]}}
-                        ]
-                    }
-                }
-            else:
-                query = {
-                    "bool": {
-                        "must": [
-                            {"match": {"text": kwargs["word"]}},
-                            {"match": {kwargs["session"]: kwargs["label"]}}
-                        ]
-                    }
-                }
-
             return my_connector.search({
-                "size": 0,
                 "query": query,
+                "size": 0,
                 "aggs": {
                     "ngrams_count": {
                         "terms": {

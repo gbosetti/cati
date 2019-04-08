@@ -100,7 +100,7 @@ app.views.tweets = Backbone.View.extend({
         this.clearAllResultsTabs();
         this.showResultsArea();
         $('.loading_text:visible:last').fadeIn('slow');
-        var tabData = this.getCurrentSearchTabData();
+        var tabData = this.getCurrentSearchTabData("#search-results-tabs li.active a");
         this.renderAccordionInTab(tabData.target, tabData.label);
         var retweetsContainer=".top_retweets_results:last";
 
@@ -276,8 +276,8 @@ app.views.tweets = Backbone.View.extend({
             else { console.log("EMPTY"); self.searchForTweets(); }
         });
     },
-    getCurrentSearchTabData: function(){
-        var tab = document.querySelector("#search-results-tabs li.active a");
+    getCurrentSearchTabData: function(selector){
+        var tab = document.querySelector(selector);
         return {
             label: tab.getAttribute("tag"),
             target: document.querySelector(tab.target)
@@ -761,7 +761,10 @@ app.views.tweets = Backbone.View.extend({
         return formData;
     },
     getTabSearchData: function(){
-        var tabData = this.getCurrentSearchTabData();
+        return this.getTabSearchDataFor("#search-results-tabs li.active a");
+    },
+    getTabSearchDataFor: function(selector){
+        var tabData = this.getCurrentSearchTabData(selector);
         return [
             {name: "search_by_label", value: tabData.label }
         ];

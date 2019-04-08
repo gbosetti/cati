@@ -494,7 +494,8 @@ class Functions:
             ],
             "query": {
                 "bool": {
-                    "should": terms
+                    "should": terms,
+                    "minimum_should_match": 1
                 }
             }
         }
@@ -541,7 +542,14 @@ class Functions:
             # UpdateByQuery.using
             # TODO: replace by EsConnector . update_by_query ()
             self.fix_read_only_allow_delete(index, my_connector)
-            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({"query": {"bool": {"should": terms}}}).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
+            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({
+                "query": {
+                    "bool": {
+                        "should": terms,
+                        "minimum_should_match": 1
+                    }
+                }
+            }).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
             response = ubq.execute()
 
         except RequestError as err:
@@ -568,17 +576,6 @@ class Functions:
                 "boost": 2
             }
         }})
-        # query = {
-        #     "sort": [
-        #         "_score"
-        #     ],
-        #         "query": {
-        #                 "bool": {
-        #                     "should": terms
-        #                 }
-        #             }
-        #         }
-
         query = {
             "sort": [
                 "_score"
@@ -627,24 +624,6 @@ class Functions:
                 "boost": 2
             }
         }})
-        # terms.append({"match": {
-        #     "imagesCluster": {
-        #         "query": cid
-        #     }
-        # }})
-        # query = {
-        #         "query": {
-        #                 "bool": {
-        #                     "must": {
-        #                         "exists": {
-        #                             "field": "imagesCluster"
-        #                         }
-        #                     },
-        #                     # "must": { "match": { "imagesCluster" : cid }},
-        #                     "should": terms
-        #                 }
-        #             }
-        #         }
 
         query = {
             "sort": [
@@ -718,20 +697,7 @@ class Functions:
                 "boost": 2
             }
         }})
-        # res = my_connector.search({"query": {"term" : { "text" : word }}})
-        # query = {
-        #     "bool": {
-        #         "must": {
-        #             "match": {
-        #                 "text": {
-        #                     "query": main_term,
-        #                     "operator": "or"
-        #                 }
-        #             }
-        #         },
-        #         "should": terms
-        #     }
-        # }
+
         # TODO add session field to this function
         query = {
             "size": 1,

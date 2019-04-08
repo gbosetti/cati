@@ -12,8 +12,13 @@ app.views.client = Backbone.View.extend({
 				'click .event-tweets-tab': 'filter_tweets_matching_tab'
 		},
 	  initialize: function() {
-            this.render();
-            var handler = _.bind(this.render, this);
+            this.ngrams = { //Session data for the ngrams
+                bigrams: undefined,
+                tweets: undefined,
+                graphHeight: undefined,
+                formData: []
+            };
+            //var handler = _.bind(this.render, this);
             var self = this;
             $(document).on("click","body .tweet_state",function(e){ // Search tweets
                 self.tweet_state(e);
@@ -27,9 +32,8 @@ app.views.client = Backbone.View.extend({
 		await app.views.mabed.prototype.setSessionTopBar();
 		app.views.mabed.prototype.getClassificationStats();
 
-		this.load_timeline();
+		this.load_timeline(); //This method loads also the tweets and ngrams
 		this.load_impact();
-		//this.load_ngrams();
 
 		this.enableAccordion();
 	  	return this;
@@ -39,7 +43,7 @@ app.views.client = Backbone.View.extend({
 
             if (evt.target.tagName.toLocaleLowerCase() == "span")
                 return;
-                
+
 	        if(evt.target.classList.contains("event-accordion-shrink")){
 	            evt.target.classList.remove("event-accordion-shrink");
 	            evt.target.classList.add("event-accordion-expand");
@@ -55,14 +59,18 @@ app.views.client = Backbone.View.extend({
             evt.stopImmediatePropagation();
         });
 	  },
-	    load_ngrams: function(){
+	    load_ngrams: function(eventId){
 
-	        var data = app.views.tweets.prototype.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
-            .concat([{name: "retweets_number", value: 20}]);
+            var event = app.eventsCollection.get({ cid: eventId }).toJSON(); // JSON.stringify(
+	        var data = app.views.tweets.prototype.getIndexAndSession().concat(app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a")).concat(
+	            [{name: "event", value: JSON.stringify(event)}]
+	        );
+	        console.log("tab",app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a"));
+	        console.log("data", data);
 
 	        this.request_ngrams(data).then( response => {
 	            if($.isEmptyObject(response.ngrams)){
-                    alert("EMPTY");//self.showNoBigramsFound(containerSelector);
+                    console.log("EMPTY");//self.showNoBigramsFound(containerSelector);
                 }else {
                     console.log(response.ngrams);
                     //self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
@@ -72,7 +80,7 @@ app.views.client = Backbone.View.extend({
 	    request_ngrams: function(data){
 
 	        return new Promise((resolve, reject)=>{
-                $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
+                $.post(app.appURL+'event_ngrams_with_higher_ocurrence', data, (response) => {
                     resolve(response)
                 }, 'json').fail(function(err){
                     console.log(err);
@@ -95,9 +103,10 @@ app.views.client = Backbone.View.extend({
                     self.eventTweetsParams = {obj: JSON.stringify(s_ev), index: app.session.s_index};
 
                     $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
-                        console.log("load_timeline");
+                        console.log("load_timeline & display_tweets & load_ngrams");
                         try{
                             self.display_tweets(response, t0, timeline.config.events[0].unique_id);
+                            //self.load_ngrams(timeline.config.events[0].unique_id);
                         }catch(err){console.log(err)}
                     }, 'json').fail(function(err) {
                           console.log(err);
@@ -116,6 +125,7 @@ app.views.client = Backbone.View.extend({
                             $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                                 try{
                                     self.display_tweets(response, t0, data.unique_id);
+                                    //self.load_ngrams(data.unique_id);
                                 }catch(err){console.log(err)}
                             }, 'json');
                         }catch(err){console.log(err)}

@@ -297,6 +297,32 @@ def ngrams_with_higher_ocurrence():
                                                                     label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search)
     })
 
+# Get Tweets
+@app.route('/event_ngrams_with_higher_ocurrence', methods=['POST'])
+# @cross_origin()
+def event_ngrams_with_higher_ocurrence():
+    data = request.form
+    source_index = data['index']
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+    target_terms = functions.get_retated_terms(main_term, related_terms)
+    results_size = request.form.get('top-bubbles-to-display', 20)
+    n_size = request.form.get('n-grams-to-generate', '2')
+
+    print("target_terms: ", target_terms)
+
+    matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
+                                                            label=data['search_by_label'], results_size=results_size,
+                                                            n_size=n_size, target_terms=target_terms)
+
+    print(matching_ngrams)
+
+    return jsonify({
+        "total_matching_tweets": matching_ngrams['hits']['total'],
+        "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets']
+    })
+
 
 @app.route('/top_retweets', methods=['POST'])
 # @cross_origin()
@@ -422,7 +448,6 @@ def event_tweets():
 def massive_tag_event_tweets():
     data = request.form
 
-    print("---", data)
     event = json.loads(data['event'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
