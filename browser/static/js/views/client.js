@@ -62,13 +62,16 @@ app.views.client = Backbone.View.extend({
 	  },
 	    load_ngrams: function(eventId){
 
+            this.lastNgramsEventId = eventId;
+
             var event = app.eventsCollection.get({ cid: eventId }).toJSON(); // JSON.stringify(
 	        var data = app.views.tweets.prototype.getIndexAndSession().concat(app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a")).concat(
 	            [{name: "event", value: JSON.stringify(event)}]
 	        );
+	        console.log(data);
 	        this.request_ngrams(data).then( response => {
 
-	            var containerSelector = ".event-ngrams:visible:last";
+	            var containerSelector = ".event-ngrams";
 
 	            if($.isEmptyObject(response.ngrams)){
                     app.views.tweets.prototype.showNoBigramsFound(containerSelector);
@@ -485,6 +488,11 @@ app.views.client = Backbone.View.extend({
 
         evt.preventDefault();
 	    console.log("filter_ngrams_matching_tab");
+	    $('.event-ngrams').html("");
+	    $('#event-ngrams-tabs li').removeClass('active');
+        $(evt.target).parent().addClass('active');
+
+	    this.load_ngrams(this.lastNgramsEventId);
     },
 	filter_tweets: function(e, eid, state){
 	    e.preventDefault();
