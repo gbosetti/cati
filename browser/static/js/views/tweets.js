@@ -277,6 +277,7 @@ app.views.tweets = Backbone.View.extend({
         });
     },
     getCurrentSearchTabData: function(selector){
+    console.log("sELECTOR:", selector);
         var tab = document.querySelector(selector);
         return {
             label: tab.getAttribute("tag"),
@@ -474,7 +475,7 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    showNgramTweets: function(ngramsToGenerate, ngramLabel, ngram){
+    showNgramTweets: function(clientData, client, ngramsToGenerate, ngramLabel, ngram, searchClass){
 
         var self = this;
         $.confirm({
@@ -488,16 +489,16 @@ app.views.tweets = Backbone.View.extend({
             onContentReady: function () {
 
                 try{
-                self.delegateEvents();
+                client.delegateEvents();
 
                 var jc = this;
-                var data = self.getIndexAndSession().concat(self.getTabSearchData()).concat(self.getBigramsFormData()).concat([
+                var data = self.getIndexAndSession().concat(self.getTabSearchDataFor(searchClass)).concat(self.getBigramsFormData()).concat([
                     {name: "ngram", value: ngram},
-                    {name: "search_by_label", value: self.bigrams.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
+                    {name: "search_by_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
                 ]);
 
                 $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
-                    self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel);
+                    self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel, client);
                 });
                 }catch(err){console.log(err)}
             },
@@ -529,11 +530,11 @@ app.views.tweets = Backbone.View.extend({
 
         return false;
     },
-    loadResponseTweetsForNgram: function(data, response, jc, ngramsToGenerate, ngram){
+    loadResponseTweetsForNgram: function(data, response, jc, ngramsToGenerate, ngram, client){
         try{
             var loadMoreTweetsClass = "load-more-ngram-rel-tweets";
             var html = '<div class="ngram_rel_tweets">' + this.get_tweets_html(response, '', loadMoreTweetsClass) + '</div>';
-            this.delegateEvents();
+            client.delegateEvents();
             jc.setContent(html);
             var self = this;
            $(".jconfirm-title").text(response.tweets.total + " tweets matching the " + ngramsToGenerate + "-gram «" + ngram + "»");
@@ -622,12 +623,19 @@ app.views.tweets = Backbone.View.extend({
     showNgramsClassification: function(classifficationData, ngrams, containerSelector, graphHeight){
 
         $(containerSelector).html("");
-        this.renderBigramsGrid(containerSelector, graphHeight);
+        this.renderBigramsGrid(containerSelector, graphHeight, true, "col-9");
         //var tweetsInAllBigrams = Array.from(new Set(Object.entries(ngrams).map(bigram => { return bigram[1] }).flat()));
         //var filteredTweetsInBigrams = tweets.filter(tweet => { if(tweetsInAllBigrams.indexOf(tweet._id) > -1) return tweet });
 
         setTimeout(() => { this.renderBigramsStats(classifficationData); }, 0); //In a new thread
-        setTimeout(() => { this.renderBigramsChart(this.bigrams, ".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
+
+        var onBubbleClick = (label, evt) => {
+
+            var ngram = label.split(" ").join("-");
+            var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
+            this.showNgramTweets(this.bigrams, this, ngramsToGenerate, label, ngram, "#search-results-tabs li.active a");
+        };
+        setTimeout(() => { this.renderBigramsChart(onBubbleClick, this.bigrams, ".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
 
         this.updateBigramsControls(ngrams);
     },
@@ -666,13 +674,20 @@ app.views.tweets = Backbone.View.extend({
     },
     updateTopBubblesToDisplay: function(evt){
 
-        this.renderBigramsChart(this.bigrams, ".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
+        var onBubbleClick = (label, evt) => {
+
+            var ngram = label.split(" ").join("-");
+            var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
+            this.showNgramTweets(this.bigrams, this, ngramsToGenerate, label, ngram, "#search-results-tabs li.active a");
+        };
+
+        this.renderBigramsChart(onBubbleClick, this.bigrams, ".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
     },
     filterElemByKey: function(key, collection){
         var res = collection.filter(item => {return item.key == key});
         return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
     },
-    renderBigramsChart: function(client, domSelector, ngrams, graphHeight, maxBubblesToShow){
+    renderBigramsChart: function(onBubbleClick, client, domSelector, ngrams, graphHeight, maxBubblesToShow){
 
         this.clearNgramsGraph();
         //Set the last used values, so we don't ask for them to the backend in case the user wants small changes
@@ -691,22 +706,20 @@ app.views.tweets = Backbone.View.extend({
         });
 
         var chart = new MultiPieChart(domSelector, $(domSelector).width(), graphHeight);
-        chart.onBubbleClick = (label, evt) => {
-
-            var ngram = label.split(" ").join("-");
-            var ngramsToGenerate = client.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
-            this.showNgramTweets(ngramsToGenerate, label, ngram);
-        };
+        chart.onBubbleClick = onBubbleClick;
         chart.draw(formatted_ngrams); // [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
     },
     renderBigramsStats: function(classifficationData){
 
         new BarChart(".bigrams-stats:visible", 160, 500,["confirmed", "negative", "unlabeled"], ["#28a745", "#dc3545", "#e8e8e8"], {top: 30, right: 0, bottom: 75, left: 55}).draw(classifficationData)
     },
-    renderBigramsGrid: function(containerSelector, graphHeight){
-        var grid = `<div class="row" style="height: ${graphHeight}px;">
-                        <div class="col-3 bigrams-stats"></div>
-                        <div class="col-9 bigrams-graph-area"></div>
+    renderBigramsGrid: function(containerSelector, graphHeight, includeStats, colClass){
+        var grid = `<div class="row" style="height: ${graphHeight}px;">`;
+
+        if(includeStats)
+            grid = grid + `<div class="col-3 bigrams-stats"></div>`;
+
+        grid = grid + `<div class="` + colClass + ` bigrams-graph-area"></div>
                     </div>
                     <div class="row">
                         <div class="col-12 col-sm-12">
@@ -716,7 +729,7 @@ app.views.tweets = Backbone.View.extend({
                                             <label>N-gram length</label>
                                             <select name="n-grams-to-generate" type="number" class="form-control n-grams-to-generate" value="2"></select>
                                         </div>
-                                        <div class="col-md-2">
+                                        <div class="col-md-3">
                                             <label>Max bubbles to show</label>
                                             <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1" >
                                         </div>

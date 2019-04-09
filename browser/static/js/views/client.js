@@ -72,14 +72,25 @@ app.views.client = Backbone.View.extend({
 	        this.request_ngrams(data).then( response => {
 
 	            var containerSelector = ".event-ngrams";
+	            this.ngrams.lastQueryParams = data;
 
 	            if($.isEmptyObject(response.ngrams)){
                     app.views.tweets.prototype.showNoBigramsFound(containerSelector);
                 }else {
-                    console.log(response.ngrams);
-                    app.views.tweets.prototype.renderBigramsChart(this.ngrams, containerSelector, response.ngrams, 600);
-                    //app.views.tweets.prototype.showNoBigramsFound(".event-ngrams:visible:last");
-                    //self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+
+                    $(containerSelector).html("");
+                    app.views.tweets.prototype.renderBigramsGrid(containerSelector, 600, false, "col-12");
+                    app.views.tweets.prototype.updateBigramsControls(response.ngrams);
+
+                    var onBubbleClick = (label, evt) => {
+
+                        var ngram = label.split(" ").join("-");
+                        var ngramsToGenerate = this.ngrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0];
+                            ngramsToGenerate = ngramsToGenerate!=undefined? ngramsToGenerate.value : 2;
+                        app.views.tweets.prototype.showNgramTweets(this.ngrams, this, ngramsToGenerate, label, ngram, "#event-ngrams-tabs li.active a");
+                    };
+
+                    app.views.tweets.prototype.renderBigramsChart(onBubbleClick, this.ngrams, ".bigrams-graph-area", response.ngrams, 600);
                 }
 	        });
 	    },
@@ -111,7 +122,7 @@ app.views.client = Backbone.View.extend({
                     $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                         console.log("load_timeline & display_tweets & load_ngrams");
                         try{
-                            self.display_tweets(response, t0, timeline.config.events[0].unique_id);
+                            //self.display_tweets(response, t0, timeline.config.events[0].unique_id);
                             self.load_ngrams(timeline.config.events[0].unique_id);
                         }catch(err){console.log(err)}
                     }, 'json').fail(function(err) {
@@ -130,7 +141,7 @@ app.views.client = Backbone.View.extend({
 
                             $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                                 try{
-                                    self.display_tweets(response, t0, data.unique_id);
+                                    //self.display_tweets(response, t0, data.unique_id);
                                     self.load_ngrams(data.unique_id);
                                 }catch(err){console.log(err)}
                             }, 'json');
