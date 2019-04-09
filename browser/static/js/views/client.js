@@ -5,7 +5,6 @@ app.views.client = Backbone.View.extend({
 				'click #reset_impact': 'reset_impact',
 				'click .tl_options_btn': 'mark_event',
 				'click .cluster_tweets': 'cluster_tweets',
-				'click .tweet_state': 'tweet_state',
         		'click .scroll_tweets': 'scroll_tweets',
 				'click .cluster_state': 'cluster_state',
 				'click .btn_filter': 'filter_tweets',
@@ -64,10 +63,12 @@ app.views.client = Backbone.View.extend({
 
             this.lastNgramsEventId = eventId;
 
-            var event = app.eventsCollection.get({ cid: eventId }).toJSON(); // JSON.stringify(
-	        var data = app.views.tweets.prototype.getIndexAndSession().concat(app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a")).concat(
-	            [{name: "event", value: JSON.stringify(event)}]
-	        );
+            var event = app.eventsCollection.get({ cid: this.lastNgramsEventId }).toJSON(); // JSON.stringify(
+	        var data =  app.views.tweets.prototype.getIndexAndSession().concat(
+	                    app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a")).concat(
+	                    [{name: "event", value: JSON.stringify(event)}]).concat(
+	                    app.views.tweets.prototype.getBigramsFormData());
+
 	        console.log(data);
 	        this.request_ngrams(data).then( response => {
 
@@ -80,20 +81,59 @@ app.views.client = Backbone.View.extend({
 
                     $(containerSelector).html("");
                     app.views.tweets.prototype.renderBigramsGrid(containerSelector, 600, false, "col-12");
-                    app.views.tweets.prototype.updateBigramsControls(response.ngrams);
+                    console.log("this.ngrams.lastQueryParams", this.ngrams.lastQueryParams);
+                    app.views.tweets.prototype.updateBigramsControls(response.ngrams, this.ngrams);
 
                     var onBubbleClick = (label, evt) => {
 
                         var ngram = label.split(" ").join("-");
                         var ngramsToGenerate = this.ngrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0];
                             ngramsToGenerate = ngramsToGenerate!=undefined? ngramsToGenerate.value : 2;
-                        app.views.tweets.prototype.showNgramTweets(this.ngrams, this, ngramsToGenerate, label, ngram, "#event-ngrams-tabs li.active a");
+                        app.views.tweets.prototype.showNgramTweets(this.ngrams, this, ngramsToGenerate, label, ngram, "#event-ngrams-tabs li.active a", 'search_event_bigrams_related_tweets');
                     };
 
                     app.views.tweets.prototype.renderBigramsChart(onBubbleClick, this.ngrams, ".bigrams-graph-area", response.ngrams, 600);
                 }
 	        });
 	    },
+	    markBigramTweets: function(self, label, graphBasedLabelNgram, clientData){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
+
+            var jc = self.createChangingStatePopup();
+
+            var data = clientData.lastQueryParams.concat([
+                {name: "ngram", value: graphBasedLabelNgram },
+                {name: "query_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value },
+                {name: "new_label", value: label }
+            ]);
+            console.log("data", data);
+
+            var client = this;
+
+            $.post(app.appURL+'mark_event_ngram_tweets', data, function(response){
+                    try{
+                        console.log(response);
+                        //Update the UI in case the user wants to exclude some tweets from the global tagging
+                        document.querySelectorAll(".ngram_rel_tweets .t_state").forEach(node => {
+
+                            var label_status;
+                            if(label == "confirmed"){
+                                label_status = '<span class="badge badge-success">'+label+'</span>';
+                            }else if (label == "negative"){
+                                label_status = '<span class="badge badge-danger">'+label+'</span>';
+                            }else{
+                                label_status = '<span class="badge badge-secondary">'+label+'</span>';
+                            }
+
+                            $(node).html(label_status)
+                        });
+                    }catch(err){console.log(err)}
+                    //Close the "wait" message
+                    jc.close();
+                    //self.searchForTweets();
+                    client.load_ngrams(client.lastNgramsEventId);
+                }).fail(this.cnxError);
+            return false;
+        },
 	    request_ngrams: function(data){
 
 	        return new Promise((resolve, reject)=>{

@@ -277,6 +277,9 @@ def search_bigrams_related_tweets():
     return jsonify({"tweets": matching_tweets})
 
 
+
+
+
 # Get Tweets
 @app.route('/ngrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
@@ -316,12 +319,28 @@ def event_ngrams_with_higher_ocurrence():
                                                             label=data['search_by_label'], results_size=results_size,
                                                             n_size=n_size, target_terms=target_terms)
 
-    print(matching_ngrams)
-
     return jsonify({
         "total_matching_tweets": matching_ngrams['hits']['total'],
         "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets']
     })
+
+
+# Get Tweets
+@app.route('/search_event_bigrams_related_tweets', methods=['POST'])
+# @cross_origin()
+def search_event_bigrams_related_tweets():
+    data = request.form
+
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+    target_terms = functions.get_retated_terms(main_term, related_terms)
+
+    propName = data["n-grams-to-generate"] + "grams"
+    matching_tweets = ngram_classifier.search_event_bigrams_related_tweets(index=data['index'], target_terms=target_terms, session=data['session'],
+                                                                     label=data['search_by_label'], ngram=data['ngram'],
+                                                                     ngramsPropName=propName)
+    return jsonify({"tweets": matching_tweets})
 
 
 @app.route('/top_retweets', methods=['POST'])
@@ -590,6 +609,7 @@ def mark_tweet():
     session = data['session']
     tid = data['tid']
     val = data['val']
+    print(request.form)
     functions.set_tweet_state(index, session, tid, val)
     return jsonify(data)
 
@@ -612,6 +632,24 @@ def mark_bigram_tweets():
     res = ngram_classifier.update_tweets_state_by_ngram(index=data['index'], word=word, session=data['session'],
                                                query_label=data['query_label'], new_label=data['new_label'],
                                                ngram=data['ngram'], ngramsPropName=propName, full_search=full_search)
+
+    return jsonify(res)
+
+
+@app.route('/mark_event_ngram_tweets', methods=['POST', 'GET'])
+# @cross_origin()
+def mark_event_ngram_tweets():
+    data = request.form
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+    target_terms = functions.get_retated_terms(main_term, related_terms)
+    prop_name = request.form.get('n-grams-to-generate', '2') + "grams"
+
+    res = ngram_classifier.update_tweets_state_by_event_ngram(index=data['index'], session=data['session'],
+                                                              query_label=data['search_by_label'],
+                                                              new_label=data['new_label'], target_terms=target_terms,
+                                                              ngram=data['ngram'], ngramsPropName=prop_name)
 
     return jsonify(res)
 

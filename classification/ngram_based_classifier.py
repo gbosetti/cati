@@ -31,8 +31,6 @@ class NgramBasedClasifier:
 
     def search_bigrams_related_tweets(self, **kwargs):
 
-        print("PARAMS", kwargs)
-
         my_connector = Es_connector(index=kwargs["index"])
         if kwargs.get('full_search', False):  # All tweets
             query = {
@@ -89,6 +87,48 @@ class NgramBasedClasifier:
             }
 
         return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
+
+
+    def search_event_bigrams_related_tweets(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"])
+        query = {
+            "query": {
+               "bool": {
+                   "should": kwargs["target_terms"],
+                   "minimum_should_match": 1,
+                   "must": [
+                       {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                       {"match": {kwargs["session"]: kwargs["label"]}}
+                   ]
+               }
+           }
+        }
+
+        return my_connector.init_paginatedSearch(query)
+
+
+    def update_tweets_state_by_event_ngram(self, **kwargs):
+
+        tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
+
+        query = {
+            "query": {
+                "bool": {
+                    "should": kwargs["target_terms"],
+                    "minimum_should_match": 1,
+                    "must": [
+                        {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                        {"match": {kwargs["session"]: kwargs["query_label"]}}
+                    ]
+                }
+            }
+        }
+
+        print(query)
+
+        return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
+
 
     def get_ngrams(self, **kwargs):
 

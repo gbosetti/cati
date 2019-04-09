@@ -2,7 +2,6 @@ app.views.tweets = Backbone.View.extend({
     template: _.template($("#tpl-page-tweets").html()),
     events: {
         'submit #tweets_form': 'tweets_submit',
-        'click .tweet_state': 'tweet_state',
         'click .retweet_state': 'retweet_state',
         'click .cluster_tweets': 'cluster_tweets',
         'click .scroll_tweets': 'scroll_tweets',
@@ -323,7 +322,7 @@ app.views.tweets = Backbone.View.extend({
                 if($.isEmptyObject(response.ngrams)){
                     self.showNoBigramsFound(containerSelector);
                 }else {
-                    self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500);
+                    self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500, self.bigrams);
                 }
                 resolve(response)
 
@@ -475,7 +474,7 @@ app.views.tweets = Backbone.View.extend({
         }
         return html;
     },
-    showNgramTweets: function(clientData, client, ngramsToGenerate, ngramLabel, ngram, searchClass){
+    showNgramTweets: function(clientData, client, ngramsToGenerate, ngramLabel, ngram, searchClass, endpoint){
 
         var self = this;
         $.confirm({
@@ -492,12 +491,14 @@ app.views.tweets = Backbone.View.extend({
                 client.delegateEvents();
 
                 var jc = this;
-                var data = self.getIndexAndSession().concat(self.getTabSearchDataFor(searchClass)).concat(self.getBigramsFormData()).concat([
-                    {name: "ngram", value: ngram},
-                    {name: "search_by_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
+                //var data = self.getIndexAndSession().concat(self.getTabSearchDataFor(searchClass)).concat(self.getBigramsFormData()).concat([
+                var data = clientData.lastQueryParams.concat([
+                    {name: "ngram", value: ngram} //,
+                    //{name: "search_by_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
                 ]);
+                console.log(data);
 
-                $.post(app.appURL+'search_bigrams_related_tweets', data, function(response){
+                $.post(app.appURL+endpoint, data, function(response){
                     self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel, client);
                 });
                 }catch(err){console.log(err)}
@@ -507,7 +508,7 @@ app.views.tweets = Backbone.View.extend({
                     text: 'Confirm all',
                     btnClass: 'btn btn-outline-success',
                     action: function(e){
-                        self.markBigramTweets("confirmed", ngram);
+                        client.markBigramTweets(self, "confirmed", ngram, clientData);
                         //self.searchForTweets();
                         return false; // prevent the modal from closing
                     }
@@ -516,7 +517,7 @@ app.views.tweets = Backbone.View.extend({
                     text: 'Reject all',
                     btnClass: 'btn btn-outline-danger',
                     action: function(){
-                        self.markBigramTweets("negative", ngram);
+                        client.markBigramTweets(self, "negative", ngram, clientData);
                         //self.searchForTweets();
                         return false; // prevent the modal from closing
                     }
@@ -620,7 +621,7 @@ app.views.tweets = Backbone.View.extend({
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
-    showNgramsClassification: function(classifficationData, ngrams, containerSelector, graphHeight){
+    showNgramsClassification: function(classifficationData, ngrams, containerSelector, graphHeight, clientData){
 
         $(containerSelector).html("");
         this.renderBigramsGrid(containerSelector, graphHeight, true, "col-9");
@@ -633,13 +634,13 @@ app.views.tweets = Backbone.View.extend({
 
             var ngram = label.split(" ").join("-");
             var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
-            this.showNgramTweets(this.bigrams, this, ngramsToGenerate, label, ngram, "#search-results-tabs li.active a");
+            this.showNgramTweets(this.bigrams, this, ngramsToGenerate, label, ngram, "#search-results-tabs li.active a", 'search_bigrams_related_tweets');
         };
         setTimeout(() => { this.renderBigramsChart(onBubbleClick, this.bigrams, ".bigrams-graph-area:visible", ngrams, graphHeight); }, 0);
 
-        this.updateBigramsControls(ngrams);
+        this.updateBigramsControls(ngrams, clientData);
     },
-    updateBigramsControls: function(ngrams){
+    updateBigramsControls: function(ngrams, clientData){
 
         var len = Object.keys(ngrams).length;
         $(".top-bubbles-to-display:visible:last").val(len);
@@ -669,7 +670,7 @@ app.views.tweets = Backbone.View.extend({
                 }
             }
 
-            $(".n-grams-to-generate:visible").val(self.bigrams.lastQueryParams.find(row => row.name == "n-grams-to-generate").value);
+            $(".n-grams-to-generate:visible").val(clientData.lastQueryParams.find(row => row.name == "n-grams-to-generate").value);
         }, 'json');
     },
     updateTopBubblesToDisplay: function(evt){
@@ -678,7 +679,7 @@ app.views.tweets = Backbone.View.extend({
 
             var ngram = label.split(" ").join("-");
             var ngramsToGenerate = this.bigrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0].value;
-            this.showNgramTweets(this.bigrams, this, ngramsToGenerate, label, ngram, "#search-results-tabs li.active a");
+            this.showNgramTweets(this.bigrams, this, ngramsToGenerate, label, ngram, "#search-results-tabs li.active a", 'search_bigrams_related_tweets');
         };
 
         this.renderBigramsChart(onBubbleClick, this.bigrams, ".bigrams-graph-area:visible", this.bigrams.bigrams, this.bigrams.graphHeight, evt.target.value);
@@ -943,19 +944,18 @@ app.views.tweets = Backbone.View.extend({
           }, 'json').fail(this.cnxError);
         return false;
     },
-    markBigramTweets: function(label, graphBasedLabelNgram){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
+    markBigramTweets: function(self, label, graphBasedLabelNgram, clientData){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
 
-        var jc = this.createChangingStatePopup();
+        var jc = self.createChangingStatePopup();
 
-    	var data = this.getIndexAndSession().concat([
+    	var data = self.getIndexAndSession().concat([
     	    {name: "ngram", value: graphBasedLabelNgram },
-    	    {name: "n-grams-to-generate", value: this.bigrams.lastQueryParams.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
-    	    {name: "query_label", value: this.bigrams.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value },
-    	    {name: "word", value: this.bigrams.lastQueryParams.filter(item => {return item.name == "word"})[0].value },
+    	    {name: "n-grams-to-generate", value: clientData.lastQueryParams.filter(item => {return item.name == "n-grams-to-generate"})[0].value },
+    	    {name: "query_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value },
+    	    {name: "word", value: clientData.lastQueryParams.filter(item => {return item.name == "word"})[0].value },
     	    {name: "new_label", value: label }
     	]);
 
-        var self = this;
 		$.post(app.appURL+'mark_bigram_tweets', data, function(response){
             try{
                 console.log(response);
@@ -977,7 +977,7 @@ app.views.tweets = Backbone.View.extend({
             //Close the "wait" message
 			jc.close();
 			self.searchForTweets();
-		}).fail(this.cnxError);
+		}).fail(self.cnxError);
     	return false;
     },
 	cluster_state: function(e){
