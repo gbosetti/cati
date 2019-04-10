@@ -133,15 +133,21 @@ app.views.classification = Backbone.View.extend({
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
         $("#classif-graph-area").html("");
+        this.drawQuadrants(positiveTweets, negativeTweets);
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
         var divHeight = 350;
+        console.log(positiveTweets);
         this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
         this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
 
         // Store them for user manipulation
         this.positiveTweets = positiveTweets;
         this.negativeTweets = negativeTweets;
+    },
+    drawQuadrants: function(positiveTweets, negativeTweets){
+
+
     },
     drawTagCloud: function(title, tweetsTexts, divId, divHeight, tweetsTextsVarName){
 
@@ -150,7 +156,7 @@ app.views.classification = Backbone.View.extend({
             '<div id="' + divId + '-container" class="classif-visualization"> ' +
                 '<div id="' + divId + '" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>' +
             '</div>'
-         );
+        );
 
         // Default values
         nGramsToGenerate = 2;
@@ -161,7 +167,7 @@ app.views.classification = Backbone.View.extend({
         console.log("Retrieving for ", tweetsTextsVarName);
         this.retrieveNGrams(tweetsTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
 
-            console.log("ngrams for ", tweetsTextsVarName);
+            console.log("ngrams for ", tweetsTextsVarName, ngrams);
 
             this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName, {
                 "nGramsToGenerate": nGramsToGenerate,

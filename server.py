@@ -429,7 +429,7 @@ def most_frequent_n_grams():
     stemming = data['stemming'].lower() in ("yes", "true", "t", "1")
     remove_stopwords = data['remove_stopwords'].lower() in ("yes", "true", "t", "1")
 
-    n_grams = classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
+    n_grams = ngram_classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
     return jsonify(n_grams)
 
 @app.route('/n_grams_classification', methods=['POST'])

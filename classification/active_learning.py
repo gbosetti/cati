@@ -461,11 +461,13 @@ class ActiveLearning:
 
         positiveTweets = {}
         positiveTweets["confidences"] = []
+        positiveTweets["filenames"] = []
         positiveTweets["predictions"] = []
         positiveTweets["texts"] = []
 
         negativeTweets = {}
         negativeTweets["confidences"] = []
+        negativeTweets["filenames"] = []
         negativeTweets["predictions"] = []
         negativeTweets["texts"] = []
 
@@ -473,22 +475,21 @@ class ActiveLearning:
         for idx, val in enumerate(predictions[0]):
             if predictions[0][idx] == 1:
                 positiveTweets["confidences"].append(str(confidences[0][idx]))
+                positiveTweets["filenames"].append(self.extract_filename_no_ext(self.data_unlabeled.filenames[idx]))
                 positiveTweets["predictions"].append(str(predictions[0][idx]))
                 positiveTweets["texts"].append(self.data_unlabeled.data[idx]) # self.data_unlabeled is updated when updating the model > self.updating_model
-                # positiveTweets.append({
-                #     "confidence": str(confidences[0][idx]),
-                #     "prediction": "positive"
-                # })
+
             elif predictions[0][idx] == 0:
                 negativeTweets["confidences"].append(str(confidences[0][idx]))
+                negativeTweets["filenames"].append(self.extract_filename_no_ext(self.data_unlabeled.filenames[idx]))
                 negativeTweets["predictions"].append(str(predictions[0][idx]))
                 negativeTweets["texts"].append(self.data_unlabeled.data[idx])
-                # negativeTweets.append({
-                #     "confidence": str(confidences[0][idx]),
-                #     "prediction": "negative"
-                # })
 
         return {"positiveTweets": positiveTweets, "negativeTweets": negativeTweets}
+
+    def extract_filename_no_ext(self, fullpath):
+        base = os.path.basename(fullpath)
+        return os.path.splitext(base)[0]
 
     def n_grams(self, text, length=2):
         return zip(*[text[i:] for i in range(length)])
