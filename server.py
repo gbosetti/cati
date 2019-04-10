@@ -405,14 +405,15 @@ classifier = ActiveLearning()
 # @cross_origin()
 def start_learning():
     data = request.form
-    return jsonify(classifier.start_learning(data["num_questions"], data["remove_stopwords"]))
+    return jsonify(classifier.start_learning(index=data['index'], session=data['session'],
+                                             num_questions=data["num_questions"], remove_stopwords=data["remove_stopwords"]))
 
 
 @app.route('/suggest_classification', methods=['POST'])
 def suggest_classification():
     data = request.form
     questions = json.loads(data['questions'])
-    return jsonify(classifier.suggest_classification(questions))
+    return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
 
 
 @app.route('/most_frequent_n_grams', methods=['POST'])

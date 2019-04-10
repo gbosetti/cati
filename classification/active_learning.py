@@ -48,11 +48,17 @@ DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbose
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
 TEST_FOLDER = os.path.join(DATA_FOLDER, "test")
 UNLABELED_FOLDER = os.path.join(DATA_FOLDER, "unlabeled")
+
+POS_CLASS_FOLDER = "confirmed"
+NEG_CLASS_FOLDER = "negative"
+NO_CLASS_FOLDER = "proposed"
+
 ENCODING = 'latin1'  #latin1
 
 class ActiveLearning:
 
     def read_raw_tweets_from_elastic(self, **kwargs):
+
         elastic = Elasticsearch([{'host': kwargs["host"], 'port': kwargs["port"]}])
 
         raw_tweets = elastic.search(
@@ -63,6 +69,7 @@ class ActiveLearning:
             _source=kwargs["_source"],
             request_timeout=kwargs["request_timeout"]
         )
+        print("READ", kwargs)
 
         return raw_tweets['hits']['hits']
 
@@ -190,54 +197,54 @@ class ActiveLearning:
 
     def clean_directories(self):
         print("Cleaning directories")
-        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, "pos"))
-        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, "neg"))
-        self.delete_folder_contents(os.path.join(TEST_FOLDER, "pos"))
-        self.delete_folder_contents(os.path.join(TEST_FOLDER, "neg"))
-        self.delete_folder_contents(os.path.join(UNLABELED_FOLDER, "unlabeled"))
+        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, POS_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, NEG_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(TEST_FOLDER, POS_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(TEST_FOLDER, NEG_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(UNLABELED_FOLDER, NO_CLASS_FOLDER))
 
-    def read_data_from_dataset(self):
+    def read_data_from_dataset(self, **kwargs):
 
-        target_source = ["id_str", "text", "imagesCluster", "session_twitterfdl2017"]
+        target_source = ["id_str", "text", "imagesCluster", kwargs["session"]]
 
         # Getting a sample from elasticsearch to classify
         confirmed_data = self.read_raw_tweets_from_elastic(
-            index="twitterfdl2017",
+            index= kwargs["index"],
             doc_type="tweet",
             host="localhost",
             port="9200",
             size=2000,
             query={"query": {
                 "match": {
-                    "session_twitterfdl2017": "confirmed"
+                    kwargs["session"]: "confirmed"
                 }
             }},
             _source=target_source,
             request_timeout=30
         )
         negative_data = self.read_raw_tweets_from_elastic(
-            index="twitterfdl2017",
+            index=kwargs["index"],
             doc_type="tweet",
             host="localhost",
             port="9200",
             size=2000,
             query={"query": {
                 "match": {
-                    "session_twitterfdl2017": "negative"
+                    kwargs["session"]: "negative"
                 }
             }},
             _source=target_source,
             request_timeout=30
         )
         proposed_data = self.read_raw_tweets_from_elastic(
-            index="twitterfdl2017",
+            index=kwargs["index"],
             doc_type="tweet",
             host="localhost",
             port="9200",
             size=1000,
             query={"query": {
                 "match": {
-                    "session_twitterfdl2017": "proposed"
+                    kwargs["session"]: "proposed"
                 }
             }},
             _source=target_source,
@@ -249,19 +256,19 @@ class ActiveLearning:
     def write_data_in_folders(self, negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data):
 
         for tweet in negative_data_test:
-            self.writeFile(os.path.join(TEST_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TEST_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
 
         for tweet in confirmed_data_test:
-            self.writeFile(os.path.join(TEST_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TEST_FOLDER, POS_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
 
         for tweet in negative_data_train:
-            self.writeFile(os.path.join(TRAIN_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TRAIN_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
 
         for tweet in confirmed_data_train:
-            self.writeFile(os.path.join(TRAIN_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TRAIN_FOLDER, POS_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
 
         for tweet in proposed_data:
-            self.writeFile(os.path.join(UNLABELED_FOLDER, "unlabeled", tweet['_source']['id_str'] + ".txt"),
+            self.writeFile(os.path.join(UNLABELED_FOLDER, NO_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"),
                       tweet['_source']['text'])
 
     def loading_tweets_from_files(self):
@@ -285,15 +292,15 @@ class ActiveLearning:
             len(data_test.data), data_test_size_mb))
         print("%d documents - %0.3fMB (unlabeled set)" % (
             len(unlabeled.data), unlabeled_size_mb))
-        print("%d categories" % len(categories))
+        print("%d categories" % len(categories), categories)
 
         return data_train, data_test, unlabeled, categories
 
-    def get_langs_from_unlabeled_data(self):
+    def get_langs_from_unlabeled_data(self, **kwargs):
 
         try:
             langs = self.get_langs_from_unlabeled_tweets(
-                index="twitterfdl2017",
+                index=kwargs["index"],
                 doc_type="tweet",
                 host="localhost",
                 port="9200"
@@ -344,13 +351,16 @@ class ActiveLearning:
 
         return swords
 
-    def start_learning(self, num_questions, remove_stopwords):
+    def start_learning(self, **kwargs):
 
-        print("Starting...")
         self.clean_directories()
         # Getting a sample from elasticsearch to classify
         print("Getting data from elastic")
-        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset()
+        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset(**kwargs)
+
+        if len(confirmed_data) == 0 or len(negative_data) == 0 or len(proposed_data) == 0 :
+            raise Exception('You need to have some 1) already classified data and 2) data to classify in your dataset')
+            return
 
         # Slice the classified data to fill the test and train datasts
         index = int(len(negative_data) / 2)
@@ -365,17 +375,17 @@ class ActiveLearning:
         self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
 
         print("Updating model")
-        clf_names, question_samples, confidences, predictions = self.updating_model(num_questions, remove_stopwords)
+        clf_names, question_samples, confidences, predictions = self.updating_model(**kwargs)
 
         print("Generating questions")
         return self.generating_questions(question_samples, predictions, confidences)
 
 
-    def updating_model(self, num_questions, remove_stopwords):
+    def updating_model(self, **kwargs):
 
         # Keep track of the last used params
-        self.num_questions = num_questions
-        self.remove_stopwords = remove_stopwords
+        self.num_questions = kwargs["num_questions"]
+        self.remove_stopwords = kwargs["remove_stopwords"]
 
         # Starting the process
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
@@ -386,10 +396,10 @@ class ActiveLearning:
 
         # Extracting features from the training dataset using a sparse vectorizer
         print("Extracting features")
-        self.langs = self.get_langs_from_unlabeled_data()  # We need to keep track so we can use it later
+        self.langs = self.get_langs_from_unlabeled_data(index=kwargs["index"])  # We need to keep track so we can use it later
 
         # Getting the list of available stopwords, if the user asked for it
-        if remove_stopwords.lower() in ("yes", "true", "t", "1"):
+        if kwargs["remove_stopwords"].lower() in ("yes", "true", "t", "1"):
             print("Generating stopwords for %s", self.langs)
             multilang_stopwords = self.get_stopwords_for_langs(self.langs)
         else:
@@ -418,7 +428,7 @@ class ActiveLearning:
         results = []
         results.append(self.benchmark(
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
-            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, num_questions
+            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"]
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
         return [[x[i] for x in results] for i in range(4)]
 
@@ -439,16 +449,16 @@ class ActiveLearning:
         return complete_question_samples
 
 
-    def suggest_classification(self, labeled_questions):
+    def suggest_classification(self, **kwargs):
 
         print("Moving the user labeled questions into the proper folders")
-        for question in labeled_questions:
+        for question in kwargs["labeled_questions"]:
             dstDir = os.path.join(TRAIN_FOLDER, question["label"])
             print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 
         # Updating the model
-        clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords)
+        clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords, index=kwargs["index"])
 
         positiveTweets = {}
         positiveTweets["confidences"] = []

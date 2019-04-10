@@ -39,9 +39,9 @@
 						<li class="nav-item" id="nav-results">
 							<a class="nav-link" href="#results">Event-detection results</a>
 						</li>
-						<!--<li class="nav-item" id="nav-classification">
-							<a class="nav-link" href="#classification">Tweets classification</a>
-						</li>-->
+						<li class="nav-item" id="nav-classification">
+							<a class="nav-link" href="#classification">Other classifiers</a>
+						</li>
 						<li class="nav-item" id="nav-tweets">
 							<a class="nav-link" href="#tweets">Tweets Search</a>
 						</li>
@@ -279,15 +279,15 @@
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" href="#1b" data-toggle="tab">Active Learning</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#2b" data-toggle="tab">Strategy 2</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>
+			                    <li class="nav-item active"><a class="nav-link active" href="#clusted-based-active-learning" data-toggle="tab">Cluster-based Active Learning</a></li>
+			                    <li class="nav-item" disabled><a class="nav-link">Density-Weighted Active Learning</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
+			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
+			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
 			                </ul>
 			              </div>
 			              <div class="row">
 			                <div class="tab-content container clearfix">
-			                    <div class="tab-pane active" id="1b">
+			                    <div class="tab-pane active" id="clusted-based-active-learning">
 
 			                        <div class="container" style="padding: 2em 0em;">
 
@@ -301,12 +301,14 @@
 			                                                <h3>About</h3>
 
 			                                                <div>
-			                                                    <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
-			                                                    Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
+			                                                    <p>
+																		Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
+			                                                   			Then, our algorithm will try to learn from your choices and will suggest an automatic classification. If you agree with the classification, you can use it. Otherwise you can repeat the steps through different stages until you get an acceptable result.
+																</p>
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify?</label>
+			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="10" id="num-tweet-questions">
 			                                                        </div>
 
@@ -394,18 +396,17 @@
 			                            </div>
 			                        </div>
 			                    </div>
-			                    <div class="tab-pane" id="2b">
-			                        <h3>Strategy 2</h3>
+			                    <div class="tab-pane" id="density-weighted-al">
 			                        ...
 			                    </div>
-			                    <div class="tab-pane" id="3b">
+			                    <!--<div class="tab-pane" id="3b">
 			                        <h3>Strategy 3</h3>
 			                        ...
 			                    </div>
 			                    <div class="tab-pane" id="4b">
 			                        <h3>Strategy 4</h3>
 			                        ...
-			                    </div>
+			                    </div>-->
 			                </div>
 			          </div>
 			        </div>

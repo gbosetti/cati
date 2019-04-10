@@ -93,6 +93,8 @@ app.views.classification = Backbone.View.extend({
         var removeStopwords = document.querySelector("#remove-stopwords-al").checked;
 
         data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
             {name: "num_questions", value: numQuestions },
             {name: "remove_stopwords", value: removeStopwords }
         ];
@@ -117,7 +119,11 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         var questions = this.getQuestionsFromUI();
-        data = [{name: "questions", value: JSON.stringify(questions) }]
+        data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "questions", value: JSON.stringify(questions) }
+        ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
 
