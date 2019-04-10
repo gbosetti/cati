@@ -69,7 +69,6 @@ app.views.client = Backbone.View.extend({
 	                    [{name: "event", value: JSON.stringify(event)}]).concat(
 	                    app.views.tweets.prototype.getBigramsFormData());
 
-	        console.log(data);
 	        this.request_ngrams(data).then( response => {
 
 	            var containerSelector = ".event-ngrams";
@@ -81,7 +80,6 @@ app.views.client = Backbone.View.extend({
 
                     $(containerSelector).html("");
                     app.views.tweets.prototype.renderBigramsGrid(containerSelector, 600, false, "col-12");
-                    console.log("this.ngrams.lastQueryParams", this.ngrams.lastQueryParams);
                     app.views.tweets.prototype.updateBigramsControls(response.ngrams, this.ngrams);
 
                     var onBubbleClick = (label, evt) => {
@@ -94,7 +92,10 @@ app.views.client = Backbone.View.extend({
 
                     app.views.tweets.prototype.renderBigramsChart(onBubbleClick, this.ngrams, ".bigrams-graph-area", response.ngrams, 600);
                 }
+
+                $(".regenerate-bigrams").prop("disabled",true);
 	        });
+
 	    },
 	    markBigramTweets: function(self, label, graphBasedLabelNgram, clientData){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
 
@@ -160,9 +161,8 @@ app.views.client = Backbone.View.extend({
                     self.eventTweetsParams = {obj: JSON.stringify(s_ev), index: app.session.s_index};
 
                     $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
-                        console.log("load_timeline & display_tweets & load_ngrams");
                         try{
-                            //self.display_tweets(response, t0, timeline.config.events[0].unique_id);
+                            self.display_tweets(response, t0, timeline.config.events[0].unique_id);
                             self.load_ngrams(timeline.config.events[0].unique_id);
                         }catch(err){console.log(err)}
                     }, 'json').fail(function(err) {
@@ -181,7 +181,7 @@ app.views.client = Backbone.View.extend({
 
                             $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                                 try{
-                                    //self.display_tweets(response, t0, data.unique_id);
+                                    self.display_tweets(response, t0, data.unique_id);
                                     self.load_ngrams(data.unique_id);
                                 }catch(err){console.log(err)}
                             }, 'json');

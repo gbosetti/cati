@@ -276,7 +276,6 @@ app.views.tweets = Backbone.View.extend({
         });
     },
     getCurrentSearchTabData: function(selector){
-    console.log("sELECTOR:", selector);
         var tab = document.querySelector(selector);
         return {
             label: tab.getAttribute("tag"),
