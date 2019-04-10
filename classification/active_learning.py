@@ -69,7 +69,6 @@ class ActiveLearning:
             _source=kwargs["_source"],
             request_timeout=kwargs["request_timeout"]
         )
-        print("READ", kwargs)
 
         return raw_tweets['hits']['hits']
 
@@ -142,9 +141,9 @@ class ActiveLearning:
     def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
 
         print("Training. Classifier: ", clf)
-        num_questions = int(num_questions)
+        self.num_questions = num_questions
         t0 = time()
-        clf.fit(X_train, y_train) # matches the matrix with the array of matching cases. Case 1-> label a ... ( [[1],[2],[3]], ["a","b","a"] )
+        clf.fit(X_train, y_train) # fits the model according to the training set (passing its data and the vectorized feature)
 
         # t0 = time()
         pred = clf.predict(X_test)
@@ -187,9 +186,10 @@ class ActiveLearning:
         question_samples.extend(low_confidence_samples.tolist())
         question_samples.extend(high_confidence_samples.tolist())
 
-        clf_descr = str(clf).split('(')[0]
+        # clf_descr = str(clf).split('(')[0]
 
-        return clf_descr, question_samples, confidences, predictions  # sorted_confidences added by Gabi
+        #return clf_descr,
+        return question_samples, confidences, predictions  # sorted_confidences added by Gabi
 
     # def get_tweets_with_high_confidence(self):
     #
@@ -271,20 +271,20 @@ class ActiveLearning:
             self.writeFile(os.path.join(UNLABELED_FOLDER, NO_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"),
                       tweet['_source']['text'])
 
+    def size_mb(self, docs):
+        return sum(len(s.encode('utf-8')) for s in docs) / 1e6
+
     def loading_tweets_from_files(self):
 
         # Loading the datasets
-        data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)
+        data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)  # data_train
         data_test = load_files(TEST_FOLDER, encoding=ENCODING)
         unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
         categories = data_train.target_names
 
-        def size_mb(docs):
-            return sum(len(s.encode('utf-8')) for s in docs) / 1e6
-
-        data_train_size_mb = size_mb(data_train.data)
-        data_test_size_mb = size_mb(data_test.data)
-        unlabeled_size_mb = size_mb(unlabeled.data)
+        data_train_size_mb = self.size_mb(data_train.data)
+        data_test_size_mb = self.size_mb(data_test.data)
+        unlabeled_size_mb = self.size_mb(unlabeled.data)
 
         print("%d documents - %0.3fMB (training set)" % (
             len(data_train.data), data_train_size_mb))
@@ -375,7 +375,7 @@ class ActiveLearning:
         self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
 
         print("Updating model")
-        clf_names, question_samples, confidences, predictions = self.updating_model(**kwargs)
+        question_samples, confidences, predictions = self.updating_model(**kwargs)
 
         print("Generating questions")
         return self.generating_questions(question_samples, predictions, confidences)
@@ -390,31 +390,30 @@ class ActiveLearning:
         # Starting the process
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
 
-        # split a training set and a test set
+        # Get the sparse matrix of each dataset
         y_train = data_train.target
-        y_test = data_test.target  # 'target': array([1, 1, 1, ..., 1, 1, 1]) according to the labels (pos, neg)
+        y_test = data_test.target
 
         # Extracting features from the training dataset using a sparse vectorizer
         print("Extracting features")
-        self.langs = self.get_langs_from_unlabeled_data(index=kwargs["index"])  # We need to keep track so we can use it later
+        #self.langs = self.get_langs_from_unlabeled_data(index=kwargs["index"])  # We need to keep track so we can use it later
 
         # Getting the list of available stopwords, if the user asked for it
-        if kwargs["remove_stopwords"].lower() in ("yes", "true", "t", "1"):
-            print("Generating stopwords for %s", self.langs)
-            multilang_stopwords = self.get_stopwords_for_langs(self.langs)
-        else:
-            print("Ignoring stopwords")
-            multilang_stopwords = None
-
-        # TOPRINT vectorizer.get_feature_names(), vectorizer.idf_
+        # if kwargs["remove_stopwords"].lower() in ("yes", "true", "t", "1"):
+        #     print("Generating stopwords for %s", self.langs)
+        #     multilang_stopwords = self.get_stopwords_for_langs(self.langs)
+        # else:
+        #     print("Ignoring stopwords")
+        #     multilang_stopwords = None
+        multilang_stopwords = None
 
         vectorizer = TfidfVectorizer(encoding=ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
                                      min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=multilang_stopwords)
 
-        # Getting a sparse csc matrix.
+        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
         X_train = vectorizer.fit_transform(data_train.data)
 
-        # Extracting features from the test dataset using the same vectorizer
+        # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
         X_test = vectorizer.transform(data_test.data)
 
         print("n_samples: %d, n_features: %d" % X_test.shape)
@@ -427,10 +426,10 @@ class ActiveLearning:
         print("Benchmarking")
         results = []
         results.append(self.benchmark(
-            LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
+            LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3), # class_weight='balanced'
             X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"]
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        return [[x[i] for x in results] for i in range(4)]
+        return [[x[i] for x in results] for i in range(3)]
 
 
     def generating_questions(self, question_samples, predictions, confidences):
@@ -458,7 +457,7 @@ class ActiveLearning:
             shutil.move(question["filename"], dstDir)
 
         # Updating the model
-        clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords, index=kwargs["index"])
+        question_samples, confidences, predictions = self.updating_model(num_questions=self.num_questions, remove_stopwords=self.remove_stopwords, **kwargs)
 
         positiveTweets = {}
         positiveTweets["confidences"] = []

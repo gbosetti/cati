@@ -405,8 +405,9 @@ classifier = ActiveLearning()
 # @cross_origin()
 def start_learning():
     data = request.form
+    num_questions = int(data["num_questions"])
     return jsonify(classifier.start_learning(index=data['index'], session=data['session'],
-                                             num_questions=data["num_questions"], remove_stopwords=data["remove_stopwords"]))
+                                             num_questions=num_questions, remove_stopwords=data["remove_stopwords"]))
 
 
 @app.route('/suggest_classification', methods=['POST'])

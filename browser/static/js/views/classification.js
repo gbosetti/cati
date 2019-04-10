@@ -36,7 +36,7 @@ app.views.classification = Backbone.View.extend({
             this.suggestClassification();
         });
 
-        $("#remove-stopwords-al").bootstrapToggle();
+        //$("#remove-stopwords-al").bootstrapToggle();
         app.views.mabed.prototype.getClassificationStats();
         //app.views.mabed.prototype.setSessionTopBar();
 
@@ -90,7 +90,7 @@ app.views.classification = Backbone.View.extend({
 
         $(".card-columns").html('');
         document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-        var removeStopwords = document.querySelector("#remove-stopwords-al").checked;
+        var removeStopwords = false; //document.querySelector("#remove-stopwords-al").checked;
 
         data = [
             {name: "index", value: app.session.s_index},
@@ -300,7 +300,7 @@ app.views.classification = Backbone.View.extend({
         var targetFormId = $(btn).parent().parent().attr("id");
         var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
         var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
-        var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
+        var removeStopwords = false; //$("#" + targetFormId + " #remove-stopwords").prop("checked");
         var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
         var graphArea = $("#" + targetFormId).parent().parent();
         var graphHeight = graphArea.children().eq(0).height();
