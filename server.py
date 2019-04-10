@@ -432,6 +432,31 @@ def most_frequent_n_grams():
     n_grams = ngram_classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
     return jsonify(n_grams)
 
+
+@app.route('/most_frequent_ngrams_in_quadrant', methods=['POST'])
+def most_frequent_ngrams_in_quadrant():
+
+    data = request.form
+    quadrant = data["quadrant"]  # low-pos high-pos low-neg high-neg
+    n_grams = []
+    ids = ["674200892065845249", "673977216393416704", "674163320639913984", "674023070017933312", "674139694154842112", "673996047534841856"]
+
+    matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
+                                                  label=data['search_by_label'],
+                                                  results_size=data['top-bubbles-to-display'],
+                                                  n_size=data['n-grams-to-generate'])
+
+    return jsonify({
+        "total_matching_tweets": matching_ngrams['hits']['total'],
+        "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
+        "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'],
+                                                                    session=data['session'],
+                                                                    label=data['search_by_label'],
+                                                                    matching_ngrams=matching_ngrams)
+    })
+
+    return jsonify(n_grams)
+
 @app.route('/n_grams_classification', methods=['POST'])
 def n_grams_classification():
 
