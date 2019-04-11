@@ -174,6 +174,7 @@ app.views.settings = Backbone.View.extend({
             var keepAskingForLogs = true;
 
             setTimeout(() => {
+                console.log(app.appURL+'generate_ngrams_for_index');
                 $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
                     keepAskingForLogs = false;
                     console.log("generate_bigrams_for_index response: ", response);

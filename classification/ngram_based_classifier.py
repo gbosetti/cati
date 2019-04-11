@@ -307,11 +307,16 @@ class NgramBasedClasifier:
             # Get the data for performinga paginated search
             self.current_thread_percentage = 0
             my_connector = Es_connector(index=kwargs["index"])
-            res = my_connector.init_paginatedSearch({
-                "query": {
-                    "match_all": {}
-                }
-            })
+
+            query = kwargs.get('query', {
+                    "query": {
+                        "match_all": {}
+                    }
+                })
+
+            print("QUERY", query)
+
+            res = my_connector.init_paginatedSearch(query)
             sid = res["sid"]
             scroll_size = res["scroll_size"]
             total = int(res["total"])
@@ -333,11 +338,27 @@ class NgramBasedClasifier:
             # Clean it at the end so the clien knows when to end asking for more logs
             self.current_thread_percentage = 100
 
+            self.generate_ngrams_for_unlabeled_tweets_on_index(kwargs)
+
             return True
 
         except Exception as e:
             print('Error: ' + str(e))
             return False
+
+    def generate_ngrams_for_unlabeled_tweets_on_index(self, **kwargs):
+
+        query={
+            "query": {
+                "bool": {
+                    "must_not": {
+                        "exists" : { "field" : kwargs["prop"] }
+                    }
+                }
+            }
+        }
+
+        return self.generate_ngrams_for_index(**kwargs, query=query)
 
     def format_single_tweet_ngrams(self, ngrams):
 

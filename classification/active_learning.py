@@ -138,7 +138,7 @@ class ActiveLearning:
 
     ###############################################################################
     # Benchmark classifiers
-    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
+    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, sampling_method):
 
         print("Training. Classifier: ", clf)
         self.num_questions = num_questions
@@ -149,25 +149,24 @@ class ActiveLearning:
         pred = clf.predict(X_test)
         score = metrics.f1_score(y_test, pred)
         accscore = metrics.accuracy_score(y_test, pred)
-        print("------------------------------------------")
-        print("pred count is %d" % len(pred))
-        print('accuracy score:     %0.3f' % accscore)
-        print("f1-score:   %0.3f" % score)
-        print("------------------------------------------")
 
-        # if hasattr(clf, 'coef_'):
-        #     print("dimensionality: %d" % clf.coef_.shape[1])
-        #     print("density: %f" % density(clf.coef_))
-        #
-        # print("classification report:")
-        # print(metrics.classification_report(y_test, pred, target_names=categories))
-        #
-        # print("confusion matrix:")
-        # print(metrics.confusion_matrix(y_test, pred))
+        scores = {
+            "f1": score,
+            "accuracy": accscore
+        }
+
+        if (sampling_method == "closer_to_hyperplane"):
+            question_samples, confidences, predictions = self.get_samples_closer_to_hyperplane(clf, num_questions, X_unlabeled, categories)
+
+        return question_samples, confidences, predictions, scores
+
+
+    def get_samples_closer_to_hyperplane(self, clf, num_questions, X_unlabeled, categories):
 
         print("confidence for unlabeled data:")
         # compute absolute confidence for each unlabeled sample in each class
-        decision = clf.decision_function(X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        decision = clf.decision_function(
+            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
         predictions = clf.predict(X_unlabeled)
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
@@ -186,10 +185,7 @@ class ActiveLearning:
         question_samples.extend(low_confidence_samples.tolist())
         question_samples.extend(high_confidence_samples.tolist())
 
-        # clf_descr = str(clf).split('(')[0]
-
-        #return clf_descr,
-        return question_samples, confidences, predictions  # sorted_confidences added by Gabi
+        return question_samples, confidences, predictions
 
     # def get_tweets_with_high_confidence(self):
     #
@@ -205,7 +201,7 @@ class ActiveLearning:
 
     def read_data_from_dataset(self, **kwargs):
 
-        target_source = ["id_str", "text", "imagesCluster", kwargs["session"]]
+        target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
 
         # Getting a sample from elasticsearch to classify
         confirmed_data = self.read_raw_tweets_from_elastic(
@@ -253,23 +249,29 @@ class ActiveLearning:
 
         return confirmed_data, negative_data, proposed_data
 
-    def write_data_in_folders(self, negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data):
+    def stringuify(self, field, is_field_array):
+
+        if is_field_array:
+            return "".join(field)
+        else: return field
+
+    def write_data_in_folders(self, field, is_field_array, negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data):
 
         for tweet in negative_data_test:
-            self.writeFile(os.path.join(TEST_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            print(tweet)
+            self.writeFile(os.path.join(TEST_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
         for tweet in confirmed_data_test:
-            self.writeFile(os.path.join(TEST_FOLDER, POS_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TEST_FOLDER, POS_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
         for tweet in negative_data_train:
-            self.writeFile(os.path.join(TRAIN_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TRAIN_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
         for tweet in confirmed_data_train:
-            self.writeFile(os.path.join(TRAIN_FOLDER, POS_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+            self.writeFile(os.path.join(TRAIN_FOLDER, POS_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
         for tweet in proposed_data:
-            self.writeFile(os.path.join(UNLABELED_FOLDER, NO_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"),
-                      tweet['_source']['text'])
+            self.writeFile(os.path.join(UNLABELED_FOLDER, NO_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
@@ -372,7 +374,7 @@ class ActiveLearning:
 
         # Writing the retrieved files into the folders
         print("Writting data from elastic into folders")
-        self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train,
+        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train,
                                    proposed_data)
 
 
@@ -389,21 +391,8 @@ class ActiveLearning:
         y_train = data_train.target
         y_test = data_test.target
 
-        # Extracting features from the training dataset using a sparse vectorizer
-        print("Extracting features")
-        #self.langs = self.get_langs_from_unlabeled_data(index=kwargs["index"])  # We need to keep track so we can use it later
-
-        # Getting the list of available stopwords, if the user asked for it
-        # if kwargs["remove_stopwords"].lower() in ("yes", "true", "t", "1"):
-        #     print("Generating stopwords for %s", self.langs)
-        #     multilang_stopwords = self.get_stopwords_for_langs(self.langs)
-        # else:
-        #     print("Ignoring stopwords")
-        #     multilang_stopwords = None
-        multilang_stopwords = None
-
         vectorizer = TfidfVectorizer(encoding=ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=multilang_stopwords)
+                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
 
         # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
         X_train = vectorizer.fit_transform(data_train.data)
@@ -418,13 +407,13 @@ class ActiveLearning:
         print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
         # Benchmarking
-        print("Benchmarking")
+        print("Training")
         results = []
         results.append(self.benchmark(
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3), # class_weight='balanced'
-            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"]
+            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"], kwargs["sampling_method"]
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        return [[x[i] for x in results] for i in range(3)]
+        return [[x[i] for x in results] for i in range(4)]
 
 
     def generating_questions(self, question_samples, predictions, confidences):
