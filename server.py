@@ -313,15 +313,22 @@ def event_ngrams_with_higher_ocurrence():
     results_size = request.form.get('top-bubbles-to-display', 20)
     n_size = request.form.get('n-grams-to-generate', '2')
 
-    print("target_terms: ", target_terms)
-
     matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
                                                             label=data['search_by_label'], results_size=results_size,
                                                             n_size=n_size, target_terms=target_terms)
 
+    if(matching_ngrams and matching_ngrams['hits']):
+        total_hits = matching_ngrams['hits']['total']
+    else: total_hits = 0
+
+    if (matching_ngrams and matching_ngrams['aggregations']):
+        aggs = matching_ngrams['aggregations']['ngrams_count']['buckets']
+    else:
+        aggs = []
+
     return jsonify({
-        "total_matching_tweets": matching_ngrams['hits']['total'],
-        "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets']
+        "total_matching_tweets": total_hits,
+        "ngrams": aggs
     })
 
 

@@ -351,14 +351,14 @@ class ActiveLearning:
 
         return swords
 
-    def start_learning(self, **kwargs):
+    def download_data_into_files(self, **kwargs):
 
         self.clean_directories()
         # Getting a sample from elasticsearch to classify
         print("Getting data from elastic")
         confirmed_data, negative_data, proposed_data = self.read_data_from_dataset(**kwargs)
 
-        if len(confirmed_data) == 0 or len(negative_data) == 0 or len(proposed_data) == 0 :
+        if len(confirmed_data) == 0 or len(negative_data) == 0 or len(proposed_data) == 0:
             raise Exception('You need to have some 1) already classified data and 2) data to classify in your dataset')
             return
 
@@ -372,16 +372,11 @@ class ActiveLearning:
 
         # Writing the retrieved files into the folders
         print("Writting data from elastic into folders")
-        self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
-
-        print("Updating model")
-        question_samples, confidences, predictions = self.updating_model(**kwargs)
-
-        print("Generating questions")
-        return self.generating_questions(question_samples, predictions, confidences)
+        self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train,
+                                   proposed_data)
 
 
-    def updating_model(self, **kwargs):
+    def build_model(self, **kwargs):
 
         # Keep track of the last used params
         self.num_questions = kwargs["num_questions"]
@@ -448,16 +443,16 @@ class ActiveLearning:
         return complete_question_samples
 
 
-    def suggest_classification(self, **kwargs):
+    def move_answers_to_training_set(self, labeled_questions):
 
         print("Moving the user labeled questions into the proper folders")
-        for question in kwargs["labeled_questions"]:
+        for question in labeled_questions:
             dstDir = os.path.join(TRAIN_FOLDER, question["label"])
             print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 
-        # Updating the model
-        question_samples, confidences, predictions = self.updating_model(num_questions=self.num_questions, remove_stopwords=self.remove_stopwords, **kwargs)
+
+    def suggest_classification(self, predictions, confidences, **kwargs):
 
         positiveTweets = {}
         positiveTweets["confidences"] = []
@@ -477,7 +472,7 @@ class ActiveLearning:
                 positiveTweets["confidences"].append(str(confidences[0][idx]))
                 positiveTweets["filenames"].append(self.extract_filename_no_ext(self.data_unlabeled.filenames[idx]))
                 positiveTweets["predictions"].append(str(predictions[0][idx]))
-                positiveTweets["texts"].append(self.data_unlabeled.data[idx]) # self.data_unlabeled is updated when updating the model > self.updating_model
+                positiveTweets["texts"].append(self.data_unlabeled.data[idx]) # self.data_unlabeled is updated when updating the model > self.build_model
 
             elif predictions[0][idx] == 0:
                 negativeTweets["confidences"].append(str(confidences[0][idx]))
