@@ -166,7 +166,7 @@ app.views.settings = Backbone.View.extend({
         return new Promise((resolve, reject) => {
 
             var data = [
-                {name: "index", value: index },  //app.session.s_index
+                {name: "index", value: index },
                 {name: "ngrams_length", value: ngrams_length},
                 {name: "to_property", value: ngrams_length + "grams"}
             ];

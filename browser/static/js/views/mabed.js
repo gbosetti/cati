@@ -69,8 +69,7 @@ app.views.mabed = Backbone.View.extend({
     },
     setSessionTopBar: function() {
         if(!app.session){
-            alert("There is no session set")
-            return;
+            console.log("There is no session set");
         }else{
             console.log("The current session is "+app.session.s_name);
         }
@@ -82,13 +81,12 @@ app.views.mabed = Backbone.View.extend({
         }).then(value => {
             return app.views.settings.prototype.handleSessions(value,'#session_topbar')
         })
-        //document.querySelector('#session_dropdown').textContent = app.session.s_name;
     },
     switchSession: function(){
         //e.preventDefault();
         var self = this;
         var id = $( "#session_topbar option:selected").attr('value');
-        console.log("id = "+ id);
+
         $.post(app.appURL+'get_session',  $('#topbar_session_form').serialize(), function(response){
             if(response.result==true){
                 app.session_id = response.body._id;

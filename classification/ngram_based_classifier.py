@@ -296,6 +296,7 @@ class NgramBasedClasifier:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
                 ngrams = list(self.get_n_grams(clean_text, length))
                 full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
+                print("ngrams:", full_tweet_ngrams)
                 self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
 
             except Exception as e:
@@ -314,23 +315,25 @@ class NgramBasedClasifier:
                     }
                 })
 
-            print("QUERY", query)
-
             res = my_connector.init_paginatedSearch(query)
             sid = res["sid"]
             scroll_size = res["scroll_size"]
             total = int(res["total"])
-            print("Total: ", total)
 
             # Analyse and process page by page
             i = 0
             processed = 0
+
+            if total>0:
+                self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+
             while scroll_size > 0:
                 i += 1
                 res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
                 scroll_size = res2["scroll_size"]
                 processed += scroll_size
                 tweets = res2["results"]
+
                 self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
                 self.current_thread_percentage = round(processed * 100 / total, 2)
                 print("Completed: ", self.current_thread_percentage, "%")
@@ -338,7 +341,7 @@ class NgramBasedClasifier:
             # Clean it at the end so the clien knows when to end asking for more logs
             self.current_thread_percentage = 100
 
-            self.generate_ngrams_for_unlabeled_tweets_on_index(kwargs)
+            #self.generate_ngrams_for_unlabeled_tweets_on_index(kwargs)
 
             return True
 
@@ -358,7 +361,7 @@ class NgramBasedClasifier:
             }
         }
 
-        return self.generate_ngrams_for_index(**kwargs, query=query)
+        return self.generate_ngrams_for_index(**dict(kwargs, query=query))
 
     def format_single_tweet_ngrams(self, ngrams):
 
