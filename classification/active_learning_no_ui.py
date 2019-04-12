@@ -60,23 +60,26 @@ print("Process starting at ", datetime.now())
 classifier = ActiveLearning()
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
-classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)  # field may be text, 2grams or anything else at the same level of the elastic doc
+classifier.clean_directories()
+classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)
+classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True)
 
 diff_accuracy = 0
 accuracy = 0
+prev_accuracy = 0
 stage_scores = []
 
 while accuracy < min_acceptable_accuracy:  # and diff_accuracy>min_diff_accuracy:
 
+    print("\n---------------------------------")
     scores = loop(classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, sampling_method=sampling_method)
 
-    if len(stage_scores) > 1:
+    if len(stage_scores) > 0:
         accuracy = scores["accuracy"]
         prev_accuracy = stage_scores[-1]["accuracy"]
         diff_accuracy = abs(accuracy - prev_accuracy)
 
-        print("\n---------------------------------\naccuracy: ", accuracy, " prev_accuracy: ", prev_accuracy, " diff_accuracy: ", diff_accuracy)
-
+    print("\naccuracy: ", scores["accuracy"], " prev_accuracy: ", prev_accuracy, " diff_accuracy: ", diff_accuracy)
     stage_scores.append(scores)
 
 print("Process finished at ", datetime.now())

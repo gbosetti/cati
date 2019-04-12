@@ -353,11 +353,22 @@ class ActiveLearning:
 
         return swords
 
+    def download_testing_data(self, ** kwargs):
+
+        print("Getting training data from the elastic index: ", kwargs["index"])
+        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset(**kwargs)
+
+        if (len(confirmed_data) == 0 or len(negative_data) == 0) or len(proposed_data) > 0:
+            raise Exception('Check your test set. You need a groundtruth dataset fully classified ')
+            return
+
+        # Writing the retrieved files into the folders
+        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER), negative_data)
+        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER), confirmed_data)
+
     def download_training_data(self, **kwargs):
 
-        self.clean_directories()
-        # Getting a sample from elasticsearch to classify
-        print("Getting training data from the elastic index: ", kwargs["index"])
+        print("Getting testing data from the elastic index: ", kwargs["index"])
         confirmed_data, negative_data, proposed_data = self.read_data_from_dataset(**kwargs)
 
         if len(confirmed_data) == 0 or len(negative_data) == 0 or len(proposed_data) == 0:
@@ -365,7 +376,6 @@ class ActiveLearning:
             return
 
         # Writing the retrieved files into the folders
-        print("Writting data from elastic into the training sub-folders")
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER), negative_data)
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER), confirmed_data)
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER), proposed_data)
