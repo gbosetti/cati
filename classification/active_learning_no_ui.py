@@ -1,6 +1,8 @@
 from classification.active_learning import ActiveLearning
 from datetime import datetime
 from mabed.es_connector import Es_connector
+import json
+import ast
 
 index="experiment_lyon_2017"
 session="session_lyon2017_test_01"
@@ -10,31 +12,38 @@ min_accuracy=90
 
 def get_answers(**kwargs):
 
+    my_connector = Es_connector(index=kwargs["index"], config_relative_path='../')
     for question in kwargs["questions"]:
 
-        print(question)
-        # {'filename': 'C:\\Users\\gbosetti\\Desktop\\mabed\\classification\\classification\\unlabeled\\proposed\\941072171815854080.txt', 'text': '@brianmurphycllr-mostmost-christmaschristmas-marketsmarkets-aroundaround-europeeurope-surroundedsurrounded-anti-jihadanti-jihad-bollardsbollards-guardedguarded-heavilyheavily-armed', 'pred_label': 0, 'data_unlabeled_index': 296, 'confidence': 0.26007260204898874}
-        #kwargs["gt_session"]
+        # Adding the label field
+        question_id = kwargs["classifier"].extract_filename_no_ext(question["filename"])
+        res = my_connector.search({
+            "query": {
+                "match": {
+                    "id_str": question_id
+                }
+            }
+        })
+        question["label"] = res["hits"]["hits"][0]["_source"][kwargs["gt_session"]]
 
-    my_connector = Es_connector(index=kwargs["index"], config_relative_path='../')
-
-    return
+    # print(json.dumps(kwargs["questions"], indent=4, sort_keys=True))
+    return kwargs["questions"]
 
 def loop(**kwargs):
 
     classifier = kwargs["classifier"]
 
-    # Building the model
-    full_question_samples, confidences, predictions, scores = classifier.build_model(num_questions=num_questions, remove_stopwords=False, sampling_method="closer_to_hyperplane")
+    # Building the model and getting the questions
+    questions, confidences, predictions, scores = classifier.build_model(num_questions=num_questions, remove_stopwords=False, sampling_method="closer_to_hyperplane")
 
-    # Getting the questions and asking the user (gt_dataset) to answer them
-    questions = classifier.generating_questions(full_question_samples, predictions, confidences)
-    answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"])
+    # Asking the user (gt_dataset) to answer the questions
+    answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
 
     # Injecting the answers in the training set, and re-training the model
     classifier.move_answers_to_training_set(answers)
 
-    # Present visualization to the user.
+    # Present visualization to the user, so he can explore the proposed classification
+    # ...
     # Moving the tweets of those quartiles with a high accuracy
     classifier.move_answers_from_accurate_quartiles(answers_above=min_accuracy)
 

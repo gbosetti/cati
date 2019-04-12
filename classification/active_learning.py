@@ -44,7 +44,7 @@ import elasticsearch.helpers
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
 
-DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
+DATA_FOLDER = os.path.join(os.getcwd(), "tmp_data")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
 TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
 TEST_FOLDER = os.path.join(DATA_FOLDER, "test")
 UNLABELED_FOLDER = os.path.join(DATA_FOLDER, "unlabeled")
@@ -161,6 +161,8 @@ class ActiveLearning:
         return question_samples, confidences, predictions, scores
 
 
+
+
     def get_samples_closer_to_hyperplane(self, clf, num_questions, X_unlabeled, categories):
 
         print("confidence for unlabeled data:")
@@ -193,6 +195,10 @@ class ActiveLearning:
 
     def clean_directories(self):
         print("Cleaning directories")
+
+        if not os.path.exists(DATA_FOLDER):
+            os.makedirs(DATA_FOLDER)
+
         self.delete_folder_contents(os.path.join(TRAIN_FOLDER, POS_CLASS_FOLDER))
         self.delete_folder_contents(os.path.join(TRAIN_FOLDER, NEG_CLASS_FOLDER))
         self.delete_folder_contents(os.path.join(TEST_FOLDER, POS_CLASS_FOLDER))
@@ -252,13 +258,14 @@ class ActiveLearning:
     def stringuify(self, field, is_field_array):
 
         if is_field_array:
-            return "".join(field)
+            return " ".join(field)
         else: return field
 
     def write_data_in_folders(self, field, is_field_array, negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data):
 
+
+
         for tweet in negative_data_test:
-            print(tweet)
             self.writeFile(os.path.join(TEST_FOLDER, NEG_CLASS_FOLDER, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
         for tweet in confirmed_data_test:
@@ -413,10 +420,14 @@ class ActiveLearning:
             LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3), # class_weight='balanced'
             X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"], kwargs["sampling_method"]
         ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        return [[x[i] for x in results] for i in range(4)]
+
+        questions, confidences, predictions, scores = [[x[i] for x in results] for i in range(4)]
+        formatted_questions = self.format_questions(questions, predictions, confidences)
+
+        return formatted_questions, confidences, predictions, scores
 
 
-    def generating_questions(self, question_samples, predictions, confidences):
+    def format_questions(self, question_samples, predictions, confidences):
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
         for index in question_samples[0]:
