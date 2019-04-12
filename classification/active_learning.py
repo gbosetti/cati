@@ -67,7 +67,6 @@ class ActiveLearning:
         raw_tweets = elastic.search(
             index=kwargs["index"],
             doc_type="tweet",
-            size=kwargs["size"],
             body=kwargs["query"],
             _source=kwargs["_source"],
             request_timeout=kwargs["request_timeout"]
@@ -212,6 +211,75 @@ class ActiveLearning:
         self.delete_folder_contents(os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER))
         self.delete_folder_contents(os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
 
+    def read_test_data_from_dataset(self, **kwargs):
+
+        target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
+        matching_queries = []
+
+        for tweet in kwargs["matching_data"]:
+            matching_queries.append({"match": {"id_str": {"query": tweet["_source"]["id_str"] }}})
+
+        # Getting a sample from elasticsearch to classify
+        confirmed_data = self.read_raw_tweets_from_elastic(
+            index= kwargs["index"],
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must":[{
+                            "match":{ kwargs["session"] :"confirmed" }
+                        }]
+                    }
+                }
+            },
+            _source=target_source,
+            request_timeout=30
+        )
+        negative_data = self.read_raw_tweets_from_elastic(
+            index=kwargs["index"],
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must":[{
+                            "match":{ kwargs["session"] :"negative" }
+                        }]
+                    }
+                }
+            },
+            _source=target_source,
+            request_timeout=30
+        )
+        proposed_data = self.read_raw_tweets_from_elastic(
+            index=kwargs["index"],
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must":[{
+                            "match":{ kwargs["session"] :"proposed" }
+                        }]
+                    }
+                }
+            },
+            _source=target_source,
+            request_timeout=30
+        )
+
+        return confirmed_data, negative_data, proposed_data
+
     def read_data_from_dataset(self, **kwargs):
 
         target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
@@ -222,12 +290,13 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=2000,
-            query={"query": {
-                "match": {
-                    kwargs["session"]: "confirmed"
+            query={
+            "query": {
+                    "match": {
+                        kwargs["session"]: "confirmed"
+                    }
                 }
-            }},
+            },
             _source=target_source,
             request_timeout=30
         )
@@ -236,7 +305,6 @@ class ActiveLearning:
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=2000,
             query={"query": {
                 "match": {
                     kwargs["session"]: "negative"
@@ -245,22 +313,8 @@ class ActiveLearning:
             _source=target_source,
             request_timeout=30
         )
-        proposed_data = self.read_raw_tweets_from_elastic(
-            index=kwargs["index"],
-            doc_type="tweet",
-            host="localhost",
-            port="9200",
-            size=1000,
-            query={"query": {
-                "match": {
-                    kwargs["session"]: "proposed"
-                }
-            }},
-            _source=target_source,
-            request_timeout=30
-        )
 
-        return confirmed_data, negative_data, proposed_data
+        return confirmed_data, negative_data
 
     def stringuify(self, field, is_field_array):
 
@@ -355,8 +409,8 @@ class ActiveLearning:
 
     def download_testing_data(self, ** kwargs):
 
-        print("Getting training data from the elastic index: ", kwargs["index"])
-        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset(**kwargs)
+        print("Getting TEsting data from the elastic index: ", kwargs["index"])
+        confirmed_data, negative_data, proposed_data = self.read_test_data_from_dataset(**kwargs)
 
         if (len(confirmed_data) == 0 or len(negative_data) == 0) or len(proposed_data) > 0:
             raise Exception('Check your test set. You need a groundtruth dataset fully classified ')
@@ -368,18 +422,44 @@ class ActiveLearning:
 
     def download_training_data(self, **kwargs):
 
-        print("Getting testing data from the elastic index: ", kwargs["index"])
-        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset(**kwargs)
+        print("Getting TRaining data from the elastic index: ", kwargs["index"])
+        confirmed_data, negative_data = self.read_data_from_dataset(**kwargs)
 
-        if len(confirmed_data) == 0 or len(negative_data) == 0 or len(proposed_data) == 0:
-            raise Exception('You need to have some 1) already classified data and 2) data to classify in your dataset')
+        if len(confirmed_data) == 0 or len(negative_data) == 0:
+            raise Exception('You need to have some already classified data in your dataset')
             return
 
         # Writing the retrieved files into the folders
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER), negative_data)
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER), confirmed_data)
+
+    def download_unclassified_data(self, **kwargs):
+
+        print("Getting UNclassified data from the elastic index: ", kwargs["index"])
+
+        target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
+        proposed_data = self.read_raw_tweets_from_elastic(
+            index=kwargs["index"],
+            doc_type="tweet",
+            host="localhost",
+            port="9200",
+            query={"query": {
+                "match": {
+                    kwargs["session"]: "proposed"
+                }
+            }},
+            _source=target_source,
+            request_timeout=30
+        )
+
+        if len(proposed_data) == 0:
+            raise Exception('You need to have some data to classify in your dataset')
+            return
+
+        # Writing the retrieved files into the folders
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER), proposed_data)
 
+        return proposed_data
 
     def build_model(self, **kwargs):
 

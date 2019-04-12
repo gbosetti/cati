@@ -62,7 +62,8 @@ classifier = ActiveLearning()
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 classifier.clean_directories()
 classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)
-classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True)
+proposed_data = classifier.download_unclassified_data(index=index, session=session, field="2grams", is_field_array=True)
+classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True, matching_data=proposed_data)
 
 diff_accuracy = 0
 accuracy = 0
@@ -79,7 +80,7 @@ while accuracy < min_acceptable_accuracy:  # and diff_accuracy>min_diff_accuracy
         prev_accuracy = stage_scores[-1]["accuracy"]
         diff_accuracy = abs(accuracy - prev_accuracy)
 
-    print("\naccuracy: ", scores["accuracy"], " prev_accuracy: ", prev_accuracy, " diff_accuracy: ", diff_accuracy)
+    print("\naccuracy: ", scores["accuracy"], " diff_accuracy: ", diff_accuracy)
     stage_scores.append(scores)
 
 print("Process finished at ", datetime.now())
