@@ -378,19 +378,19 @@ def generate_ngrams_for_index():
     return jsonify(res)
 
 
-@app.route('/generate_ngrams_for_unlabeled_tweets_on_index', methods=['POST'])
-# @cross_origin()
-def generate_ngrams_for_unlabeled_tweets_on_index():
-    data = request.form
-    preproc = PreProcessor()
-    print(data)
-    propName = data['to_property']
-
-    start_time = datetime.datetime.now()
-    preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
-    res = ngram_classifier.generate_ngrams_for_unlabeled_tweets_on_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
-    print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
-    return jsonify(res)
+# @app.route('/generate_ngrams_for_unlabeled_tweets_on_index', methods=['POST'])
+# # @cross_origin()
+# def generate_ngrams_for_unlabeled_tweets_on_index():
+#     data = request.form
+#     preproc = PreProcessor()
+#     print(data)
+#     propName = data['to_property']
+#
+#     start_time = datetime.datetime.now()
+#     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+#     res = ngram_classifier.generate_ngrams_for_unlabeled_tweets_on_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+#     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
+#     return jsonify(res)
 
 
 # Get Tweets

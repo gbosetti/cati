@@ -14,32 +14,32 @@ from pathlib import Path
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
 
-default_source = config['default']['index']
-sessions_source = config['default']['sessions_index']['index']
-session_host = config['default']['sessions_index']['host']
-session_port = config['default']['sessions_index']['port']
-session_user = config['default']['sessions_index']['user']
-session_password = config['default']['sessions_index']['password']
-session_timeout = config['default']['sessions_index']['timeout']
-session_index = config['default']['sessions_index']['index']
-session_doc_type = config['default']['sessions_index']['doc_type']
-for source in config['elastic_search_sources']:
-    if source['index'] == default_source:
-        default_host = source['host']
-        default_port = source['port']
-        default_user = source['user']
-        default_password = source['password']
-        default_timeout = source['timeout']
-        default_index = source['index']
-        default_doc_type = source['doc_type']
 
 class Es_connector:
-    def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
-    timeout=default_timeout, index=default_index, doc_type=default_doc_type, protocol='http'):
-    # def __init__(self, host='localhost', port=9200, user='', password='', timeout=1000, index="test2", doc_type="tweet"):
+    def __init__(self, host='', port='', user='', password='', timeout='', index='', doc_type='', protocol='http', config_relative_path=''):
+
+        with open(config_relative_path + 'config.json', 'r') as f:
+            config = json.load(f)
+
+        default_source = config['default']['index']
+        sessions_source = config['default']['sessions_index']['index']
+        session_host = config['default']['sessions_index']['host']
+        session_port = config['default']['sessions_index']['port']
+        session_user = config['default']['sessions_index']['user']
+        session_password = config['default']['sessions_index']['password']
+        session_timeout = config['default']['sessions_index']['timeout']
+        session_index = config['default']['sessions_index']['index']
+        session_doc_type = config['default']['sessions_index']['doc_type']
+        for source in config['elastic_search_sources']:
+            if source['index'] == default_source:
+                default_host = source['host']
+                default_port = source['port']
+                default_user = source['user']
+                default_password = source['password']
+                default_timeout = source['timeout']
+                default_index = source['index']
+                default_doc_type = source['doc_type']
 
         available = False
         if index == default_index:

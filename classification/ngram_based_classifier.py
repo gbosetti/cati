@@ -324,8 +324,8 @@ class NgramBasedClasifier:
             i = 0
             processed = 0
 
-            if total>0:
-                self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+            # if total>0:
+            #     self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
 
             while scroll_size > 0:
                 i += 1
@@ -341,27 +341,25 @@ class NgramBasedClasifier:
             # Clean it at the end so the clien knows when to end asking for more logs
             self.current_thread_percentage = 100
 
-            #self.generate_ngrams_for_unlabeled_tweets_on_index(kwargs)
-
             return True
 
         except Exception as e:
             print('Error: ' + str(e))
             return False
 
-    def generate_ngrams_for_unlabeled_tweets_on_index(self, **kwargs):
-
-        query={
-            "query": {
-                "bool": {
-                    "must_not": {
-                        "exists" : { "field" : kwargs["prop"] }
-                    }
-                }
-            }
-        }
-
-        return self.generate_ngrams_for_index(**dict(kwargs, query=query))
+    # def generate_ngrams_for_unlabeled_tweets_on_index(self, **kwargs):
+    #
+    #     query={
+    #         "query": {
+    #             "bool": {
+    #                 "must_not": {
+    #                     "exists" : { "field" : kwargs["prop"] }
+    #                 }
+    #             }
+    #         }
+    #     }
+    #
+    #     return self.generate_ngrams_for_index(**dict(kwargs, query=query))
 
     def format_single_tweet_ngrams(self, ngrams):
 
