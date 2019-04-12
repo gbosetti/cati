@@ -60,10 +60,10 @@ print("Process starting at ", datetime.now())
 classifier = ActiveLearning()
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
-classifier.clean_directories()
-classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)
-proposed_data = classifier.download_unclassified_data(index=index, session=session, field="2grams", is_field_array=True)
-classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True, matching_data=proposed_data)
+#classifier.clean_directories()
+#classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)
+#classifier.download_unclassified_data(index=index, session=session, field="2grams", is_field_array=True)
+classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True)
 
 diff_accuracy = 0
 accuracy = 0

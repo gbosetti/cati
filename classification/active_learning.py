@@ -40,6 +40,7 @@ from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import Counter
 from elasticsearch import Elasticsearch
+from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
@@ -73,6 +74,39 @@ class ActiveLearning:
         )
 
         return raw_tweets['hits']['hits']
+
+    def download_tweets_from_elastic(self, **kwargs):
+
+        log_enabled = kwargs.get("index", True)
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path='../')
+        res = my_connector.init_paginatedSearch(kwargs["query"])
+
+        sid = res["sid"]
+        scroll_size = res["scroll_size"]
+        total = int(res["total"])
+        processed=0
+
+        while scroll_size > 0:
+            res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+            scroll_size = res2["scroll_size"]
+            processed += scroll_size
+            tweets = res2["results"]
+
+            # Writing the retrieved files into the folders
+            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], tweets)
+            if log_enabled:
+                print("Downloading: ", round(processed * 100 / total, 2), "%")
+
+        if(total > 0):
+            res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+            processed += res2["scroll_size"]
+            tweets = res2["results"]
+            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], tweets)
+            if log_enabled:
+                print("Downloading: ", round(processed * 100 / total, 2), "%")
+
+        return total
+
 
     def get_langs_from_unlabeled_tweets(self, **kwargs):
 
@@ -211,75 +245,6 @@ class ActiveLearning:
         self.delete_folder_contents(os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER))
         self.delete_folder_contents(os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
 
-    def read_test_data_from_dataset(self, **kwargs):
-
-        target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
-        matching_queries = []
-
-        for tweet in kwargs["matching_data"]:
-            matching_queries.append({"match": {"id_str": {"query": tweet["_source"]["id_str"] }}})
-
-        # Getting a sample from elasticsearch to classify
-        confirmed_data = self.read_raw_tweets_from_elastic(
-            index= kwargs["index"],
-            doc_type="tweet",
-            host="localhost",
-            port="9200",
-            query={
-                "query": {
-                    "bool": {
-                        "should": matching_queries,
-                        "minimum_should_match": 1,
-                        "must":[{
-                            "match":{ kwargs["session"] :"confirmed" }
-                        }]
-                    }
-                }
-            },
-            _source=target_source,
-            request_timeout=30
-        )
-        negative_data = self.read_raw_tweets_from_elastic(
-            index=kwargs["index"],
-            doc_type="tweet",
-            host="localhost",
-            port="9200",
-            query={
-                "query": {
-                    "bool": {
-                        "should": matching_queries,
-                        "minimum_should_match": 1,
-                        "must":[{
-                            "match":{ kwargs["session"] :"negative" }
-                        }]
-                    }
-                }
-            },
-            _source=target_source,
-            request_timeout=30
-        )
-        proposed_data = self.read_raw_tweets_from_elastic(
-            index=kwargs["index"],
-            doc_type="tweet",
-            host="localhost",
-            port="9200",
-            query={
-                "query": {
-                    "bool": {
-                        "should": matching_queries,
-                        "minimum_should_match": 1,
-                        "must":[{
-                            "match":{ kwargs["session"] :"proposed" }
-                        }]
-                    }
-                }
-            },
-            _source=target_source,
-            request_timeout=30
-        )
-
-        return confirmed_data, negative_data, proposed_data
-
     def read_data_from_dataset(self, **kwargs):
 
         target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
@@ -323,6 +288,9 @@ class ActiveLearning:
         else: return field
 
     def write_data_in_folders(self, field, is_field_array, path, dataset):
+
+        if not os.path.exists(path):
+             os.makedirs(path)
 
         for tweet in dataset:
             self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
@@ -407,59 +375,114 @@ class ActiveLearning:
 
         return swords
 
-    def download_testing_data(self, ** kwargs):
+    def download_testing_data(self, **kwargs):
 
-        print("Getting TEsting data from the elastic index: ", kwargs["index"])
-        confirmed_data, negative_data, proposed_data = self.read_test_data_from_dataset(**kwargs)
+        unlabeled_dir = os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER)
+        # Traversing all unlabeled files to download the testing set accordingly
+        accum_ids = []
+        for file in os.listdir(unlabeled_dir):
+            if file.endswith(".txt"):
+                accum_ids.append({
+                    "_source": {
+                        "id_str": os.path.splitext(file)[0]
+                    }
+                })
+                if len(accum_ids)==500:
+                    self.download_paginated_testing_data(target_tweets=accum_ids, **kwargs)
+                    accum_ids = []
 
-        if (len(confirmed_data) == 0 or len(negative_data) == 0) or len(proposed_data) > 0:
-            raise Exception('Check your test set. You need a groundtruth dataset fully classified ')
-            return
+        if len(accum_ids)>0:
+            self.download_paginated_testing_data(target_tweets=accum_ids, **kwargs)
 
-        # Writing the retrieved files into the folders
-        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER), negative_data)
-        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER), confirmed_data)
+        # if confirmed_data == 0 or negative_data == 0:
+        #     raise Exception('You need to have some already classified data in your testing/groundtruth dataset')
+        #
+
+    def download_paginated_testing_data(self, ** kwargs):
+
+        matching_queries = []
+        for tweet in kwargs["target_tweets"]:
+            matching_queries.append({"match": {"id_str": {"query": tweet["_source"]["id_str"]}}})
+
+        print("Getting (+) TEsting data from the elastic index: ", kwargs["index"])
+        confirmed_data = self.download_tweets_from_elastic(
+            log=False,
+            folder=os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER),
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must":[{
+                            "match":{ kwargs["session"] :"confirmed" }
+                        }]
+                    }
+                }
+            },
+            **kwargs
+        )
+
+        print("Getting (-) TEsting data from the elastic index: ", kwargs["index"])
+        negative_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER),
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must": [{
+                            "match": {kwargs["session"]: "negative"}
+                        }]
+                    }
+                }
+            },
+            **kwargs
+        )
 
     def download_training_data(self, **kwargs):
 
-        print("Getting TRaining data from the elastic index: ", kwargs["index"])
-        confirmed_data, negative_data = self.read_data_from_dataset(**kwargs)
+        print("Getting (+) TRaining data from the elastic index: ", kwargs["index"])
+        confirmed_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER),
+            query={"query": {
+                "match": {
+                    kwargs["session"]: "confirmed"
+                }
+            }},
+            **kwargs
+        )
 
-        if len(confirmed_data) == 0 or len(negative_data) == 0:
+        print("Getting (-) TRaining data from the elastic index: ", kwargs["index"])
+        negative_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER),
+            query={"query": {
+                "match": {
+                    kwargs["session"]: "negative"
+                }
+            }},
+            **kwargs
+        )
+
+        if confirmed_data == 0 or negative_data == 0:
             raise Exception('You need to have some already classified data in your dataset')
-            return
 
-        # Writing the retrieved files into the folders
-        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER), negative_data)
-        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER), confirmed_data)
 
     def download_unclassified_data(self, **kwargs):
 
         print("Getting UNclassified data from the elastic index: ", kwargs["index"])
 
-        target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
-        proposed_data = self.read_raw_tweets_from_elastic(
-            index=kwargs["index"],
-            doc_type="tweet",
-            host="localhost",
-            port="9200",
+        total_proposed_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER),
             query={"query": {
                 "match": {
                     kwargs["session"]: "proposed"
                 }
             }},
-            _source=target_source,
-            request_timeout=30
+            **kwargs
         )
 
-        if len(proposed_data) == 0:
+        if total_proposed_data == 0:
             raise Exception('You need to have some data to classify in your dataset')
-            return
-
-        # Writing the retrieved files into the folders
-        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER), proposed_data)
-
-        return proposed_data
 
     def build_model(self, **kwargs):
 
