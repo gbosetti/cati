@@ -380,6 +380,9 @@ class ActiveLearning:
         unlabeled_dir = os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER)
         # Traversing all unlabeled files to download the testing set accordingly
         accum_ids = []
+        processed = 0
+        total = len(os.listdir(dir)) # dir is your directory path
+
         for file in os.listdir(unlabeled_dir):
             if file.endswith(".txt"):
                 accum_ids.append({
@@ -389,10 +392,14 @@ class ActiveLearning:
                 })
                 if len(accum_ids)==500:
                     self.download_paginated_testing_data(target_tweets=accum_ids, **kwargs)
+                    processed = processed + len(accum_ids)
                     accum_ids = []
+                    print("Downloading: ", round(processed * 100 / total, 2), "%")
 
         if len(accum_ids)>0:
             self.download_paginated_testing_data(target_tweets=accum_ids, **kwargs)
+            processed = processed + len(accum_ids)
+            print("Downloading: ", round(processed * 100 / total, 2), "%")
 
         # if confirmed_data == 0 or negative_data == 0:
         #     raise Exception('You need to have some already classified data in your testing/groundtruth dataset')
