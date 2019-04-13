@@ -292,6 +292,8 @@ def ngrams_with_higher_ocurrence():
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
 
+    print("*SESSION:", data['session'])
+
     return jsonify({
         "total_matching_tweets": matching_ngrams['hits']['total'],
         "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
@@ -312,6 +314,8 @@ def event_ngrams_with_higher_ocurrence():
     target_terms = functions.get_retated_terms(main_term, related_terms)
     results_size = request.form.get('top-bubbles-to-display', 20)
     n_size = request.form.get('n-grams-to-generate', '2')
+
+    print("-SESSION:", data['session'])
 
     matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
                                                             label=data['search_by_label'], results_size=results_size,
