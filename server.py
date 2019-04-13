@@ -241,6 +241,14 @@ def search_for_tweets():
     return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "keywords": data['word'] })
 
 
+# Get Just image clusters
+@app.route('/search_for_image_clusters', methods=['POST'])
+# @cross_origin()
+def search_for_image_clusters():
+    data = request.form
+    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label'], limit=data['image_clusters_limit'])
+    return jsonify({"clusters": clusters, "keywords": data['word'] })
+
 
 # Get Tweets
 @app.route('/get_image_folder', methods=['POST'])

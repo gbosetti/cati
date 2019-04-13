@@ -104,7 +104,7 @@ app.views.tweets = Backbone.View.extend({
         var retweetsContainer=".top_retweets_results:last";
 
         var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
-            .concat([{name: "retweets_number", value: 20}]);
+            .concat([{name: "retweets_number", value: 100}, {name: "image_clusters_limit", value:100}]);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
@@ -138,11 +138,23 @@ app.views.tweets = Backbone.View.extend({
                     this.clearContainer(retweetsContainer);
                     this.showNoRetweetsFound(retweetsContainer);
             });
+            this.requestFullImageClusters(data).then(
+                res => {
+                    //this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
+                    console.log("FULL IMG", res);
+                    $(".collapse-images-title").text("Top 100 image-based clusters");
+                    this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last');
+                },
+                err => { //In case of failing
+                    console.log(err);
+                    this.clearContainer(".imagesClusters");
+                    this.showNoRetweetsFound(".imagesClusters");
+            });
         }
         app.views.mabed.prototype.getClassificationStats();
     },
     presentRetweets(res, selector){
-        console.log("R E S ", selector, res);
+        console.log("top retweets", res);
         var html = this.get_retweets_html(res);
         try{
         $(selector).html(html);
@@ -151,7 +163,9 @@ app.views.tweets = Backbone.View.extend({
     hideNotFullSearchSearch: function(){
 
         $(".card").each((key, cardElem) => {
-            if(!cardElem.querySelector(".collapse").classList.contains("collapseNgrams") && !cardElem.querySelector(".collapse").classList.contains("collapseRetweets"))
+            if( !cardElem.querySelector(".collapse").classList.contains("collapseNgrams") &&
+                !cardElem.querySelector(".collapse").classList.contains("collapseRetweets") &&
+                !cardElem.querySelector(".collapse").classList.contains("collapseImages"))
                 cardElem.hidden = true;
         });
     },
@@ -216,7 +230,7 @@ app.views.tweets = Backbone.View.extend({
                                 </div>
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
+                                  <div class="card-header"><a class="card-link collapse-images-title" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
                                   <div id="collapseImages" class="collapse show collapseImages">
                                     <div class="card-body">
 
@@ -230,7 +244,7 @@ app.views.tweets = Backbone.View.extend({
                                 </div>
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseRetweets">Top retweets</a></div>
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseRetweets">Top 100 retweets</a></div>
                                   <div id="collapseRetweets" class="collapse show collapseRetweets">
                                     <div class="card-body">
 
@@ -295,6 +309,16 @@ app.views.tweets = Backbone.View.extend({
         $.post(app.appURL+'search_for_tweets', data, function(response){
             self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
         }, 'json').fail(self.cnxError);
+    },
+    requestFullImageClusters: function(data){
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'search_for_image_clusters', data, (response) => {
+                resolve(response);
+            }, 'json').fail(function(err){
+                self.cnxError(err);
+                reject(err)
+            });
+        });
     },
     requestReTweets: function(data){
         return new Promise((resolve, reject) => {
@@ -616,7 +640,7 @@ app.views.tweets = Backbone.View.extend({
     },
     displayPaginatedResults: function(response, t0, word, label){
         var html = this.get_tweets_html(response, '', 'scroll_tweets');
-        this.showImageClusters(response.clusters, word, '.imagesClusters:visible:last');
+        this.showImageClusters(response.clusters, undefined, '.imagesClusters:visible:last');
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
@@ -833,18 +857,18 @@ app.views.tweets = Backbone.View.extend({
 
         if(clusters){
             $.each(clusters, function(i, cluster){
-                if(i>=20){return false;}
+                //if(i>=20){return false;}
                 var cbg = "";
                 if(parseInt(cluster.size)>parseInt(cluster.doc_count)){
                     cbg = 'yellow-tweet';
                 }
-                if(word){
+                //if(word){
                     cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-word="'+word+'" data-cid="'+cluster.key+'"><strong>Show tweets</strong></a>';
                     state_btns = '<div class="cluster_state_btns">';
                         state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
                         state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
                         state_btns += '</div>';
-                }
+                //}
                 chtml += '<div class="card p-3 '+cbg+'">'+
                     '<img class="card-img-top" src="'+app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() +'" alt="">'+
                     state_btns +
