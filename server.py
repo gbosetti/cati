@@ -238,7 +238,7 @@ def search_for_tweets():
     data = request.form
     last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
-    clusters_stats = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'])
+    clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
     return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
 
 
@@ -409,7 +409,7 @@ def tweets_filter():
     data = request.form
     tweets= functions.get_tweets_query_state(index=data['index'], word=data['word'], state=data['state'], session=data['session'])
     clusters= functions.get_clusters(index=data['index'], word=data['word'])
-    clusters_stats = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'])
+    clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
     return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
 
 

@@ -616,7 +616,7 @@ app.views.tweets = Backbone.View.extend({
     },
     displayPaginatedResults: function(response, t0, word, label){
         var html = this.get_tweets_html(response, '', 'scroll_tweets');
-        this.showImageClusters(response.clusters, word, '.imagesClusters:visible:last');
+        this.showImageClusters(response.clusters, word, '.imagesClusters:visible:last', response.clusters_stats);
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
@@ -828,13 +828,27 @@ app.views.tweets = Backbone.View.extend({
         }
         else this.showNoTweetsFound('.individual_tweets_result:visible:last');
     },
-    showImageClusters: function(clusters, word, clustersAreaSelector){
+    showImageClusters: function(clusters, word, clustersAreaSelector, clusters_stats){
         var cbtn = "", chtml = "", state_btns="";
-
         if(clusters){
             $.each(clusters, function(i, cluster){
                 if(i>=20){return false;}
                 var cbg = "";
+                let confirmed = clusters_stats[cluster.key][0];
+                let negative = clusters_stats[cluster.key][1];
+                let proposed = clusters_stats[cluster.key][2];
+                let total = confirmed + negative + proposed;
+                let confirmed_width, negative_width, proposed_width;
+                if(total == 0){
+                    proposed_width = "100";
+                    confirmed_width = "0";
+                    negative_width= "0";
+                }
+                else {
+                    proposed_width = Math.trunc(1000 * proposed / total) / 10.0;
+                    confirmed_width = Math.trunc(1000 * confirmed/total)/10.0;
+                    negative_width = Math.trunc(1000 * negative/total)/10.0;
+                }
                 if(parseInt(cluster.size)>parseInt(cluster.doc_count)){
                     cbg = 'yellow-tweet';
                 }
@@ -852,10 +866,11 @@ app.views.tweets = Backbone.View.extend({
                         '<p class="card-text">'+cluster.doc_count+' related tweets contain this image</p>'+
                         '<p class="card-text">Cluster size: '+cluster.size+'</p>'+
                         '<p class="card-text">Cluster ID: '+cluster.key+'</p>'+
-                        '<div class="progress" style="border-radius: 0px;" data-toggle="tooltip" data-placement="top" title="Confirmed: 0 , Negative :0 , Unlabeled : 0">'+
-                            '<div class="progress-bar bg-sucess" role="progressar" style="width:10%"></div>'+
-                            '<div class="progress-bar bg-danger" role="progressar" style="width:20%"></div>'+
-                            '<div class="progress-bar bg-grey" role="progressar" style="width:70%"></div>'+
+                        '<div class="progress" style="border-radius: 0px;" data-toggle="tooltip" data-placement="top" title="Confirmed: '
+                    +confirmed+' , Negative :'+negative+' , Unlabeled : '+proposed+'">'+
+                            '<div class="progress-bar bg-success" role="progressar" style="width:'+confirmed_width+'%"></div>'+
+                            '<div class="progress-bar bg-danger" role="progressar" style="width:'+negative_width+'%"></div>'+
+                            '<div class="progress-bar bg-grey" role="progressar" style="width:'+proposed_width+'%"></div>'+
                         '</div>'+
                         cbtn+
                     '</div>'+
