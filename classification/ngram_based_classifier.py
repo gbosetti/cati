@@ -10,9 +10,10 @@ from nltk.tokenize import TweetTokenizer
 
 class NgramBasedClasifier:
 
-    def __init__(self):
+    def __init__(self, config_relative_path=''):
         # self.logs = []
         self.current_thread_percentage = 0
+        self.config_relative_path = config_relative_path
         self.tknzr = TweetTokenizer()
 
     def get_n_grams(self, text, length=2):
@@ -171,7 +172,7 @@ class NgramBasedClasifier:
     def get_ngrams_by_query(self, query="", **kwargs):
 
         try:
-            my_connector = Es_connector(index=kwargs["index"])
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=self.config_relative_path)
             return my_connector.search({
                 "query": query,
                 "size": 0,

@@ -38,7 +38,10 @@ def loop(**kwargs):
     classifier = kwargs["classifier"]
 
     # Building the model and getting the questions
-    questions, confidences, predictions, scores = classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False, sampling_method=kwargs["sampling_method"])
+    model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False)
+
+    #classifier.get_samples_closer_to_hyperplane(clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions)
+    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, max_samples_to_sort=500, index=index, session=session, results_size=500)
 
     # Asking the user (gt_dataset) to answer the questions
     answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
@@ -63,9 +66,9 @@ classifier = ActiveLearning()
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 #classifier.clean_directories()
-#classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)
-#classifier.download_unclassified_data(index=index, session=session, field="2grams", is_field_array=True)
-#classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True)
+#classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True, debug_limit=True)
+#classifier.download_unclassified_data(index=index, session=session, field="2grams", is_field_array=True, debug_limit=True)
+#classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True, debug_limit=True)
 
 diff_accuracy = 0
 accuracy = 0

@@ -31,6 +31,7 @@ from sklearn.model_selection import cross_validate  #by Gabi
 import itertools
 import shutil
 from sklearn.feature_extraction import text
+from classification.ngram_based_classifier import NgramBasedClasifier
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -77,6 +78,7 @@ class ActiveLearning:
 
     def download_tweets_from_elastic(self, **kwargs):
 
+        debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
         my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path='../')
         res = my_connector.init_paginatedSearch(kwargs["query"])
@@ -97,6 +99,9 @@ class ActiveLearning:
             self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
             if log_enabled:
                 print("Downloading: ", round(processed * 100 / total, 2), "%")
+
+            if debug_limit:
+                scroll_size = 0
 
         if(total > 0):
             #res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
@@ -172,56 +177,59 @@ class ActiveLearning:
         file.write(content)
         file.close()
 
-    ###############################################################################
-    # Benchmark classifiers
-    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, sampling_method):
+    def get_samples_closer_to_hyperplane_bigrams_rt(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, **kwargs):
 
-        self.num_questions = num_questions
-        t0 = time()
-        clf.fit(X_train, y_train) # fits the model according to the training set (passing its data and the vectorized feature)
-
-        pred = clf.predict(X_test)
-        score = metrics.f1_score(y_test, pred)
-        accscore = metrics.accuracy_score(y_test, pred)
-
-        scores = {
-            "f1": score,
-            "accuracy": accscore
-        }
-
-        if (sampling_method == "closer_to_hyperplane"):
-            question_samples, confidences, predictions = self.get_samples_closer_to_hyperplane(clf, num_questions, X_unlabeled, categories)
-
-        return question_samples, confidences, predictions, scores
-
-
-
-
-    def get_samples_closer_to_hyperplane(self, clf, num_questions, X_unlabeled, categories):
+        # Getting
+        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
+        top_retweets = []
 
         # compute absolute confidence for each unlabeled sample in each class
-        decision = clf.decision_function(
+        decision = model.decision_function(
             X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = clf.predict(X_unlabeled)
+        predictions = model.predict(X_unlabeled)
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
         if (len(categories) > 2):
             confidences = np.average(confidences, axix=1)
             print("when categories are more than 2")
 
         sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        question_samples = sorted_samples[0:kwargs["max_samples_to_sort"]].tolist()
+        selected_samples = self.format_questions(question_samples, predictions, confidences)
 
-        question_samples = []
-        # num_questions = int(num_questions / 2)
-        # # select top k low confidence unlabeled samples
-        # low_confidence_samples = sorted_confidences[0:num_questions]
-        # # select top k high confidence unlabeled samples
-        # high_confidence_samples = sorted_confidences[-num_questions:]
-        # question_samples.extend(low_confidence_samples.tolist())
-        # question_samples.extend(high_confidence_samples.tolist())
+        #full_samples = sorted_samples[0:num_questions].tolist()
+
+        selected_samples = self.format_questions(sorted_samples, predictions, confidences)
+
+        return selected_samples
+
+    def get_top_bigrams(self, **kwargs):
+
+        ngram_classifier = NgramBasedClasifier(config_relative_path='../')
+        matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
+                                                      label='confirmed or negative or proposed', results_size=kwargs['results_size'],
+                                                      n_size="2", full_search=True)
+
+        return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
+
+    def get_samples_closer_to_hyperplane(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
+
+        # compute absolute confidence for each unlabeled sample in each class
+        decision = model.decision_function(
+            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        confidences = np.abs(decision)  # Calculates the absolute value element-wise
+        predictions = model.predict(X_unlabeled)
+        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
+        if (len(categories) > 2):
+            confidences = np.average(confidences, axix=1)
+            print("when categories are more than 2")
+
+        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
 
-        return question_samples, confidences, predictions
+        selected_samples = self.format_questions(question_samples, predictions, confidences)
+
+        return selected_samples, confidences, predictions
 
     # def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
     #
@@ -518,38 +526,40 @@ class ActiveLearning:
         X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
         print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
-        # Benchmarking
-        #print("Training")
-        # results = []
-        # results.append(self.benchmark(
-        #     LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3), # class_weight='balanced'
-        #     X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"], kwargs["sampling_method"]
-        # ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
+        self.num_questions = kwargs["num_questions"]
+        t0 = time()
 
-        questions, confidences, predictions, scores = self.benchmark(
-            LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3),  # class_weight='balanced'
-            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, kwargs["num_questions"],
-            kwargs["sampling_method"]
-        )  # auto > balanced   .  loss='12' > loss='squared_hinge'
+        clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+        # fits the model according to the training set (passing its data and the vectorized feature)
+        clf.fit(X_train, y_train)
 
-        #questions, confidences, predictions, scores = [[x[i] for x in results] for i in range(4)]
-        formatted_questions = self.format_questions(questions, predictions, confidences)
+        pred = clf.predict(X_test)
+        score = metrics.f1_score(y_test, pred)
+        accscore = metrics.accuracy_score(y_test, pred)
 
-        return formatted_questions, confidences, predictions, scores
+        scores = {
+            "f1": score,
+            "accuracy": accscore
+        }
+
+        return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
 
 
     def format_questions(self, question_samples, predictions, confidences):
+
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
         for index in question_samples:
+
             complete_question_samples.append({
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
                 "pred_label":  int(predictions[index]),
                 "data_unlabeled_index": index,
                 "confidence": confidences[index],
+                "rt_count":0,
+                "bg_count":0,
             })
-        self.confidences = confidences
 
         return complete_question_samples
 

@@ -300,8 +300,6 @@ def ngrams_with_higher_ocurrence():
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
 
-    print("*SESSION:", data['session'])
-
     return jsonify({
         "total_matching_tweets": matching_ngrams['hits']['total'],
         "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
