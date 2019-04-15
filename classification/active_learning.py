@@ -77,7 +77,7 @@ class ActiveLearning:
 
     def download_tweets_from_elastic(self, **kwargs):
 
-        log_enabled = kwargs.get("index", True)
+        log_enabled = kwargs.get("log_enabled", True)
         my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path='../')
         res = my_connector.init_paginatedSearch(kwargs["query"])
 
@@ -86,22 +86,22 @@ class ActiveLearning:
         total = int(res["total"])
         processed=0
 
+        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+
         while scroll_size > 0:
-            res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
-            scroll_size = res2["scroll_size"]
+            res = my_connector.loop_paginatedSearch(sid, scroll_size)
+            scroll_size = res["scroll_size"]
             processed += scroll_size
-            tweets = res2["results"]
 
             # Writing the retrieved files into the folders
-            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], tweets)
+            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
             if log_enabled:
                 print("Downloading: ", round(processed * 100 / total, 2), "%")
 
         if(total > 0):
-            res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
-            processed += res2["scroll_size"]
-            tweets = res2["results"]
-            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], tweets)
+            #res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+            processed += res["scroll_size"]
+            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
             if log_enabled:
                 print("Downloading: ", round(processed * 100 / total, 2), "%")
 
@@ -316,7 +316,7 @@ class ActiveLearning:
             len(data_test.data), data_test_size_mb))
         print("%d documents - %0.3fMB (unlabeled set)" % (
             len(unlabeled.data), unlabeled_size_mb))
-        #print("%d categories" % len(categories), categories)
+        print("%d categories" % len(categories), categories)
 
         return data_train, data_test, unlabeled, categories
 
@@ -381,8 +381,9 @@ class ActiveLearning:
         # Traversing all unlabeled files to download the testing set accordingly
         accum_ids = []
         processed = 0
-        total = len(os.listdir(dir)) # dir is your directory path
+        total = len(os.listdir(unlabeled_dir)) # dir is your directory path
 
+        print("Getting (+) TEsting data from the elastic index: ", kwargs["index"])
         for file in os.listdir(unlabeled_dir):
             if file.endswith(".txt"):
                 accum_ids.append({
@@ -391,13 +392,13 @@ class ActiveLearning:
                     }
                 })
                 if len(accum_ids)==500:
-                    self.download_paginated_testing_data(target_tweets=accum_ids, **kwargs)
+                    self.download_paginated_testing_data(log_enabled=False, target_tweets=accum_ids, **kwargs)
                     processed = processed + len(accum_ids)
                     accum_ids = []
                     print("Downloading: ", round(processed * 100 / total, 2), "%")
 
         if len(accum_ids)>0:
-            self.download_paginated_testing_data(target_tweets=accum_ids, **kwargs)
+            self.download_paginated_testing_data(log_enabled=False, target_tweets=accum_ids, **kwargs)
             processed = processed + len(accum_ids)
             print("Downloading: ", round(processed * 100 / total, 2), "%")
 
@@ -411,7 +412,6 @@ class ActiveLearning:
         for tweet in kwargs["target_tweets"]:
             matching_queries.append({"match": {"id_str": {"query": tweet["_source"]["id_str"]}}})
 
-        print("Getting (+) TEsting data from the elastic index: ", kwargs["index"])
         confirmed_data = self.download_tweets_from_elastic(
             log=False,
             folder=os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER),
@@ -429,7 +429,6 @@ class ActiveLearning:
             **kwargs
         )
 
-        print("Getting (-) TEsting data from the elastic index: ", kwargs["index"])
         negative_data = self.download_tweets_from_elastic(
             folder=os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER),
             query={
@@ -513,11 +512,11 @@ class ActiveLearning:
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
         X_test = vectorizer.transform(data_test.data)
 
-        print("n_samples: %d, n_features: %d" % X_test.shape)
+        print("X_test n_samples: %d, n_features: %d" % X_test.shape)
 
         # Extracting features from the unlabled dataset using the same vectorizer
         X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
-        print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
+        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
         # Benchmarking
         #print("Training")
@@ -562,6 +561,14 @@ class ActiveLearning:
             dstDir = os.path.join(self.TRAIN_FOLDER, question["label"])
             # print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
+
+    def remove_matching_answers_from_test_set(self, labeled_questions):
+
+        # print("Moving the user labeled questions into the proper folders")
+        for question in labeled_questions:
+            file_path = os.path.join(self.TEST_FOLDER, question["label"], question["filename"])
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
 
