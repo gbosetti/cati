@@ -242,6 +242,14 @@ def search_for_tweets():
     return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
 
 
+# Get Just image clusters
+@app.route('/search_for_image_clusters', methods=['POST'])
+# @cross_origin()
+def search_for_image_clusters():
+    data = request.form
+    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label'], limit=data['image_clusters_limit'])
+    return jsonify({"clusters": clusters, "keywords": data['word'] })
+
 
 # Get Tweets
 @app.route('/get_image_folder', methods=['POST'])
@@ -293,6 +301,8 @@ def ngrams_with_higher_ocurrence():
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
 
+    print("*SESSION:", data['session'])
+
     return jsonify({
         "total_matching_tweets": matching_ngrams['hits']['total'],
         "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
@@ -313,6 +323,8 @@ def event_ngrams_with_higher_ocurrence():
     target_terms = functions.get_retated_terms(main_term, related_terms)
     results_size = request.form.get('top-bubbles-to-display', 20)
     n_size = request.form.get('n-grams-to-generate', '2')
+
+    print("-SESSION:", data['session'])
 
     matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
                                                             label=data['search_by_label'], results_size=results_size,
@@ -379,19 +391,19 @@ def generate_ngrams_for_index():
     return jsonify(res)
 
 
-@app.route('/generate_ngrams_for_unlabeled_tweets_on_index', methods=['POST'])
-# @cross_origin()
-def generate_ngrams_for_unlabeled_tweets_on_index():
-    data = request.form
-    preproc = PreProcessor()
-    print(data)
-    propName = data['to_property']
-
-    start_time = datetime.datetime.now()
-    preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
-    res = ngram_classifier.generate_ngrams_for_unlabeled_tweets_on_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
-    print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
-    return jsonify(res)
+# @app.route('/generate_ngrams_for_unlabeled_tweets_on_index', methods=['POST'])
+# # @cross_origin()
+# def generate_ngrams_for_unlabeled_tweets_on_index():
+#     data = request.form
+#     preproc = PreProcessor()
+#     print(data)
+#     propName = data['to_property']
+#
+#     start_time = datetime.datetime.now()
+#     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+#     res = ngram_classifier.generate_ngrams_for_unlabeled_tweets_on_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+#     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
+#     return jsonify(res)
 
 
 # Get Tweets

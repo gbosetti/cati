@@ -753,23 +753,39 @@ class Functions:
     # Clusters
     # ==================================================================
 
-    def get_clusters(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+    def get_clusters(self, index="test3", word=None, session="", label="confirmed OR proposed OR negative", limit=None):
+
         my_connector = Es_connector(index=index)
-        res = my_connector.search({
-            "size": 1,
-            "query": {
+
+        if word==None:
+            query = {
                 "bool": {
                     "must": [
-                        {"match": {"text": word }},
                         {"match": {session: label}}
                     ]
                 }
-            },
+            }
+        else:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
+                }
+            }
+
+        if limit == None:
+            limit = 9999
+
+        res = my_connector.search({
+            "size": 1,
+            "query": query,
             "aggs": {
                 "group_by_cluster": {
                     "terms": {
                         "field": "imagesCluster",
-                        "size": 9999
+                        "size": limit
                     }
                 }
             }
