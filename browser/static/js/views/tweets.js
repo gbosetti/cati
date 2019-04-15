@@ -852,6 +852,11 @@ app.views.tweets = Backbone.View.extend({
                         '<p class="card-text">'+cluster.doc_count+' related tweets contain this image</p>'+
                         '<p class="card-text">Cluster size: '+cluster.size+'</p>'+
                         '<p class="card-text">Cluster ID: '+cluster.key+'</p>'+
+                        '<div class="progress" style="border-radius: 0px;" data-toggle="tooltip" data-placement="top" title="Confirmed: 0 , Negative :0 , Unlabeled : 0">'+
+                            '<div class="progress-bar bg-sucess" role="progressar" style="width:10%"></div>'+
+                            '<div class="progress-bar bg-danger" role="progressar" style="width:20%"></div>'+
+                            '<div class="progress-bar bg-grey" role="progressar" style="width:70%"></div>'+
+                        '</div>'+
                         cbtn+
                     '</div>'+
                 '</div>';
