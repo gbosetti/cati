@@ -26,9 +26,10 @@ __email__ = "odehfiras@gmail.com"
 # Interface Functions
 class Functions:
     #TODO check if this needs to e configured on master
-    def __init__(self):
+    def __init__(self, config_relative_path=''):
         self.sessions_index = 'mabed_sessions'
         self.sessions_doc_type = 'session'
+        self.config_relative_path = config_relative_path
         # print("Functions init")
 
     def get_total_tweets(self, index):
@@ -166,7 +167,7 @@ class Functions:
     def top_retweets(self, **kwargs):
 
         try:
-            my_connector = Es_connector(index=kwargs["index"])
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=self.config_relative_path)
 
             if kwargs.get('full_search', False):
                 print("Query matching full search")

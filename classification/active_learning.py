@@ -9,6 +9,7 @@ import matplotlib
 # matplotlib.use('Agg')
 import json
 import shutil
+from mabed.functions import Functions
 
 import os
 import string
@@ -181,7 +182,7 @@ class ActiveLearning:
 
         # Getting
         top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
-        top_retweets = []
+        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
 
         # compute absolute confidence for each unlabeled sample in each class
         decision = model.decision_function(
@@ -193,21 +194,29 @@ class ActiveLearning:
             confidences = np.average(confidences, axix=1)
             print("when categories are more than 2")
 
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
-        question_samples = sorted_samples[0:kwargs["max_samples_to_sort"]].tolist()
-        selected_samples = self.format_questions(question_samples, predictions, confidences)
+        sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
 
-        #full_samples = sorted_samples[0:num_questions].tolist()
 
-        selected_samples = self.format_questions(sorted_samples, predictions, confidences)
+        question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
+        formatted_samples = self.fill_questions(question_samples, predictions, confidences, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
+
+        selected_samples = []
 
         return selected_samples
+
+    def get_top_retweets(self, **kwargs):
+
+        functions = Functions(config_relative_path='../')
+        retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
+                                                     label='proposed', retweets_number=kwargs['results_size'])
+
+        return retweets["aggregations"]["top_text"]["buckets"]
 
     def get_top_bigrams(self, **kwargs):
 
         ngram_classifier = NgramBasedClasifier(config_relative_path='../')
         matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
-                                                      label='confirmed or negative or proposed', results_size=kwargs['results_size'],
+                                                      label='proposed', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)
 
         return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
@@ -227,7 +236,7 @@ class ActiveLearning:
         sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
 
-        selected_samples = self.format_questions(question_samples, predictions, confidences)
+        selected_samples = self.fill_questions(question_samples, predictions, confidences)
 
         return selected_samples, confidences, predictions
 
@@ -545,21 +554,45 @@ class ActiveLearning:
         return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
 
 
-    def format_questions(self, question_samples, predictions, confidences):
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, top_retweets, top_bigrams, max_samples_to_sort=500, text_field='text'):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
-        for index in question_samples:
+        i=0
+        for index in conf_sorted_question_samples: # Sorted from lower to higher confidence (lower = closer to the hyperplane)
 
-            complete_question_samples.append({
+            question ={
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
                 "pred_label":  int(predictions[index]),
                 "data_unlabeled_index": index,
                 "confidence": confidences[index],
-                "rt_count":0,
-                "bg_count":0,
-            })
+                "cnf_pos": i,
+                "ret_pos": max_samples_to_sort,
+                "bgr_pos": max_samples_to_sort,
+            }
+            i+=1
+
+            #Adding the score according to teh retweets
+            j=0
+            for retweet in top_retweets:  # Sorted from most to lower retweets
+                bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"]["2grams"])  # TODO: this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
+                if bigram == question["text"]:
+                    question["ret_pos"] = j
+                    break
+                j+=1
+
+            # Adding the score according to the bigrams
+            # j = 0
+            # for bigram in top_bigrams:  # Sorted from most to lower retweets
+            #     bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"][
+            #                           "2grams"])  # We are receiving this field as text_field but we also need is_field_array to fully parametrize this
+            #     if bigram == question["text"]:
+            #         question["ret_pos"] = j
+            #         break
+            #     j += 1
+
+            complete_question_samples.append(question)
 
         return complete_question_samples
 

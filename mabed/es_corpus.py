@@ -22,12 +22,15 @@ from elasticsearch import Elasticsearch
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
-default_source = config['default']
+
 class Corpus:
 
-    def __init__(self, stopwords_file_path, min_absolute_freq=10, max_relative_freq=0.4, separator='\t', save_voc=False, index=default_source, session= False, filter= False, cluster=2):
+    def __init__(self, stopwords_file_path, min_absolute_freq=10, max_relative_freq=0.4, separator='\t', save_voc=False, index='', session= False, filter= False, cluster=2):
+
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        index = config['default']
+
         self.size = 0
         self.start_date = '3000-01-01 00:00:00'
         self.end_date = '1000-01-01 00:00:00'
