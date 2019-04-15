@@ -788,6 +788,31 @@ class Functions:
 
         return clusters
 
+    def get_clusters_stats(self, index="test3", word="", session="" ):
+        confirmed = self.get_clusters(index=index,word=word,session=session,label="confirmed")
+        negative = self.get_clusters(index=index,word=word,session=session,label="negative")
+        proposed = self.get_clusters(index=index,word=word,session=session,label="proposed")
+        confirmed_dict = {c['key']:c['doc_count']for c in confirmed}
+        negative_dict = {n['key']:n['doc_count']for n in negative}
+        proposed_dict = {p['key']:p['doc_count']for p in proposed}
+
+        stats = {}
+        for key,con in confirmed_dict.items():
+            stats[key] = (con, 0, 0)
+        for key,neg in negative_dict.items():
+            if stats.get(key) is None:
+                stats[key] = (0, neg, 0)
+            else:
+                stats[key] = (stats[key][0], neg, 0)
+        for key,pro in proposed_dict.items():
+            if stats.get(key) is None:
+                stats[key] = (0, 0, pro)
+            else:
+                stats[key] = (stats[key][0], stats[key][1], pro)
+
+        return stats
+
+
 
     def get_image_folder(self, index):
 
@@ -1030,6 +1055,7 @@ class Functions:
         except RequestError as e:  # This is the correct syntax
             print(e)
             return False
+
 
 
     # Update specific field value in an Index
