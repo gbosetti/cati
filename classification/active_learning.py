@@ -200,7 +200,7 @@ class ActiveLearning:
         question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
         formatted_samples = self.fill_questions(question_samples, predictions, confidences, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
 
-        selected_samples = []
+        selected_samples =sorted(formatted_samples, key=lambda k: (k.get('cnf_pos', 0) + k.get('ret_pos', 0) + k.get('bgr_pos', 0)), reverse=False)
 
         return selected_samples
 
@@ -582,15 +582,15 @@ class ActiveLearning:
                     break
                 j+=1
 
-            # Adding the score according to the bigrams
-            # j = 0
-            # for bigram in top_bigrams:  # Sorted from most to lower retweets
-            #     bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"][
-            #                           "2grams"])  # We are receiving this field as text_field but we also need is_field_array to fully parametrize this
-            #     if bigram == question["text"]:
-            #         question["ret_pos"] = j
-            #         break
-            #     j += 1
+            #Adding the score according to the bigrams
+            j = 0
+            for bigram in top_bigrams:  # Sorted from most to lower retweets
+
+                if bigram["key"] in question["text"]:
+                    question["bgr_pos"] = j
+                    break
+
+                j += 1
 
             complete_question_samples.append(question)
 

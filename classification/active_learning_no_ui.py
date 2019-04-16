@@ -48,7 +48,8 @@ def loop(**kwargs):
 
     # Injecting the answers in the training set, and re-training the model
     classifier.move_answers_to_training_set(answers)
-    #classifier.remove_matching_answers_from_test_set(answers)
+    #Move related retweets classifier.move_answers_to_training_set(answers)
+    classifier.remove_matching_answers_from_test_set(answers)
 
     # Present visualization to the user, so he can explore the proposed classification
     # ...
@@ -65,7 +66,7 @@ print("Process starting at ", datetime.now())
 classifier = ActiveLearning()
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
-download_files=False
+download_files=True
 if download_files:
     debug_limit=True
     classifier.clean_directories()
