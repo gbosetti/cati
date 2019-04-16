@@ -148,8 +148,6 @@ class NgramBasedClasifier:
                 }
             }
 
-        print(query)
-
         return self.get_ngrams_by_query(query=query, **kwargs)
 
     def get_ngrams_for_event(self, **kwargs):
@@ -189,7 +187,6 @@ class NgramBasedClasifier:
                     }
                 }
             }
-            print(full_query)
             return my_connector.search(full_query)
 
         except Exception as e:

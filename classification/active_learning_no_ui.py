@@ -1,6 +1,7 @@
 from classification.active_learning import ActiveLearning
 from datetime import datetime
 from mabed.es_connector import Es_connector
+from BackendLogger import BackendLogger
 import json
 import ast
 
@@ -8,7 +9,6 @@ index="experiment_lyon_2017"
 session="session_lyon2017_test_01"
 gt_session="session_lyon2017"
 num_questions=20
-min_acceptable_accuracy=0.9
 min_diff_accuracy=0.02
 text_field="2grams"
 
@@ -68,20 +68,25 @@ classifier = ActiveLearning()
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 download_files=True
 if download_files:
-    debug_limit=True
+    debug_limit=False
     classifier.clean_directories()
     classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
 
-diff_accuracy = 0
+diff_accuracy = None
+start_time = datetime.now()
 accuracy = 0
 prev_accuracy = 0
 stage_scores = []
+backend_logger = BackendLogger("active_learning-logs.txt")
+backend_logger.clear_logs() #Just in case there is a file with the same name
+loop_index = 0
 
-while accuracy < min_acceptable_accuracy:  # and diff_accuracy>min_diff_accuracy:
+while diff_accuracy is None or diff_accuracy > 0.05 and accuracy < 0.9:
 
     print("\n---------------------------------")
+    loop_index+=1
     scores = loop(classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
 
     if len(stage_scores) > 0:
@@ -89,10 +94,10 @@ while accuracy < min_acceptable_accuracy:  # and diff_accuracy>min_diff_accuracy
         prev_accuracy = stage_scores[-1]["accuracy"]
         diff_accuracy = abs(accuracy - prev_accuracy)
 
-    print("\naccuracy: ", scores["accuracy"], " diff_accuracy: ", diff_accuracy)
+    backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "accuracy": ' + str(scores["accuracy"]) + ' "diff_accuracy": ' + str(diff_accuracy) + " } \n")
     stage_scores.append(scores)
 
-print("Process finished at ", datetime.now())
+print("Process started at " + str(start_time) + " & finished at " + str(datetime.now()))
 
 
 

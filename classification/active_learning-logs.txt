@@ -1,0 +1,2 @@
+{ "loop": 1, "accuracy": 0.807 "diff_accuracy": None } 
+{ "loop": 2, "accuracy": 0.987 "diff_accuracy": 0.17999999999999994 } 

@@ -170,7 +170,6 @@ class Functions:
             my_connector = Es_connector(index=kwargs["index"], config_relative_path=self.config_relative_path)
 
             if kwargs.get('full_search', False):
-                print("Query matching full search")
                 query = {
                     "bool": {
                         "must": [
