@@ -238,7 +238,7 @@ class ActiveLearning:
 
         selected_samples = self.fill_questions(question_samples, predictions, confidences)
 
-        return selected_samples, confidences, predictions
+        return selected_samples
 
     # def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
     #
@@ -554,7 +554,7 @@ class ActiveLearning:
         return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
 
 
-    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, top_retweets, top_bigrams, max_samples_to_sort=500, text_field='text'):
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []

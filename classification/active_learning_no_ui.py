@@ -40,8 +40,10 @@ def loop(**kwargs):
     # Building the model and getting the questions
     model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False)
 
-    #classifier.get_samples_closer_to_hyperplane(clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions)
-    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, max_samples_to_sort=kwargs["max_samples_to_sort"], index=index, session=session, text_field=kwargs["text_field"])
+    if (kwargs["sampling_strategy"] == "closer_to_hyperplane"):
+        questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions)
+    elif (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
+        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, max_samples_to_sort=kwargs["max_samples_to_sort"], index=index, session=session, text_field=kwargs["text_field"])
 
     # Asking the user (gt_dataset) to answer the questions
     answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
@@ -53,8 +55,6 @@ def loop(**kwargs):
 
     # Present visualization to the user, so he can explore the proposed classification
     # ...
-    # Moving the tweets of those quartiles with a high accuracy
-    # classifier.classify_accurate_quartiles(min_acceptable_accuracy=min_acceptable_accuracy, min_high_confidence=min_high_confidence)
 
     return scores
 
@@ -68,11 +68,16 @@ classifier = ActiveLearning()
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 download_files=True
 if download_files:
-    debug_limit=False
+    debug_limit=True
     classifier.clean_directories()
     classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+
+
+
+
+
 
 diff_accuracy = None
 start_time = datetime.now()
@@ -87,7 +92,8 @@ while diff_accuracy is None or diff_accuracy > 0.05 and accuracy < 0.9:
 
     print("\n---------------------------------")
     loop_index+=1
-    scores = loop(classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
+    # sampling_strategy = "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
+    scores = loop(sampling_strategy="closer_to_hyperplane", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
 
     if len(stage_scores) > 0:
         accuracy = scores["accuracy"]
