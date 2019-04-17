@@ -17,6 +17,8 @@ text_field="2grams"
 def get_answers(**kwargs):
 
     my_connector = Es_connector(index=kwargs["index"], config_relative_path='../')
+    wrong_labels=0
+
     for question in kwargs["questions"]:
 
         # Adding the label field
@@ -30,8 +32,11 @@ def get_answers(**kwargs):
         })
         question["label"] = res["hits"]["hits"][0]["_source"][kwargs["gt_session"]]
 
+        if question["pred_label"] != question["label"]:
+            wrong_labels += 1
+
     # print(json.dumps(kwargs["questions"], indent=4, sort_keys=True))
-    return kwargs["questions"]
+    return kwargs["questions"], wrong_labels
 
 def loop(**kwargs):
 
@@ -46,7 +51,7 @@ def loop(**kwargs):
         questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, max_samples_to_sort=kwargs["max_samples_to_sort"], index=index, session=session, text_field=kwargs["text_field"])
 
     # Asking the user (gt_dataset) to answer the questions
-    answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
+    answers, wrong_pred_answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
 
     # Injecting the answers in the training set, and re-training the model
     classifier.move_answers_to_training_set(answers)
@@ -55,7 +60,7 @@ def loop(**kwargs):
     # Present visualization to the user, so he can explore the proposed classification
     # ...
 
-    return scores
+    return scores, wrong_pred_answers
 
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
@@ -71,13 +76,14 @@ stage_scores = []
 backend_logger = BackendLogger("active_learning-logs.txt")
 backend_logger.clear_logs() #Just in case there is a file with the same name
 loop_index = 0
+looping_clicks = 0
 
 
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 download_files=True
 if download_files:
-    debug_limit=False
+    debug_limit=True
     backend_logger.add_raw_log('{ "cleaning_dirs": ' + str(datetime.now()) + '} \n')
     classifier.clean_directories()
     backend_logger.add_raw_log('{ "start_downloading": ' + str(datetime.now()) + '} \n')
@@ -93,7 +99,8 @@ while diff_accuracy is None or diff_accuracy > 0.005:
     loop_index+=1
     # sampling_strategy = "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
     try:
-        scores = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
+        scores, wrong_pred_answers = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
+        looping_clicks += wrong_pred_answers
 
         if len(stage_scores) > 0:
             accuracy = scores["accuracy"]
@@ -107,6 +114,7 @@ while diff_accuracy is None or diff_accuracy > 0.005:
         backend_logger.add_raw_log('{ "error": ' + str(e) + '} \n')
         break
 
+backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
 backend_logger.add_raw_log('{ "end_looping": ' + str(datetime.now()) + '} \n')
 
 

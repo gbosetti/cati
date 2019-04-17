@@ -198,9 +198,11 @@ class ActiveLearning:
 
 
         question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
-        formatted_samples = self.fill_questions(question_samples, predictions, confidences, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
+        formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
 
         selected_samples =sorted(formatted_samples, key=lambda k: (k.get('cnf_pos', 0) + k.get('ret_pos', 0) + k.get('bgr_pos', 0)), reverse=False)
+
+        selected_samples = selected_samples[0:num_questions]
 
         return selected_samples
 
@@ -237,7 +239,7 @@ class ActiveLearning:
         sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
 
-        selected_samples = self.fill_questions(question_samples, predictions, confidences)
+        selected_samples = self.fill_questions(question_samples, predictions, confidences, categories)
 
         return selected_samples
 
@@ -563,7 +565,7 @@ class ActiveLearning:
         return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
 
 
-    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
@@ -573,7 +575,7 @@ class ActiveLearning:
             question ={
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
-                "pred_label":  int(predictions[index]),
+                "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
                 "confidence": confidences[index],
                 "cnf_pos": i,
