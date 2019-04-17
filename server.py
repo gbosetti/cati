@@ -532,7 +532,7 @@ def massive_tag_event_tweets():
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
 
-    res = functions.massive_tag_event_tweets(index=data['index'], session=data['index'], labeling_class=data['labeling_class'], main_term=main_term, related_terms=related_terms)
+    res = functions.massive_tag_event_tweets(index=data['index'], session=data['session'], labeling_class=data['labeling_class'], main_term=main_term, related_terms=related_terms)
     return jsonify(res)
 
 
