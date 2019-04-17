@@ -18,20 +18,46 @@ text_field="2grams"
 
 #min_high_confidence=0.75
 
-def draw_accuracy_scatterplot(logs):
+def draw_scatterplot(title, x_axis, y_axis, filename):
 
-    x_axis = [log["loop"] for log in logs if 'loop' in log]   # datetime
-    y_axis = [log["accuracy"] for log in logs if 'loop' in log]
+    trace1 = go.Scatter(
+        x=x_axis,
+        y=y_axis,
+        name='Accuracy'
+    )
 
-    fig = go.Figure()
-    fig.add_scatter(x=x_axis,
-                    y=y_axis,
-                    mode='markers');
+    data = [trace1]
+    layout = go.Layout(
+        title=go.layout.Title(
+            text=title,
+            xref='paper',
+            x=0
+        ),
+        xaxis=go.layout.XAxis(
+            title=go.layout.xaxis.Title(
+                text='Loop',
+                font=dict(
+                    size=18,
+                    color='#7f7f7f'
+                )
+            )
+        ),
+        yaxis=go.layout.YAxis(
+            title=go.layout.yaxis.Title(
+                text='y Axis',
+                font=dict(
+                    size=18,
+                    color='#7f7f7f'
+                )
+            )
+        )
+    )
+    fig = go.Figure(data=data, layout=layout)
 
     if not os.path.exists('images'):
         os.mkdir('images')
 
-    pio.write_image(fig, 'images/fig1.png')
+    pio.write_image(fig, 'images/' + filename + '.png')
 
 
 def get_answers(**kwargs):
@@ -94,16 +120,18 @@ accuracy = 0
 prev_accuracy = 0
 stage_scores = []
 backend_logger = BackendLogger("active_learning-logs.txt")
-backend_logger.clear_logs() #Just in case there is a file with the same name
 loop_index = 0
 looping_clicks = 0
+sampling_strategy = "closer_to_hyperplane_bigrams_rt"  # "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
+
 
 
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
+backend_logger.clear_logs() #Just in case there is a file with the same name
 download_files=True
 if download_files:
-    debug_limit=True
+    debug_limit=False
     backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
     classifier.clean_directories()
     backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
@@ -117,9 +145,8 @@ while diff_accuracy is None or diff_accuracy > 0.005:
 
     print("\n---------------------------------")
     loop_index+=1
-    # sampling_strategy = "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
     try:
-        scores, wrong_pred_answers = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
+        scores, wrong_pred_answers = loop(sampling_strategy=sampling_strategy, classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
         looping_clicks += wrong_pred_answers
 
         if len(stage_scores) > 0:
@@ -139,7 +166,15 @@ backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
 logs = json.loads(backend_logger.get_logs().replace('\n', ','))
 loop_logs = [log for log in logs if 'loop' in log]
-draw_accuracy_scatterplot(loop_logs)
+
+loops_values = [log["loop"] for log in logs if 'loop' in log]  # datetime
+accuracies = [log["accuracy"] for log in logs if 'loop' in log]
+#diff_accuracies = [0 if log["diff_accuracy"]=='None' else float(log["diff_accuracy"]) for log in logs if 'loop' in log]
+diff_accuracies = [float(log["diff_accuracy"]) for log in logs if 'loop' in log if log["diff_accuracy"] != 'None']
+
+
+draw_scatterplot("Evolution of accuracy across loops", loops_values, accuracies, "accuracy_[" + session + "-" + sampling_strategy + "]")
+draw_scatterplot("Evolution of diff. accuracy across loops", loops_values, diff_accuracies, "accuracy_diff_[" + session + "-" + sampling_strategy + "]")
 
 print("\n\n", loop_logs)
 
