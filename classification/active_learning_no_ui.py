@@ -18,7 +18,7 @@ text_field="2grams"
 
 #min_high_confidence=0.75
 
-def draw_scatterplot(title, x_axis, y_axis, filename):
+def draw_scatterplot(title, x_axis_label, y_axis_label, x_axis, y_axis, filename):
 
     trace1 = go.Scatter(
         x=x_axis,
@@ -35,7 +35,7 @@ def draw_scatterplot(title, x_axis, y_axis, filename):
         ),
         xaxis=go.layout.XAxis(
             title=go.layout.xaxis.Title(
-                text='Loop',
+                text=x_axis_label,
                 font=dict(
                     size=18,
                     color='#7f7f7f'
@@ -44,7 +44,7 @@ def draw_scatterplot(title, x_axis, y_axis, filename):
         ),
         yaxis=go.layout.YAxis(
             title=go.layout.yaxis.Title(
-                text='y Axis',
+                text=y_axis_label,
                 font=dict(
                     size=18,
                     color='#7f7f7f'
@@ -169,12 +169,15 @@ loop_logs = [log for log in logs if 'loop' in log]
 
 loops_values = [log["loop"] for log in logs if 'loop' in log]  # datetime
 accuracies = [log["accuracy"] for log in logs if 'loop' in log]
-#diff_accuracies = [0 if log["diff_accuracy"]=='None' else float(log["diff_accuracy"]) for log in logs if 'loop' in log]
-diff_accuracies = [float(log["diff_accuracy"]) for log in logs if 'loop' in log if log["diff_accuracy"] != 'None']
+diff_accuracies = [0 if log["diff_accuracy"]=='None' else float(log["diff_accuracy"]) for log in logs if 'loop' in log]
+#diff_accuracies = [float(log["diff_accuracy"]) for log in logs if 'loop' in log if log["diff_accuracy"] != 'None']
+wrong_answers = [log["wrong_pred_answers"] for log in logs if 'loop' in log]
 
 
-draw_scatterplot("Evolution of accuracy across loops", loops_values, accuracies, "accuracy_[" + session + "-" + sampling_strategy + "]")
-draw_scatterplot("Evolution of diff. accuracy across loops", loops_values, diff_accuracies, "accuracy_diff_[" + session + "-" + sampling_strategy + "]")
+draw_scatterplot("Evolution of accuracy across loops", "Loop", "Accuracy", loops_values, accuracies, "accuracy_[" + session + "-" + sampling_strategy + "]")
+draw_scatterplot("Evolution of diff. accuracy across loops", "Loop", "Diff. accuracy", loops_values, diff_accuracies, "accuracy_diff_[" + session + "-" + sampling_strategy + "]")
+draw_scatterplot("Evolution of wrongly predicted labels across loops", "Loop", "Wrong predictions (over 20 instances)", loops_values, wrong_answers, "wrong_predictions_[" + session + "-" + sampling_strategy + "]")
+
 
 print("\n\n", loop_logs)
 

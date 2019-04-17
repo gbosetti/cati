@@ -259,7 +259,7 @@ app.views.client = Backbone.View.extend({
 			data.push({name: "session", value: app.session.s_name});
 			data.push({name: "event", value: s_ev});
 			data.push({name: "labeling_class", value: $(e.currentTarget).data("status")});
-            
+
 			 var jc = $.confirm({
 				theme: 'pix-default-modal',
 				title: 'Changing tweets state',
