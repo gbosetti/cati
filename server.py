@@ -32,6 +32,7 @@ app.backend_logger = BackendLogger()
 
 functions = Functions()
 SELF = "'self'"
+DownSELF = "'self'"
 # here we define the content security policy,
 # this CSP allows for inline script, and using a nonce will improve security
 with open('config.json', 'r') as f:
@@ -300,8 +301,6 @@ def ngrams_with_higher_ocurrence():
     matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
                                                        label=data['search_by_label'], results_size=data['top-bubbles-to-display'],
                                                        n_size=data['n-grams-to-generate'], full_search=full_search)
-
-    print("*SESSION:", data['session'])
 
     return jsonify({
         "total_matching_tweets": matching_ngrams['hits']['total'],

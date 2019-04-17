@@ -4,9 +4,9 @@ from flask import jsonify
 
 class BackendLogger:
 
-    def __init__(self):
+    def __init__(self, filename="cati-logs.txt"):
         #self.logs = []
-        self.filename = 'cati-logs.txt'
+        self.filename = filename
 
     def add_log(self, message):
         curr_timestamp = time.time()
@@ -16,6 +16,12 @@ class BackendLogger:
         file = open(self.filename, "a+")
         file.write('{"timestamp": ' + str(curr_timestamp) + ', "content": "' + message + '"},')
         file.close()
+
+    def add_raw_log(self, message):
+        file = open(self.filename, "a+")
+        file.write(message)
+        file.close()
+        print(message)
 
     def clear_logs(self):
         #self.logs = []

@@ -1,6 +1,7 @@
 from classification.active_learning import ActiveLearning
 from datetime import datetime
 from mabed.es_connector import Es_connector
+from BackendLogger import BackendLogger
 import json
 import ast
 
@@ -8,9 +9,8 @@ index="experiment_lyon_2017"
 session="session_lyon2017_test_01"
 gt_session="session_lyon2017"
 num_questions=20
-min_acceptable_accuracy=0.9
 min_diff_accuracy=0.02
-sampling_method = "closer_to_hyperplane"
+text_field="2grams"
 
 #min_high_confidence=0.75
 
@@ -38,17 +38,22 @@ def loop(**kwargs):
     classifier = kwargs["classifier"]
 
     # Building the model and getting the questions
-    questions, confidences, predictions, scores = classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False, sampling_method=kwargs["sampling_method"])
+    model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False)
+
+    if (kwargs["sampling_strategy"] == "closer_to_hyperplane"):
+        questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions)
+    elif (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
+        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, max_samples_to_sort=kwargs["max_samples_to_sort"], index=index, session=session, text_field=kwargs["text_field"])
 
     # Asking the user (gt_dataset) to answer the questions
     answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
 
     # Injecting the answers in the training set, and re-training the model
     classifier.move_answers_to_training_set(answers)
+    classifier.remove_matching_answers_from_test_set(answers)
+
     # Present visualization to the user, so he can explore the proposed classification
     # ...
-    # Moving the tweets of those quartiles with a high accuracy
-    # classifier.classify_accurate_quartiles(min_acceptable_accuracy=min_acceptable_accuracy, min_high_confidence=min_high_confidence)
 
     return scores
 
@@ -60,30 +65,44 @@ print("Process starting at ", datetime.now())
 classifier = ActiveLearning()
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
-classifier.clean_directories()
-classifier.download_training_data(index=index, session=session, field="2grams", is_field_array=True)
-classifier.download_unclassified_data(index=index, session=session, field="2grams", is_field_array=True)
-classifier.download_testing_data(index=index, session=gt_session, field="2grams", is_field_array=True)
+download_files=True
+if download_files:
+    debug_limit=False
+    classifier.clean_directories()
+    classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+    classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+    classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
 
-diff_accuracy = 0
+
+
+
+
+
+diff_accuracy = None
+start_time = datetime.now()
 accuracy = 0
 prev_accuracy = 0
 stage_scores = []
+backend_logger = BackendLogger("active_learning-logs.txt")
+backend_logger.clear_logs() #Just in case there is a file with the same name
+loop_index = 0
 
-while accuracy < min_acceptable_accuracy:  # and diff_accuracy>min_diff_accuracy:
+while diff_accuracy is None or diff_accuracy > 0.005:
 
     print("\n---------------------------------")
-    scores = loop(classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, sampling_method=sampling_method)
+    loop_index+=1
+    # sampling_strategy = "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
+    scores = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
 
     if len(stage_scores) > 0:
         accuracy = scores["accuracy"]
         prev_accuracy = stage_scores[-1]["accuracy"]
         diff_accuracy = abs(accuracy - prev_accuracy)
 
-    print("\naccuracy: ", scores["accuracy"], " diff_accuracy: ", diff_accuracy)
+    backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "accuracy": ' + str(scores["accuracy"]) + ' "diff_accuracy": ' + str(diff_accuracy) + " } \n")
     stage_scores.append(scores)
 
-print("Process finished at ", datetime.now())
+print("Process started at " + str(start_time) + " & finished at " + str(datetime.now()))
 
 
 

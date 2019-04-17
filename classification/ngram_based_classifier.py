@@ -10,9 +10,10 @@ from nltk.tokenize import TweetTokenizer
 
 class NgramBasedClasifier:
 
-    def __init__(self):
+    def __init__(self, config_relative_path=''):
         # self.logs = []
         self.current_thread_percentage = 0
+        self.config_relative_path = config_relative_path
         self.tknzr = TweetTokenizer()
 
     def get_n_grams(self, text, length=2):
@@ -124,9 +125,6 @@ class NgramBasedClasifier:
                 }
             }
         }
-
-        print(query)
-
         return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
 
 
@@ -150,8 +148,6 @@ class NgramBasedClasifier:
                 }
             }
 
-        print(query)
-
         return self.get_ngrams_by_query(query=query, **kwargs)
 
     def get_ngrams_for_event(self, **kwargs):
@@ -171,26 +167,27 @@ class NgramBasedClasifier:
     def get_ngrams_by_query(self, query="", **kwargs):
 
         try:
-            my_connector = Es_connector(index=kwargs["index"])
-            return my_connector.search({
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=self.config_relative_path)
+            full_query = {
                 "query": query,
                 "size": 0,
                 "aggs": {
                     "ngrams_count": {
                         "terms": {
-                            "field": kwargs["n_size"] + "grams",
+                            "field": kwargs["n_size"] + "grams.keyword",
                             "size": kwargs["results_size"]
                         },
                         "aggs": {
                             "status": {
                                 "terms": {
-                                    "field": kwargs["session"]+".keyword"
+                                    "field": kwargs["session"] + ".keyword"
                                 }
                             }
                         }
                     }
                 }
-            })
+            }
+            return my_connector.search(full_query)
 
         except Exception as e:
             print('Error: ' + str(e))
@@ -201,7 +198,6 @@ class NgramBasedClasifier:
     def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[], full_search=False):
 
         if full_search:
-            print("Query matching full search")
             query = {
                 "bool": {
                     "must": [
@@ -298,7 +294,6 @@ class NgramBasedClasifier:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
                 ngrams = list(self.get_n_grams(clean_text, length))
                 full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
-                print("ngrams:", full_tweet_ngrams)
                 self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
 
             except Exception as e:
