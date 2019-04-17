@@ -39,7 +39,7 @@ class BackendLogger:
             logs = logs[:-1]
             logs = logs + ']'
 
-            print('logs', logs)
+            #print('logs', logs)
             return logs
 
         except IOError as err:

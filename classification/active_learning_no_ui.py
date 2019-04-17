@@ -4,6 +4,10 @@ from mabed.es_connector import Es_connector
 from BackendLogger import BackendLogger
 import json
 import ast
+import plotly.plotly as py
+import plotly.graph_objs as go
+import plotly.io as pio
+import os
 
 index="experiment_lyon_2017"
 session="session_lyon2017_test_01"
@@ -13,6 +17,22 @@ min_diff_accuracy=0.02
 text_field="2grams"
 
 #min_high_confidence=0.75
+
+def draw_accuracy_scatterplot(logs):
+
+    x_axis = [log["loop"] for log in logs if 'loop' in log]   # datetime
+    y_axis = [log["accuracy"] for log in logs if 'loop' in log]
+
+    fig = go.Figure()
+    fig.add_scatter(x=x_axis,
+                    y=y_axis,
+                    mode='markers');
+
+    if not os.path.exists('images'):
+        os.mkdir('images')
+
+    pio.write_image(fig, 'images/fig1.png')
+
 
 def get_answers(**kwargs):
 
@@ -84,14 +104,14 @@ looping_clicks = 0
 download_files=True
 if download_files:
     debug_limit=True
-    backend_logger.add_raw_log('{ "cleaning_dirs": ' + str(datetime.now()) + '} \n')
+    backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
     classifier.clean_directories()
-    backend_logger.add_raw_log('{ "start_downloading": ' + str(datetime.now()) + '} \n')
+    backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
     classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
 
-backend_logger.add_raw_log('{ "start_looping": ' + str(datetime.now()) + '} \n')
+backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
 while diff_accuracy is None or diff_accuracy > 0.005:
 
@@ -107,7 +127,7 @@ while diff_accuracy is None or diff_accuracy > 0.005:
             prev_accuracy = stage_scores[-1]["accuracy"]
             diff_accuracy = abs(accuracy - prev_accuracy)
 
-        backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "accuracy": ' + str(scores["accuracy"]) + ' "diff_accuracy": ' + str(diff_accuracy) + " } \n")
+        backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "datetime": "' + str(datetime.now()) + '", "accuracy": ' + str(scores["accuracy"]) + ', "diff_accuracy": "' + str(diff_accuracy) + '", "wrong_pred_answers": ' + str(wrong_pred_answers) + " } \n")
         stage_scores.append(scores)
 
     except Exception as e:
@@ -115,9 +135,13 @@ while diff_accuracy is None or diff_accuracy > 0.005:
         break
 
 backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
-backend_logger.add_raw_log('{ "end_looping": ' + str(datetime.now()) + '} \n')
+backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
+logs = json.loads(backend_logger.get_logs().replace('\n', ','))
+loop_logs = [log for log in logs if 'loop' in log]
+draw_accuracy_scatterplot(loop_logs)
 
+print("\n\n", loop_logs)
 
 
 
