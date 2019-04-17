@@ -1,14 +1,12 @@
-{ "cleaning_dirs": "2019-04-17 16:50:07.422741"} 
-{ "start_downloading": "2019-04-17 16:50:08.038741"} 
-{ "start_looping": "2019-04-17 16:50:10.710741"} 
-{ "loop": 1, "datetime": "2019-04-17 16:50:12.155741", "accuracy": 0.81, "diff_accuracy": "None", "wrong_pred_answers": 5 } 
-{ "loop": 2, "datetime": "2019-04-17 16:50:13.553741", "accuracy": 0.8346938775510204, "diff_accuracy": "0.02469387755102037", "wrong_pred_answers": 9 } 
-{ "loop": 3, "datetime": "2019-04-17 16:50:15.137741", "accuracy": 0.859375, "diff_accuracy": "0.024681122448979576", "wrong_pred_answers": 6 } 
-{ "loop": 4, "datetime": "2019-04-17 16:50:16.517741", "accuracy": 0.8893617021276595, "diff_accuracy": "0.029986702127659526", "wrong_pred_answers": 3 } 
-{ "loop": 5, "datetime": "2019-04-17 16:50:17.952741", "accuracy": 0.9163043478260869, "diff_accuracy": "0.026942645698427414", "wrong_pred_answers": 1 } 
-{ "loop": 6, "datetime": "2019-04-17 16:50:19.409741", "accuracy": 0.9266666666666666, "diff_accuracy": "0.010362318840579698", "wrong_pred_answers": 0 } 
-{ "loop": 7, "datetime": "2019-04-17 16:50:20.863741", "accuracy": 0.9386363636363636, "diff_accuracy": "0.011969696969696964", "wrong_pred_answers": 5 } 
-{ "loop": 8, "datetime": "2019-04-17 16:50:22.314741", "accuracy": 0.9523255813953488, "diff_accuracy": "0.01368921775898524", "wrong_pred_answers": 0 } 
-{ "loop": 9, "datetime": "2019-04-17 16:50:24.323741", "accuracy": 0.9488095238095238, "diff_accuracy": "0.003516057585825072", "wrong_pred_answers": 0 } 
-{ "looping_clicks": 29} 
-{ "end_looping": "2019-04-17 16:50:24.323741"} 
+{ "cleaning_dirs": "2019-04-17 16:51:43.818741"} 
+{ "start_downloading": "2019-04-17 16:51:44.445741"} 
+{ "start_looping": "2019-04-17 17:09:35.605741"} 
+{ "loop": 1, "datetime": "2019-04-17 17:10:16.908741", "accuracy": 0.8690047605399472, "diff_accuracy": "None", "wrong_pred_answers": 9 } 
+{ "loop": 2, "datetime": "2019-04-17 17:10:57.197741", "accuracy": 0.8815012130237501, "diff_accuracy": "0.012496452483802822", "wrong_pred_answers": 12 } 
+{ "loop": 3, "datetime": "2019-04-17 17:11:38.265741", "accuracy": 0.9133633077175881, "diff_accuracy": "0.03186209469383805", "wrong_pred_answers": 15 } 
+{ "loop": 4, "datetime": "2019-04-17 17:12:18.098741", "accuracy": 0.9285479505703156, "diff_accuracy": "0.01518464285272747", "wrong_pred_answers": 11 } 
+{ "loop": 5, "datetime": "2019-04-17 17:12:58.057741", "accuracy": 0.9350567597624693, "diff_accuracy": "0.006508809192153686", "wrong_pred_answers": 6 } 
+{ "loop": 6, "datetime": "2019-04-17 17:13:37.840741", "accuracy": 0.9439738092073507, "diff_accuracy": "0.008917049444881475", "wrong_pred_answers": 20 } 
+{ "loop": 7, "datetime": "2019-04-17 17:14:17.171741", "accuracy": 0.9484296618648159, "diff_accuracy": "0.004455852657465176", "wrong_pred_answers": 14 } 
+{ "looping_clicks": 87} 
+{ "end_looping": "2019-04-17 17:14:17.171741"} 

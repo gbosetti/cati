@@ -264,6 +264,7 @@ class ActiveLearning:
         self.delete_folder_contents(os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER))
         self.delete_folder_contents(os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER))
         self.delete_folder_contents(os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(os.getcwd(), "images"))
 
     def read_data_from_dataset(self, **kwargs):
 
