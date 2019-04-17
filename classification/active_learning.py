@@ -527,6 +527,14 @@ class ActiveLearning:
         # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
         X_train = vectorizer.fit_transform(data_train.data)
 
+        if(len(data_test.data)==0):
+            raise Exception('The training set is empty.')
+            return
+
+        if(len(self.data_unlabeled)==0):
+            raise Exception('The target (unlabeled) set is empty.')
+            return
+
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
         X_test = vectorizer.transform(data_test.data)
 
@@ -611,7 +619,8 @@ class ActiveLearning:
 
         # print("Moving the user labeled questions into the proper folders")
         for question in labeled_questions:
-            file_path = os.path.join(self.TEST_FOLDER, question["label"], question["filename"])
+            basename = os.path.basename(question["filename"])
+            file_path = os.path.join(self.TEST_FOLDER, question["label"], basename)
             if os.path.exists(file_path):
                 os.remove(file_path)
 

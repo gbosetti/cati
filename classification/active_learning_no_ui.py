@@ -60,24 +60,9 @@ def loop(**kwargs):
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
 
-print("Process starting at ", datetime.now())
+
 
 classifier = ActiveLearning()
-
-# Downloading the data from elasticsearch into a folder structure that sklearn can understand
-download_files=True
-if download_files:
-    debug_limit=False
-    classifier.clean_directories()
-    classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
-    classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
-    classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
-
-
-
-
-
-
 diff_accuracy = None
 start_time = datetime.now()
 accuracy = 0
@@ -87,23 +72,42 @@ backend_logger = BackendLogger("active_learning-logs.txt")
 backend_logger.clear_logs() #Just in case there is a file with the same name
 loop_index = 0
 
+
+
+# Downloading the data from elasticsearch into a folder structure that sklearn can understand
+download_files=True
+if download_files:
+    debug_limit=False
+    backend_logger.add_raw_log('{ "cleaning_dirs": ' + str(datetime.now()) + '} \n')
+    classifier.clean_directories()
+    backend_logger.add_raw_log('{ "start_downloading": ' + str(datetime.now()) + '} \n')
+    classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+    classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+    classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+
+backend_logger.add_raw_log('{ "start_looping": ' + str(datetime.now()) + '} \n')
+
 while diff_accuracy is None or diff_accuracy > 0.005:
 
     print("\n---------------------------------")
     loop_index+=1
     # sampling_strategy = "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
-    scores = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
+    try:
+        scores = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
 
-    if len(stage_scores) > 0:
-        accuracy = scores["accuracy"]
-        prev_accuracy = stage_scores[-1]["accuracy"]
-        diff_accuracy = abs(accuracy - prev_accuracy)
+        if len(stage_scores) > 0:
+            accuracy = scores["accuracy"]
+            prev_accuracy = stage_scores[-1]["accuracy"]
+            diff_accuracy = abs(accuracy - prev_accuracy)
 
-    backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "accuracy": ' + str(scores["accuracy"]) + ' "diff_accuracy": ' + str(diff_accuracy) + " } \n")
-    stage_scores.append(scores)
+        backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "accuracy": ' + str(scores["accuracy"]) + ' "diff_accuracy": ' + str(diff_accuracy) + " } \n")
+        stage_scores.append(scores)
 
-print("Process started at " + str(start_time) + " & finished at " + str(datetime.now()))
+    except Exception as e:
+        backend_logger.add_raw_log('{ "error": ' + str(e) + '} \n')
+        break
 
+backend_logger.add_raw_log('{ "end_looping": ' + str(datetime.now()) + '} \n')
 
 
 

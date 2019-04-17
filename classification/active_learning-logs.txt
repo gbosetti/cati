@@ -1,7 +1,7 @@
-{ "loop": 1, "accuracy": 0.16287142102754987 "diff_accuracy": None } 
-{ "loop": 2, "accuracy": 0.4434834687858219 "diff_accuracy": 0.28061204775827203 } 
-{ "loop": 3, "accuracy": 0.6390309243827359 "diff_accuracy": 0.195547455596914 } 
-{ "loop": 4, "accuracy": 0.9460851869501938 "diff_accuracy": 0.30705426256745794 } 
-{ "loop": 5, "accuracy": 0.9560863461315542 "diff_accuracy": 0.010001159181360353 } 
-{ "loop": 6, "accuracy": 0.969706727115828 "diff_accuracy": 0.013620380984273761 } 
-{ "loop": 7, "accuracy": 0.9722440463157352 "diff_accuracy": 0.0025373191999072953 } 
+{ "cleaning_dirs": 2019-04-17 11:24:19.392878} 
+{ "start_downloading": 2019-04-17 11:24:19.899928} 
+{ "start_looping": 2019-04-17 11:24:22.627201} 
+{ "loop": 1, "accuracy": 0.807 "diff_accuracy": None } 
+{ "loop": 2, "accuracy": 0.976 "diff_accuracy": 0.16899999999999993 } 
+{ "error": The training set is empty.} 
+{ "end_looping": 2019-04-17 11:24:29.999938} 
