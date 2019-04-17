@@ -50,7 +50,6 @@ def loop(**kwargs):
 
     # Injecting the answers in the training set, and re-training the model
     classifier.move_answers_to_training_set(answers)
-    #Move related retweets classifier.move_answers_to_training_set(answers)
     classifier.remove_matching_answers_from_test_set(answers)
 
     # Present visualization to the user, so he can explore the proposed classification
@@ -68,7 +67,7 @@ classifier = ActiveLearning()
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 download_files=True
 if download_files:
-    debug_limit=True
+    debug_limit=False
     classifier.clean_directories()
     classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
     classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
@@ -88,12 +87,12 @@ backend_logger = BackendLogger("active_learning-logs.txt")
 backend_logger.clear_logs() #Just in case there is a file with the same name
 loop_index = 0
 
-while diff_accuracy is None or diff_accuracy > 0.05 and accuracy < 0.9:
+while diff_accuracy is None or diff_accuracy > 0.005:
 
     print("\n---------------------------------")
     loop_index+=1
     # sampling_strategy = "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
-    scores = loop(sampling_strategy="closer_to_hyperplane", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
+    scores = loop(sampling_strategy="closer_to_hyperplane_bigrams_rt", classifier=classifier, index=index, gt_session=gt_session, num_questions=num_questions, text_field=text_field, max_samples_to_sort=500)
 
     if len(stage_scores) > 0:
         accuracy = scores["accuracy"]

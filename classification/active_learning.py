@@ -224,6 +224,7 @@ class ActiveLearning:
     def get_samples_closer_to_hyperplane(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
 
         # compute absolute confidence for each unlabeled sample in each class
+        #decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
         decision = model.decision_function(
             X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
@@ -601,7 +602,8 @@ class ActiveLearning:
 
         # print("Moving the user labeled questions into the proper folders")
         for question in labeled_questions:
-            dstDir = os.path.join(self.TRAIN_FOLDER, question["label"])
+            basename = os.path.basename(question["filename"])
+            dstDir = os.path.join(self.TRAIN_FOLDER, question["label"], basename)
             # print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 

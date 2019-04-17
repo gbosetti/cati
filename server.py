@@ -32,6 +32,7 @@ app.backend_logger = BackendLogger()
 
 functions = Functions()
 SELF = "'self'"
+DownSELF = "'self'"
 # here we define the content security policy,
 # this CSP allows for inline script, and using a nonce will improve security
 with open('config.json', 'r') as f:
