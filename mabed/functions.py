@@ -838,6 +838,7 @@ class Functions:
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
+        print("index for CLUSTERS: ", index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
@@ -871,6 +872,7 @@ class Functions:
                 }
             }
         }
+        print("CLUSTERS QUERY: ", query)
         res = my_connector.search(query)
         clusters = res['aggregations']['group_by_cluster']['buckets']
 
