@@ -8,6 +8,7 @@ demo/
 venv
 classification/test/
 classification/images/*
+classification/logs/*
 classification/train/
 classification/unlabeled/
 classification/test/*

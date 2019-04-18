@@ -2,63 +2,103 @@ from classification.active_learning import ActiveLearning
 from datetime import datetime
 from mabed.es_connector import Es_connector
 from BackendLogger import BackendLogger
-import json
-import ast
-import plotly.plotly as py
-import plotly.graph_objs as go
-import plotly.io as pio
 import os
+import argparse
 
+# Instantiating the parser
+parser = argparse.ArgumentParser(description="CATI's Active Learning module")
+
+# General & mandatory arguments
+parser.add_argument("-ss",
+                    "--sampling_strategy",
+                    dest="sampling_strategy",
+                    help="The sampling strategy. It could be 'closer_to_hyperplane' or 'closer_to_hyperplane_bigrams_rt'.")
+
+parser.add_argument("-i",
+                    "--index",
+                    dest="index",
+                    help="The target index to classify")
+
+parser.add_argument("-s",
+                    "--session",
+                    dest="session",
+                    help="The target session to classify")
+
+parser.add_argument("-gts",
+                    "--gt_session",
+                    dest="gt_session",
+                    help="The grountruth session to simulate the user's answer and to measure accuracy")
+
+
+# Optional arguments
+parser.add_argument("-cw",
+                    "--cnf_weight",
+                    dest="cnf_weight",
+                    help="The weight of the position of the tweet according to it's distance to the hyperplane. You need to use this just when you use the closer_to_hyperplane_bigrams_rt strategy.",
+                    default=0.5)
+
+parser.add_argument("-rw",
+                    "--ret_weight",
+                    dest="ret_weight",
+                    help="The weight of the position of the tweet according to the ranking of top unlabeled retweets. You need to use this just when you use the closer_to_hyperplane_bigrams_rt strategy.",
+                    default=0.4)
+
+parser.add_argument("-bw",
+                    "--bgr_weight",
+                    dest="bgr_weight",
+                    help="The weight of the position of the tweet according to the ranking of top unlabeled bigrams. You need to use this just when you use the closer_to_hyperplane_bigrams_rt strategy.",
+                    default=0.1)
+
+parser.add_argument("-mda",
+                    "--min_diff_accuracy",
+                    dest="min_diff_accuracy",
+                    help="The minimum acceptable difference between the accuracy of 2 consecutive loops",
+                    default=0.005)
+
+parser.add_argument("-df",
+                    "--download_files",
+                    dest="download_files",
+                    help="Boolean indicating whether new documents should be downloaded to build new training, test and target sets.",
+                    default=True)
+
+parser.add_argument("-dl",
+                    "--debug_limit",
+                    dest="debug_limit",
+                    help="Boolean indicating if the download of documents may be limited of not (approx. 500 documents for each category). If False, the full dataset is downloaded.",
+                    default=False)
+
+parser.add_argument("-q",
+                    "--num_questions",
+                    dest="num_questions",
+                    help="Integer indicating the number of queries that the user should answer for each loop.",
+                    default=20)
+
+parser.add_argument("-tf",
+                    "--text_field",
+                    dest="text_field",
+                    help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
+                    default="2grams")
+
+
+
+
+
+#Params
+sampling_strategy = "closer_to_hyperplane_bigrams_rt"  # "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
+min_diff_accuracy = 0.005
+download_files=True
+debug_limit=True
 index="experiment_lyon_2017"
 session="session_lyon2017_test_01"
 gt_session="session_lyon2017"
 num_questions=20
-min_diff_accuracy=0.02
 text_field="2grams"
+cnf_weight = 0.5
+ret_weight = 0.4
+bgr_weight = 0.1
 
-#min_high_confidence=0.75
-
-def draw_scatterplot(title, x_axis_label, y_axis_label, x_axis, y_axis, filename):
-
-    trace1 = go.Scatter(
-        x=x_axis,
-        y=y_axis,
-        name='Accuracy'
-    )
-
-    data = [trace1]
-    layout = go.Layout(
-        title=go.layout.Title(
-            text=title,
-            xref='paper',
-            x=0
-        ),
-        xaxis=go.layout.XAxis(
-            title=go.layout.xaxis.Title(
-                text=x_axis_label,
-                font=dict(
-                    size=18,
-                    color='#7f7f7f'
-                )
-            )
-        ),
-        yaxis=go.layout.YAxis(
-            title=go.layout.yaxis.Title(
-                text=y_axis_label,
-                font=dict(
-                    size=18,
-                    color='#7f7f7f'
-                )
-            )
-        )
-    )
-    fig = go.Figure(data=data, layout=layout)
-
-    if not os.path.exists('images'):
-        os.mkdir('images')
-
-    pio.write_image(fig, 'images/' + filename + '.png')
-
+# ----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 
 def get_answers(**kwargs):
 
@@ -94,7 +134,11 @@ def loop(**kwargs):
     if (kwargs["sampling_strategy"] == "closer_to_hyperplane"):
         questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions)
     elif (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
-        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, max_samples_to_sort=kwargs["max_samples_to_sort"], index=index, session=session, text_field=kwargs["text_field"])
+        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
+                                                                           X_unlabeled, categories, num_questions,
+                                                                           max_samples_to_sort=kwargs["max_samples_to_sort"],
+                                                                           index=index, session=session, text_field=kwargs["text_field"],
+                                                                           cnf_weight=cnf_weight, ret_weight=ret_weight, bgr_weight=bgr_weight)
 
     # Asking the user (gt_dataset) to answer the questions
     answers, wrong_pred_answers = get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=classifier)
@@ -111,27 +155,24 @@ def loop(**kwargs):
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
 
-
-
+# Variables
 classifier = ActiveLearning()
 diff_accuracy = None
 start_time = datetime.now()
 accuracy = 0
 prev_accuracy = 0
 stage_scores = []
-backend_logger = BackendLogger("active_learning-logs.txt")
+logs_filename = session + "_" + sampling_strategy + "_logs.txt"
+logs_path = os.path.join(os.getcwd(), "logs", logs_filename)
+backend_logger = BackendLogger(logs_path)
 loop_index = 0
 looping_clicks = 0
-sampling_strategy = "closer_to_hyperplane_bigrams_rt"  # "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
-
-
-
 
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 backend_logger.clear_logs() #Just in case there is a file with the same name
-download_files=True
+#.delete_folder_contents(os.path.join(os.getcwd(), "images"))
+
 if download_files:
-    debug_limit=False
     backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
     classifier.clean_directories()
     backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
@@ -141,7 +182,7 @@ if download_files:
 
 backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
-while diff_accuracy is None or diff_accuracy > 0.005:
+while diff_accuracy is None or diff_accuracy > min_diff_accuracy:
 
     print("\n---------------------------------")
     loop_index+=1
@@ -164,22 +205,7 @@ while diff_accuracy is None or diff_accuracy > 0.005:
 backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
 backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
-logs = json.loads(backend_logger.get_logs().replace('\n', ','))
-loop_logs = [log for log in logs if 'loop' in log]
 
-loops_values = [log["loop"] for log in logs if 'loop' in log]  # datetime
-accuracies = [log["accuracy"] for log in logs if 'loop' in log]
-diff_accuracies = [0 if log["diff_accuracy"]=='None' else float(log["diff_accuracy"]) for log in logs if 'loop' in log]
-#diff_accuracies = [float(log["diff_accuracy"]) for log in logs if 'loop' in log if log["diff_accuracy"] != 'None']
-wrong_answers = [log["wrong_pred_answers"] for log in logs if 'loop' in log]
-
-
-draw_scatterplot("Evolution of accuracy across loops", "Loop", "Accuracy", loops_values, accuracies, "accuracy_[" + session + "-" + sampling_strategy + "]")
-draw_scatterplot("Evolution of diff. accuracy across loops", "Loop", "Diff. accuracy", loops_values, diff_accuracies, "accuracy_diff_[" + session + "-" + sampling_strategy + "]")
-draw_scatterplot("Evolution of wrongly predicted labels across loops", "Loop", "Wrong predictions (max. 20 by loop)", loops_values, wrong_answers, "wrong_predictions_[" + session + "-" + sampling_strategy + "]")
-
-
-print("\n\n", loop_logs)
 
 
 
