@@ -41,10 +41,11 @@ def draw_scatterplot(title, x_axis_label, y_axis_label, x_axis, y_axis, filename
     )
     fig = go.Figure(data=data, layout=layout)
 
-    if not os.path.exists('images'):
-        os.mkdir('images')
+    full_path = os.path.join(os.getcwd(), "classification", "images")
+    if not os.path.exists(full_path):
+        os.mkdir(full_path)
 
-    pio.write_image(fig, 'images/' + filename + '.png')
+    pio.write_image(fig, full_path + filename + '.png')
 
 logs = json.loads(backend_logger.get_logs().replace('\n', ','))
 loop_logs = [log for log in logs if 'loop' in log]

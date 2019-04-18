@@ -51,7 +51,7 @@ class ActiveLearning:
 
     def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled"):
 
-        DATA_FOLDER = os.path.join(os.getcwd(), "tmp_data")
+        DATA_FOLDER = os.path.join(os.getcwd(), "classification", "tmp_data")
 
         self.TRAIN_FOLDER = os.path.join(DATA_FOLDER, train_folder)
         self.TEST_FOLDER = os.path.join(DATA_FOLDER, test_folder)
@@ -81,7 +81,7 @@ class ActiveLearning:
 
         debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
-        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path='../')
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
         res = my_connector.init_paginatedSearch(kwargs["query"])
 
         sid = res["sid"]
@@ -208,7 +208,7 @@ class ActiveLearning:
 
     def get_top_retweets(self, **kwargs):
 
-        functions = Functions(config_relative_path='../')
+        functions = Functions() #  config_relative_path='../')
         retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
                                                      label='proposed', retweets_number=kwargs['results_size'])
 
@@ -216,7 +216,7 @@ class ActiveLearning:
 
     def get_top_bigrams(self, **kwargs):
 
-        ngram_classifier = NgramBasedClasifier(config_relative_path='../')
+        ngram_classifier = NgramBasedClasifier() #  config_relative_path='../')
         matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
                                                       label='proposed', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)

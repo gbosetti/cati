@@ -171,6 +171,17 @@ If you edit the code and install new dependencies, you can update the list by ex
     python -m pip freeze --local > requirements.txt
 
 
+### Running the experiments.py file
+
+If you want to run the experiments, please execute it with at least the following 3 arguments:
+```
+python experiment.py -i your_index -s your_target_session -gts your_groundtruth_session
+```
+You can access the full list of optional arguments by executing:
+```
+python experiment.py -h
+```
+
 # MABED
 
 ## About

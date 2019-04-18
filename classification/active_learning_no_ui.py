@@ -8,7 +8,7 @@ class ActiveLearningNoUi:
 
     def get_answers(self, **kwargs):
 
-        my_connector = Es_connector(index=kwargs["index"], config_relative_path='../')
+        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
         wrong_labels=0
 
         for question in kwargs["questions"]:
@@ -58,10 +58,6 @@ class ActiveLearningNoUi:
 
         return scores, wrong_pred_answers
 
-    def delete_full_image_folder_contents(self):
-
-        self.classifier.delete_folder_contents(os.path.join(os.getcwd(), "images"))
-
     def run(self, **kwargs):
 
         diff_accuracy = None
@@ -69,8 +65,7 @@ class ActiveLearningNoUi:
         accuracy = 0
         prev_accuracy = 0
         stage_scores = []
-        logs_filename = kwargs["session"] + "_" + kwargs["sampling_strategy"] + "_logs.txt"
-        logs_path = os.path.join(os.getcwd(), "logs", logs_filename)
+        logs_path = os.path.join(os.getcwd(), "classification", "logs", kwargs["logs_filename"])
         backend_logger = BackendLogger(logs_path)
         loop_index = 0
         looping_clicks = 0
