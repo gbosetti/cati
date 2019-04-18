@@ -872,27 +872,25 @@ class Functions:
                 }
             }
         }
-        print("CLUSTERS QUERY: ", query)
         res = my_connector.search(query)
         clusters = res['aggregations']['group_by_cluster']['buckets']
-
-        print("CLUSTERS: ", clusters)
 
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
-            print("\n\nDATA DUPLICATES: ", data["duplicates"][0][0])
             if data is not None and data["duplicates"] is not None:
-                print("\n\nCLUSTER----------------------")
+                print("\n\nCLUSTER----------------------", cluster['key'])
                 q2 = {
                     "query": {
                         "term": {"imagesCluster": cluster['key']}
                     }
                 }
                 cres = my_connector.count(q2)
-                images = data['duplicates'][cluster['key']]
-                cluster['image'] = images[0]
-                cluster['size'] = cres['count']
+                if cluster['key'] is not None:
+                    images = data['duplicates'][cluster['key']]
+                    cluster['image'] = images[0]
+                    cluster['size'] = cres['count']
+                else: print("The key does not exist: ", cluster['key'])
             else:
                 cluster['image'] = "Missing 'duplicated' file"
                 cluster['size'] = "Missing 'duplicated' file"
