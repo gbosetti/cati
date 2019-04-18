@@ -881,9 +881,8 @@ class Functions:
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
-            print("\n\nDATA DUPLICATES: ", data["duplicates"][0])
-            print("RES:", data and data["duplicates"])
-            if data and data["duplicates"]:
+            print("\n\nDATA DUPLICATES: ", data["duplicates"][0][0])
+            if data is not None and data["duplicates"] is not None:
                 print("\n\nCLUSTER----------------------")
                 q2 = {
                     "query": {
