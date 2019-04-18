@@ -176,7 +176,7 @@ wrong_answers = [log["wrong_pred_answers"] for log in logs if 'loop' in log]
 
 draw_scatterplot("Evolution of accuracy across loops", "Loop", "Accuracy", loops_values, accuracies, "accuracy_[" + session + "-" + sampling_strategy + "]")
 draw_scatterplot("Evolution of diff. accuracy across loops", "Loop", "Diff. accuracy", loops_values, diff_accuracies, "accuracy_diff_[" + session + "-" + sampling_strategy + "]")
-draw_scatterplot("Evolution of wrongly predicted labels across loops", "Loop", "Wrong predictions (over 20 instances)", loops_values, wrong_answers, "wrong_predictions_[" + session + "-" + sampling_strategy + "]")
+draw_scatterplot("Evolution of wrongly predicted labels across loops", "Loop", "Wrong predictions (max. 20 by loop)", loops_values, wrong_answers, "wrong_predictions_[" + session + "-" + sampling_strategy + "]")
 
 
 print("\n\n", loop_logs)

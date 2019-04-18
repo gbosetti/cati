@@ -1,12 +1,11 @@
-{ "cleaning_dirs": "2019-04-17 16:51:43.818741"} 
-{ "start_downloading": "2019-04-17 16:51:44.445741"} 
-{ "start_looping": "2019-04-17 17:09:35.605741"} 
-{ "loop": 1, "datetime": "2019-04-17 17:10:16.908741", "accuracy": 0.8690047605399472, "diff_accuracy": "None", "wrong_pred_answers": 9 } 
-{ "loop": 2, "datetime": "2019-04-17 17:10:57.197741", "accuracy": 0.8815012130237501, "diff_accuracy": "0.012496452483802822", "wrong_pred_answers": 12 } 
-{ "loop": 3, "datetime": "2019-04-17 17:11:38.265741", "accuracy": 0.9133633077175881, "diff_accuracy": "0.03186209469383805", "wrong_pred_answers": 15 } 
-{ "loop": 4, "datetime": "2019-04-17 17:12:18.098741", "accuracy": 0.9285479505703156, "diff_accuracy": "0.01518464285272747", "wrong_pred_answers": 11 } 
-{ "loop": 5, "datetime": "2019-04-17 17:12:58.057741", "accuracy": 0.9350567597624693, "diff_accuracy": "0.006508809192153686", "wrong_pred_answers": 6 } 
-{ "loop": 6, "datetime": "2019-04-17 17:13:37.840741", "accuracy": 0.9439738092073507, "diff_accuracy": "0.008917049444881475", "wrong_pred_answers": 20 } 
-{ "loop": 7, "datetime": "2019-04-17 17:14:17.171741", "accuracy": 0.9484296618648159, "diff_accuracy": "0.004455852657465176", "wrong_pred_answers": 14 } 
-{ "looping_clicks": 87} 
-{ "end_looping": "2019-04-17 17:14:17.171741"} 
+{ "cleaning_dirs": "2019-04-17 19:13:24.687741"} 
+{ "start_downloading": "2019-04-17 19:14:23.229741"} 
+{ "start_looping": "2019-04-17 19:32:50.676741"} 
+{ "loop": 1, "datetime": "2019-04-17 19:33:34.456741", "accuracy": 0.8690047605399472, "diff_accuracy": "None", "wrong_pred_answers": 13 } 
+{ "loop": 2, "datetime": "2019-04-17 19:34:18.794741", "accuracy": 0.8796484678146695, "diff_accuracy": "0.010643707274722303", "wrong_pred_answers": 19 } 
+{ "loop": 3, "datetime": "2019-04-17 19:35:01.930741", "accuracy": 0.8894910181734272, "diff_accuracy": "0.009842550358757696", "wrong_pred_answers": 9 } 
+{ "loop": 4, "datetime": "2019-04-17 19:35:44.782741", "accuracy": 0.8946856795182914, "diff_accuracy": "0.0051946613448641266", "wrong_pred_answers": 11 } 
+{ "loop": 5, "datetime": "2019-04-17 19:36:27.225741", "accuracy": 0.9264116499150177, "diff_accuracy": "0.03172597039672631", "wrong_pred_answers": 0 } 
+{ "loop": 6, "datetime": "2019-04-17 19:37:09.625741", "accuracy": 0.9301508908647019, "diff_accuracy": "0.0037392409496842527", "wrong_pred_answers": 0 } 
+{ "looping_clicks": 52} 
+{ "end_looping": "2019-04-17 19:37:09.625741"} 

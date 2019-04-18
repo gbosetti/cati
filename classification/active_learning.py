@@ -200,7 +200,7 @@ class ActiveLearning:
         question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
         formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
 
-        selected_samples =sorted(formatted_samples, key=lambda k: (k.get('cnf_pos', 0) + k.get('ret_pos', 0) + k.get('bgr_pos', 0)), reverse=False)
+        selected_samples =sorted(formatted_samples, key=lambda k: (0.5 * k.get('cnf_pos', 0) + 0.4 * k.get('ret_pos', 0) + 0.1 * k.get('bgr_pos', 0)), reverse=False)
 
         selected_samples = selected_samples[0:num_questions]
 
