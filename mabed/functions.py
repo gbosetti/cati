@@ -874,6 +874,8 @@ class Functions:
         res = my_connector.search(query)
         clusters = res['aggregations']['group_by_cluster']['buckets']
 
+        print("CLUSTERS: ", clusters)
+
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
@@ -884,6 +886,7 @@ class Functions:
                     }
                 }
                 cres = my_connector.count(q2)
+                print("Trying to find key in CLUSTERS: ", cluster['key'])
                 images = data['duplicates'][cluster['key']]
                 cluster['image'] = images[0]
                 cluster['size'] = cres['count']

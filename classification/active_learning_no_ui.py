@@ -65,7 +65,12 @@ class ActiveLearningNoUi:
         accuracy = 0
         prev_accuracy = 0
         stage_scores = []
+
         logs_path = os.path.join(os.getcwd(), "classification", "logs", kwargs["logs_filename"])
+        folder = os.path.dirname(logs_path)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
         backend_logger = BackendLogger(logs_path)
         loop_index = 0
         looping_clicks = 0
