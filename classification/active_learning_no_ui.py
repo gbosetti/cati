@@ -5,29 +5,37 @@ from BackendLogger import BackendLogger
 import os
 import argparse
 
+# PARAMS
+# ----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
+
 # Instantiating the parser
 parser = argparse.ArgumentParser(description="CATI's Active Learning module")
 
-# General & mandatory arguments
+# General & mandatory arguments (with a default value so we can run it also through the PyCharm's UI
 parser.add_argument("-ss",
                     "--sampling_strategy",
                     dest="sampling_strategy",
-                    help="The sampling strategy. It could be 'closer_to_hyperplane' or 'closer_to_hyperplane_bigrams_rt'.")
+                    help="The sampling strategy. It could be 'closer_to_hyperplane' or 'closer_to_hyperplane_bigrams_rt'.",
+                    default="closer_to_hyperplane_bigrams_rt")
 
 parser.add_argument("-i",
                     "--index",
                     dest="index",
-                    help="The target index to classify")
+                    help="The target index to classify",
+                    default="experiment_lyon_2017")
 
 parser.add_argument("-s",
                     "--session",
                     dest="session",
-                    help="The target session to classify")
+                    help="The target session to classify",
+                    default="session_lyon2017_test_01")
 
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
-                    help="The grountruth session to simulate the user's answer and to measure accuracy")
+                    help="The grountruth session to simulate the user's answer and to measure accuracy",
+                    default="session_lyon2017")
 
 
 # Optional arguments
@@ -65,7 +73,7 @@ parser.add_argument("-dl",
                     "--debug_limit",
                     dest="debug_limit",
                     help="Boolean indicating if the download of documents may be limited of not (approx. 500 documents for each category). If False, the full dataset is downloaded.",
-                    default=False)
+                    default=True)
 
 parser.add_argument("-q",
                     "--num_questions",
@@ -79,24 +87,29 @@ parser.add_argument("-tf",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
                     default="2grams")
 
+parser.add_argument("-tfa",
+                    "--is_field_array",
+                    dest="is_field_array",
+                    help="Is the document field a String or an array of strings?",
+                    default=True)
 
+args = parser.parse_args()
 
+sampling_strategy = args.sampling_strategy  # "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
+min_diff_accuracy = args.min_diff_accuracy
+download_files=args.download_files
+debug_limit=args.debug_limit
+index=args.index
+session=args.session
+gt_session=args.gt_session
+num_questions=args.num_questions
+text_field=args.text_field
+is_field_array=args.text_field
+cnf_weight = args.cnf_weight
+ret_weight = args.ret_weight
+bgr_weight = args.bgr_weight
 
-
-#Params
-sampling_strategy = "closer_to_hyperplane_bigrams_rt"  # "closer_to_hyperplane" or "closer_to_hyperplane_bigrams_rt"
-min_diff_accuracy = 0.005
-download_files=True
-debug_limit=True
-index="experiment_lyon_2017"
-session="session_lyon2017_test_01"
-gt_session="session_lyon2017"
-num_questions=20
-text_field="2grams"
-cnf_weight = 0.5
-ret_weight = 0.4
-bgr_weight = 0.1
-
+# Aux functions
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
 
@@ -152,10 +165,10 @@ def loop(**kwargs):
 
     return scores, wrong_pred_answers
 
+# Variables & initialization
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
 
-# Variables
 classifier = ActiveLearning()
 diff_accuracy = None
 start_time = datetime.now()
@@ -167,18 +180,23 @@ logs_path = os.path.join(os.getcwd(), "logs", logs_filename)
 backend_logger = BackendLogger(logs_path)
 loop_index = 0
 looping_clicks = 0
-
 # Downloading the data from elasticsearch into a folder structure that sklearn can understand
 backend_logger.clear_logs() #Just in case there is a file with the same name
 #.delete_folder_contents(os.path.join(os.getcwd(), "images"))
+
+
+# Main
+# ----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
+
 
 if download_files:
     backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
     classifier.clean_directories()
     backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
-    classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
-    classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=True, debug_limit=debug_limit)
-    classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=True, debug_limit=debug_limit)
+    classifier.download_training_data(index=index, session=session, field=text_field, is_field_array=is_field_array, debug_limit=debug_limit)
+    classifier.download_unclassified_data(index=index, session=session, field=text_field, is_field_array=is_field_array, debug_limit=debug_limit)
+    classifier.download_testing_data(index=index, session=gt_session, field=text_field, is_field_array=is_field_array, debug_limit=debug_limit)
 
 backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
