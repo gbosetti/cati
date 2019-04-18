@@ -886,7 +886,7 @@ class Functions:
                     }
                 }
                 cres = my_connector.count(q2)
-                if cluster['key'] is not None:
+                if cluster['key'] is not None or cluster['key'].strip() == "":
                     images = data['duplicates'][cluster['key']]
                     cluster['image'] = images[0]
                     cluster['size'] = cres['count']
