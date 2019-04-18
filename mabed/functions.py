@@ -881,6 +881,8 @@ class Functions:
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
+            print("data: ", data)
+            print("duplicates: ", data["duplicates"])
             if data and data["duplicates"]:
                 print("CLUSTER: ", cluster)
                 q2 = {
