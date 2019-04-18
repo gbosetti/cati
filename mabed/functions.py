@@ -882,13 +882,13 @@ class Functions:
 
         for cluster in clusters:
             if data and data["duplicates"]:
+                print("CLUSTER: ", cluster)
                 q2 = {
                     "query": {
                         "term": {"imagesCluster": cluster['key']}
                     }
                 }
                 cres = my_connector.count(q2)
-                print("Trying to find key in CLUSTERS: ", cluster['key'])
                 images = data['duplicates'][cluster['key']]
                 cluster['image'] = images[0]
                 cluster['size'] = cres['count']
