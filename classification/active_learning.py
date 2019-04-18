@@ -430,7 +430,7 @@ class ActiveLearning:
 
         matching_queries = []
         for tweet in kwargs["target_tweets"]:
-            matching_queries.append({"match": {"id_str": {"query": tweet["_source"]["id_str"]}}})
+            matching_queries.append({"match": {"id_str": tweet["_source"]["id_str"]}})
 
         confirmed_data = self.download_tweets_from_elastic(
             log=False,
@@ -530,7 +530,7 @@ class ActiveLearning:
         X_train = vectorizer.fit_transform(data_train.data)
 
         if(len(data_test.data)==0):
-            raise Exception('The training set is empty.')
+            raise Exception('The test set is empty.')
             return
 
         if(len(self.data_unlabeled)==0):
