@@ -3,8 +3,9 @@ import json
 import argparse
 import os
 
-file = '2017export.json'
-target = 'images_list.lst'
+file = 'labeled_export.json'
+target = 'labeled_images_export.lst'
+image_target_dir = 'Labeled_Images'
 
 
 def get_tweets(session, index, state='confirmed'):
@@ -89,9 +90,9 @@ def copy_images(images_list, images_path, target_path):
     # this version is still not working, so we still rely on the Shell script
     image_names_2_file(images_list,'images_list',target_path)
     print("Creating images directory")
-    os.mkdir('Images')
+    os.mkdir(image_target_dir)
     print("Copying images")
-    os.system("cat images_list|./copyImages.sh "+images_path+" "+target_path+'/Images')
+    os.system("cat images_list|./copyImages.sh "+images_path+" "+target_path+'/'+image_target_dir)
     print("aynsc or not")
 
     #for item in ids:
