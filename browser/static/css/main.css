@@ -1131,6 +1131,8 @@ a.timeline_btn.options_btn_valid:hover { background-color: #279b37 !important;bo
 .h_field label { color: #777;margin-bottom: 4px;}
 .tl-attribution { display: none;}
 
+.ui-dialog { z-index: 2147483647 !important }
+
 /*Tweets*/
 .tweet_box .t_name { font-weight: bold;font-size: 14px; }
 .tweet_box .t_user a { color: #aaa;font-size: 14px;}

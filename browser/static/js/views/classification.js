@@ -36,7 +36,7 @@ app.views.classification = Backbone.View.extend({
             this.suggestClassification();
         });
 
-        $("#remove-stopwords-al").bootstrapToggle();
+        //$("#remove-stopwords-al").bootstrapToggle();
         app.views.mabed.prototype.getClassificationStats();
         //app.views.mabed.prototype.setSessionTopBar();
 
@@ -90,9 +90,11 @@ app.views.classification = Backbone.View.extend({
 
         $(".card-columns").html('');
         document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-        var removeStopwords = document.querySelector("#remove-stopwords-al").checked;
+        var removeStopwords = false; //document.querySelector("#remove-stopwords-al").checked;
 
         data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
             {name: "num_questions", value: numQuestions },
             {name: "remove_stopwords", value: removeStopwords }
         ];
@@ -117,7 +119,11 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         var questions = this.getQuestionsFromUI();
-        data = [{name: "questions", value: JSON.stringify(questions) }]
+        data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "questions", value: JSON.stringify(questions) }
+        ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
 
@@ -127,15 +133,21 @@ app.views.classification = Backbone.View.extend({
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
         $("#classif-graph-area").html("");
+        this.drawQuadrants(positiveTweets, negativeTweets);
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
         var divHeight = 350;
+        console.log(positiveTweets);
         this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
         this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
 
         // Store them for user manipulation
         this.positiveTweets = positiveTweets;
         this.negativeTweets = negativeTweets;
+    },
+    drawQuadrants: function(positiveTweets, negativeTweets){
+
+
     },
     drawTagCloud: function(title, tweetsTexts, divId, divHeight, tweetsTextsVarName){
 
@@ -144,7 +156,7 @@ app.views.classification = Backbone.View.extend({
             '<div id="' + divId + '-container" class="classif-visualization"> ' +
                 '<div id="' + divId + '" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>' +
             '</div>'
-         );
+        );
 
         // Default values
         nGramsToGenerate = 2;
@@ -155,7 +167,7 @@ app.views.classification = Backbone.View.extend({
         console.log("Retrieving for ", tweetsTextsVarName);
         this.retrieveNGrams(tweetsTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
 
-            console.log("ngrams for ", tweetsTextsVarName);
+            console.log("ngrams for ", tweetsTextsVarName, ngrams);
 
             this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName, {
                 "nGramsToGenerate": nGramsToGenerate,
@@ -294,7 +306,7 @@ app.views.classification = Backbone.View.extend({
         var targetFormId = $(btn).parent().parent().attr("id");
         var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
         var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
-        var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
+        var removeStopwords = false; //$("#" + targetFormId + " #remove-stopwords").prop("checked");
         var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
         var graphArea = $("#" + targetFormId).parent().parent();
         var graphHeight = graphArea.children().eq(0).height();

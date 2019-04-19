@@ -40,7 +40,7 @@
 							<a class="nav-link" href="#results">Event-detection results</a>
 						</li>
 						<!--<li class="nav-item" id="nav-classification">
-							<a class="nav-link" href="#classification">Tweets classification</a>
+							<a class="nav-link" href="#classification">Other classifiers</a>
 						</li>-->
 						<li class="nav-item" id="nav-tweets">
 							<a class="nav-link" href="#tweets">Tweets Search</a>
@@ -133,42 +133,68 @@
 			    <div class="row">
 
 			      <div class="col-12 pix-margin-top-10">
-			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Event impact</span></h2>
-			        <a href="#" id="reset_impact" class="btn btn-line green-bg pix-gray btn-sm">Reset</a>
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Event impact</span></h2>
 			      </div>
 			      <div class="col-12 pix-margin-top-10">
+					<a href="#" id="reset_impact" class="btn btn-line green-bg pix-gray btn-sm">Reset</a>
 			        <div id="chartDiv"></div>
 			      </div>
 					<!-- IMAGE-BASED EVENT CLUSTERS -->
 				  <div class="col-12 pix-margin-top-10">
-			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Image-based clusters</span></h2>
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Image-based clusters</span></h2>
 			      </div>
 			      <div class="col-12 pix-margin-top-10">
 			        <div class="card-columns" id="eventsClusters"></div>
+				  </div>
+				  <!-- EVENT RELATED N-GRAMS -->
+					<div class="col-12 pix-margin-top-10">
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Event related n-grams</span></h2>
 			      </div>
-			      <div class="col-12 pix-margin-top-10">
-			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Individual Tweets</span></h2>
-			      </div>
-			      <div class="col-12 loading_text">
-			        <span class="badge badge-secondary">Loading...</span>
-			      </div>
-				  <div class="col-12">
-						<!-- EVENT DETECTION TABS -->
-						<div id="event-results-tabs-area" class="gray-bg bg-lighten-4">
-							<div class="" style="border-bottom: 1px solid #dee2e6;">
-								<div class="container">
-									<ul id="event-detection-results-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
-										<li class="nav-item active"><a class="event-tweets-tab nav-link active" tag="confirmed OR proposed OR negative" href="#all-event-results" target="#all-event-results" data-toggle="tab">All the results</a></li>
-										<li class="nav-item"><a class="event-tweets-tab nav-link" tag="proposed" href="#unlabeled-event-results" target="#unlabeled-event-results" data-toggle="tab">Unlabeled tweets</a></li>
-										<li class="nav-item"><a class="event-tweets-tab nav-link" tag="confirmed" href="#confirmed-event-results" target="#confirmed-event-results" data-toggle="tab">Confirmed tweets</a></li>
-										<li class="nav-item"><a class="event-tweets-tab nav-link" tag="negative" href="#rejected-event-results" target="#rejected-event-results" data-toggle="tab">Rejected tweets</a></li>
-									</ul>
+				  <div style="width:100%">
+					  <div class="col-12">
+							<div id="event-ngrams-tabs-area" class="gray-bg bg-lighten-4">
+								<div class="" style="border-bottom: 1px solid #dee2e6;">
+									<div class="container">
+										<ul id="event-ngrams-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
+											<li class="nav-item active"><a class="event-ngrams-tab nav-link active" tag="confirmed OR proposed OR negative" href="#all-event-ngrams" target="#all-event-results" data-toggle="tab">All the results</a></li>
+											<li class="nav-item"><a class="event-ngrams-tab nav-link" tag="proposed" href="#unlabeled-event-ngrams" target="#unlabeled-event-ngrams" data-toggle="tab">Unlabeled tweets</a></li>
+											<li class="nav-item"><a class="event-ngrams-tab nav-link" tag="confirmed" href="#confirmed-event-ngrams" target="#confirmed-event-ngrams" data-toggle="tab">Confirmed tweets</a></li>
+											<li class="nav-item"><a class="event-ngrams-tab nav-link" tag="negative" href="#rejected-event-ngrams" target="#rejected-event-ngrams" data-toggle="tab">Rejected tweets</a></li>
+										</ul>
+									</div>
 								</div>
 							</div>
-						</div>
+					  </div>
+					  <div class="col-12 event-ngrams" style="padding:25px">
+						  <div class="bigrams-graph-area"></div>
+					  </div>
+				  </div>
+				  <!-- INDIVIDUAL TWEETS -->
+			      <div class="col-12 pix-margin-top-10">
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Individual Tweets</span></h2>
 			      </div>
-				  <div class="mt-4 mb-2 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)</div>
-			      <div class="col-12 individual_tweets_result"></div>
+				  <div style="width:100%">
+					  <div class="col-12 loading_text">
+						<span class="badge badge-secondary">Loading...</span>
+					  </div>
+					  <div class="col-12">
+							<!-- EVENT DETECTION TABS -->
+							<div id="event-results-tabs-area" class="gray-bg bg-lighten-4">
+								<div class="" style="border-bottom: 1px solid #dee2e6;">
+									<div class="container">
+										<ul id="event-detection-results-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
+											<li class="nav-item active"><a class="event-tweets-tab nav-link active" tag="confirmed OR proposed OR negative" href="#all-event-results" target="#all-event-results" data-toggle="tab">All the results</a></li>
+											<li class="nav-item"><a class="event-tweets-tab nav-link" tag="proposed" href="#unlabeled-event-results" target="#unlabeled-event-results" data-toggle="tab">Unlabeled tweets</a></li>
+											<li class="nav-item"><a class="event-tweets-tab nav-link" tag="confirmed" href="#confirmed-event-results" target="#confirmed-event-results" data-toggle="tab">Confirmed tweets</a></li>
+											<li class="nav-item"><a class="event-tweets-tab nav-link" tag="negative" href="#rejected-event-results" target="#rejected-event-results" data-toggle="tab">Rejected tweets</a></li>
+										</ul>
+									</div>
+								</div>
+							</div>
+					  </div>
+					  <div class="mt-4 mb-2 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)</div>
+					  <div class="col-12 individual_tweets_result"></div>
+				  </div>
 			    </div>
 			  </div>
 			</div>
@@ -253,15 +279,15 @@
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" href="#1b" data-toggle="tab">Active Learning</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#2b" data-toggle="tab">Strategy 2</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>
+			                    <li class="nav-item active"><a class="nav-link active" href="#clusted-based-active-learning" data-toggle="tab">Cluster-based Active Learning</a></li>
+			                    <li class="nav-item" disabled><a class="nav-link">Density-Weighted Active Learning</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
+			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
+			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
 			                </ul>
 			              </div>
 			              <div class="row">
 			                <div class="tab-content container clearfix">
-			                    <div class="tab-pane active" id="1b">
+			                    <div class="tab-pane active" id="clusted-based-active-learning">
 
 			                        <div class="container" style="padding: 2em 0em;">
 
@@ -275,21 +301,23 @@
 			                                                <h3>About</h3>
 
 			                                                <div>
-			                                                    <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
-			                                                    Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
+			                                                    <p>
+																		Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
+			                                                   			Then, our algorithm will try to learn from your choices and will suggest an automatic classification. If you agree with the classification, you can use it. Otherwise you can repeat the steps through different stages until you get an acceptable result.
+																</p>
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify?</label>
+			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="10" id="num-tweet-questions">
 			                                                        </div>
 
-			                                                        <div class="form-group">
+			                                                        <!--<div class="form-group">
 			                                                            <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
 			                                                            <div>
 			                                                                <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
 			                                                            </div>
-			                                                        </div>
+			                                                        </div>-->
 			                                                    </div>
 			                                                </div>
 			                                            </div>
@@ -368,18 +396,17 @@
 			                            </div>
 			                        </div>
 			                    </div>
-			                    <div class="tab-pane" id="2b">
-			                        <h3>Strategy 2</h3>
+			                    <div class="tab-pane" id="density-weighted-al">
 			                        ...
 			                    </div>
-			                    <div class="tab-pane" id="3b">
+			                    <!--<div class="tab-pane" id="3b">
 			                        <h3>Strategy 3</h3>
 			                        ...
 			                    </div>
 			                    <div class="tab-pane" id="4b">
 			                        <h3>Strategy 4</h3>
 			                        ...
-			                    </div>
+			                    </div>-->
 			                </div>
 			          </div>
 			        </div>
@@ -501,6 +528,33 @@
 			  </div>
 			</div>
 		</script>
+		<script type="text/template" id="tpl-item-retweet">
+			<div class="pix-margin-top-10">
+			  <div class="media pix-padding-10 white-bg bs_box tweet_box <%= classes %>">
+			    <div class="media-body">
+			        <div class="tweet_options">
+			            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			            <b>Options</b>
+			          </button>
+			          <div class="dropdown-menu dropdown-menu-right">
+			              <a class="dropdown-item retweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
+			          </div>
+
+			            <a href="#" class="btn btn-sm retweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
+			                <strong>Confirmed</strong>
+			            </a>
+			            <a href="#" class="btn btn-sm retweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
+			                <strong>Negative</strong>
+			            </a>
+			        </div>
+
+				  <div class="t_state mt-1 mb-1"><%= matching_tweets %></div>
+				  <p class="pix-black t_text"><%= text %></p>
+			      <p><%= images %></p>
+			    </div>
+			  </div>
+			</div>
+		</script>
 		<script type="text/template" id="tpl-page-mabed">
 			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
 			  <div class="container">
@@ -520,10 +574,10 @@
 			                    Total tweets <span id="total_tweets" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    Mentions <span id="total_mentions" class="badge badge-pill badge-info">...</span>
+			                    Tweets with mentions <span id="total_mentions" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    Hashtags <span id="total_hashtags" class="badge badge-pill badge-info">...</span>
+			                    Tweets with hashtags <span id="total_hashtags" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
 			                    Emojis <span class="badge badge-pill badge-info">...</span>
@@ -532,10 +586,10 @@
 			                    Emoticons <span class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    URLs <span id="total_urls" class="badge badge-pill badge-info">...</span>
+			                    Tweets with URLs <span id="total_urls" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    Images <span id="total_images" class="badge badge-pill badge-info">...</span>
+			                    Tweets with images <span id="total_images" class="badge badge-pill badge-info">...</span>
 			                </li>
 			              </div>
 			              <!-- Right column -->

@@ -10,10 +10,10 @@ app.views.settings = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
+        this.update_available_indexes_list();
         await app.views.mabed.prototype.setSessionTopBar();
         this.all_sessions();
         this.show_seesion_info();
-        this.update_available_indexes_list();
 
         return this;
     },
@@ -166,7 +166,7 @@ app.views.settings = Backbone.View.extend({
         return new Promise((resolve, reject) => {
 
             var data = [
-                {name: "index", value: index },  //app.session.s_index
+                {name: "index", value: index },
                 {name: "ngrams_length", value: ngrams_length},
                 {name: "to_property", value: ngrams_length + "grams"}
             ];
@@ -174,6 +174,7 @@ app.views.settings = Backbone.View.extend({
             var keepAskingForLogs = true;
 
             setTimeout(() => {
+                console.log(app.appURL+'generate_ngrams_for_index');
                 $.post(app.appURL+'generate_ngrams_for_index', data, function(response){
                     keepAskingForLogs = false;
                     console.log("generate_bigrams_for_index response: ", response);
@@ -223,6 +224,8 @@ app.views.settings = Backbone.View.extend({
         let self = this;
 
         $.get(app.appURL+'available_indexes', function (response) {
+
+            console.log("Updating selectors", response);
             //clear index list
             let selector = document.querySelector('#session_index');
             while (selector.firstChild) {

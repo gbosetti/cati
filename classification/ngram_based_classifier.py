@@ -10,9 +10,10 @@ from nltk.tokenize import TweetTokenizer
 
 class NgramBasedClasifier:
 
-    def __init__(self):
+    def __init__(self, config_relative_path=''):
         # self.logs = []
         self.current_thread_percentage = 0
+        self.config_relative_path = config_relative_path
         self.tknzr = TweetTokenizer()
 
     def get_n_grams(self, text, length=2):
@@ -30,8 +31,6 @@ class NgramBasedClasifier:
         return full_text
 
     def search_bigrams_related_tweets(self, **kwargs):
-
-        print("PARAMS", kwargs)
 
         my_connector = Es_connector(index=kwargs["index"])
         if kwargs.get('full_search', False):  # All tweets
@@ -91,49 +90,104 @@ class NgramBasedClasifier:
         return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
 
 
+    def search_event_bigrams_related_tweets(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"])
+        query = {
+            "query": {
+               "bool": {
+                   "should": kwargs["target_terms"],
+                   "minimum_should_match": 1,
+                   "must": [
+                       {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                       {"match": {kwargs["session"]: kwargs["label"]}}
+                   ]
+               }
+           }
+        }
+
+        return my_connector.init_paginatedSearch(query)
+
+
+    def update_tweets_state_by_event_ngram(self, **kwargs):
+
+        tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
+
+        query = {
+            "query": {
+                "bool": {
+                    "should": kwargs["target_terms"],
+                    "minimum_should_match": 1,
+                    "must": [
+                        {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                        {"match": {kwargs["session"]: kwargs["query_label"]}}
+                    ]
+                }
+            }
+        }
+        return tweets_connector.update_query(query, kwargs["session"], kwargs["new_label"])
+
+
     def get_ngrams(self, **kwargs):
 
+        if kwargs.get('full_search', False):
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {kwargs["session"]: kwargs["label"]}}
+                    ]
+                }
+            }
+        else:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {"text": kwargs["word"]}},
+                        {"match": {kwargs["session"]: kwargs["label"]}}
+                    ]
+                }
+            }
+
+        return self.get_ngrams_by_query(query=query, **kwargs)
+
+    def get_ngrams_for_event(self, **kwargs):
+
+        query = {
+            "bool": {
+                "should": kwargs["target_terms"],
+                "minimum_should_match": 1,
+                "must": [
+                    {"match": {kwargs["session"]: kwargs["label"]}}
+                ]
+            }
+        }
+
+        return self.get_ngrams_by_query(query=query, **kwargs)
+
+    def get_ngrams_by_query(self, query="", **kwargs):
+
         try:
-            my_connector = Es_connector(index=kwargs["index"])
-
-            if kwargs.get('full_search', False):
-                print("Query matching full search 2")
-                query = {
-                    "bool": {
-                        "must": [
-                            {"match": {kwargs["session"]: kwargs["label"]}}
-                        ]
-                    }
-                }
-            else:
-                query = {
-                    "bool": {
-                        "must": [
-                            {"match": {"text": kwargs["word"]}},
-                            {"match": {kwargs["session"]: kwargs["label"]}}
-                        ]
-                    }
-                }
-
-            return my_connector.search({
-                "size": 0,
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=self.config_relative_path)
+            full_query = {
                 "query": query,
+                "size": 0,
                 "aggs": {
                     "ngrams_count": {
                         "terms": {
-                            "field": kwargs["n_size"] + "grams",
+                            "field": kwargs["n_size"] + "grams.keyword",
                             "size": kwargs["results_size"]
                         },
                         "aggs": {
                             "status": {
                                 "terms": {
-                                    "field": kwargs["session"]+".keyword"
+                                    "field": kwargs["session"] + ".keyword"
                                 }
                             }
                         }
                     }
                 }
-            })
+            }
+            return my_connector.search(full_query)
 
         except Exception as e:
             print('Error: ' + str(e))
@@ -144,7 +198,6 @@ class NgramBasedClasifier:
     def get_search_related_classification_data(self, index="test3", word="", session="", label="confirmed OR proposed OR negative", matching_ngrams=[], full_search=False):
 
         if full_search:
-            print("Query matching full search")
             query = {
                 "bool": {
                     "must": [
@@ -252,25 +305,32 @@ class NgramBasedClasifier:
             # Get the data for performinga paginated search
             self.current_thread_percentage = 0
             my_connector = Es_connector(index=kwargs["index"])
-            res = my_connector.init_paginatedSearch({
-                "query": {
-                    "match_all": {}
-                }
-            })
+
+            query = kwargs.get('query', {
+                    "query": {
+                        "match_all": {}
+                    }
+                })
+
+            res = my_connector.init_paginatedSearch(query)
             sid = res["sid"]
             scroll_size = res["scroll_size"]
             total = int(res["total"])
-            print("Total: ", total)
 
             # Analyse and process page by page
             i = 0
             processed = 0
+
+            # if total>0:
+            #     self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+
             while scroll_size > 0:
                 i += 1
                 res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
                 scroll_size = res2["scroll_size"]
                 processed += scroll_size
                 tweets = res2["results"]
+
                 self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
                 self.current_thread_percentage = round(processed * 100 / total, 2)
                 print("Completed: ", self.current_thread_percentage, "%")
@@ -283,6 +343,20 @@ class NgramBasedClasifier:
         except Exception as e:
             print('Error: ' + str(e))
             return False
+
+    # def generate_ngrams_for_unlabeled_tweets_on_index(self, **kwargs):
+    #
+    #     query={
+    #         "query": {
+    #             "bool": {
+    #                 "must_not": {
+    #                     "exists" : { "field" : kwargs["prop"] }
+    #                 }
+    #             }
+    #         }
+    #     }
+    #
+    #     return self.generate_ngrams_for_index(**dict(kwargs, query=query))
 
     def format_single_tweet_ngrams(self, ngrams):
 

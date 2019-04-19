@@ -7,11 +7,17 @@ events/
 demo/
 venv
 classification/test/
+classification/images/*
+classification/logs/*
 classification/train/
 classification/unlabeled/
 classification/test/*
 classification/train/*
 classification/unlabeled/*
+classification/classification/*
+classification/tmp_data/*
+classification/tmp_data*
+browser/static/images/2017
 browser/static/images/Twitter_2017_Imgs
 browser/static/images/Twitter_2016_Imgs/
 browser/static/images/Twitter_2015_Imgs/

@@ -26,9 +26,10 @@ __email__ = "odehfiras@gmail.com"
 # Interface Functions
 class Functions:
     #TODO check if this needs to e configured on master
-    def __init__(self):
+    def __init__(self, config_relative_path=''):
         self.sessions_index = 'mabed_sessions'
         self.sessions_doc_type = 'session'
+        self.config_relative_path = config_relative_path
         # print("Functions init")
 
     def get_total_tweets(self, index):
@@ -162,6 +163,54 @@ class Functions:
               # }
               # }
             return '...'
+
+    def top_retweets(self, **kwargs):
+
+        try:
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=self.config_relative_path)
+
+            if kwargs.get('full_search', False):
+                query = {
+                    "bool": {
+                        "must": [
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
+                }
+            else:
+                query = {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": kwargs["word"]}},
+                            {"match": {kwargs["session"]: kwargs["label"]}}
+                        ]
+                    }
+                }
+
+            return my_connector.search({
+                "size": 0,
+                "query": query,
+                "aggs": {
+                    "top_text": {
+                        "terms": {
+                            "field": "text.keyword",
+                            "size": kwargs["retweets_number"]
+                        },
+                        "aggregations": {
+                            "top_text_hits": {
+                                "top_hits": {
+                                    "size" : 1
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+
+        except Exception as e:
+            print('Error: ' + str(e))
+            return {}
+
 
     def get_classification_stats(self, index, session_name):
         session = "session_" + session_name
@@ -445,7 +494,8 @@ class Functions:
             ],
             "query": {
                 "bool": {
-                    "should": terms
+                    "should": terms,
+                    "minimum_should_match": 1
                 }
             }
         }
@@ -490,17 +540,16 @@ class Functions:
             my_connector = Es_connector(index=index)
             terms = self.get_retated_terms(main_term, related_terms)
             # UpdateByQuery.using
+            # TODO: replace by EsConnector . update_by_query ()
             self.fix_read_only_allow_delete(index, my_connector)
-            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({"query": {"bool": {"should": terms}}}).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
-
-            # CADA ELEM {'match': {'text': {'query': 'costs', 'boost': '1.23'}}}
-            #           {'match': {'text': {'query': 'costs', 'boost': '1.23'}}}
-
-            # "should": [
-            #     {"term": {"tag": "wow"}},
-            #     {"term": {"tag": "elasticsearch"}}
-            # ],
-            # "minimum_should_match": 1,
+            ubq = UpdateByQuery(using=my_connector.es, index=index).update_from_dict({
+                "query": {
+                    "bool": {
+                        "should": terms,
+                        "minimum_should_match": 1
+                    }
+                }
+            }).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
             response = ubq.execute()
 
         except RequestError as err:
@@ -527,17 +576,6 @@ class Functions:
                 "boost": 2
             }
         }})
-        # query = {
-        #     "sort": [
-        #         "_score"
-        #     ],
-        #         "query": {
-        #                 "bool": {
-        #                     "should": terms
-        #                 }
-        #             }
-        #         }
-
         query = {
             "sort": [
                 "_score"
@@ -586,24 +624,6 @@ class Functions:
                 "boost": 2
             }
         }})
-        # terms.append({"match": {
-        #     "imagesCluster": {
-        #         "query": cid
-        #     }
-        # }})
-        # query = {
-        #         "query": {
-        #                 "bool": {
-        #                     "must": {
-        #                         "exists": {
-        #                             "field": "imagesCluster"
-        #                         }
-        #                     },
-        #                     # "must": { "match": { "imagesCluster" : cid }},
-        #                     "should": terms
-        #                 }
-        #             }
-        #         }
 
         query = {
             "sort": [
@@ -677,20 +697,7 @@ class Functions:
                 "boost": 2
             }
         }})
-        # res = my_connector.search({"query": {"term" : { "text" : word }}})
-        # query = {
-        #     "bool": {
-        #         "must": {
-        #             "match": {
-        #                 "text": {
-        #                     "query": main_term,
-        #                     "operator": "or"
-        #                 }
-        #             }
-        #         },
-        #         "should": terms
-        #     }
-        # }
+
         # TODO add session field to this function
         query = {
             "size": 1,
@@ -746,23 +753,39 @@ class Functions:
     # Clusters
     # ==================================================================
 
-    def get_clusters(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+    def get_clusters(self, index="test3", word=None, session="", label="confirmed OR proposed OR negative", limit=None):
+
         my_connector = Es_connector(index=index)
-        res = my_connector.search({
-            "size": 1,
-            "query": {
+
+        if word==None:
+            query = {
                 "bool": {
                     "must": [
-                        {"match": {"text": word }},
                         {"match": {session: label}}
                     ]
                 }
-            },
+            }
+        else:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": {session: label}}
+                    ]
+                }
+            }
+
+        if limit == None:
+            limit = 9999
+
+        res = my_connector.search({
+            "size": 1,
+            "query": query,
             "aggs": {
                 "group_by_cluster": {
                     "terms": {
                         "field": "imagesCluster",
-                        "size": 9999
+                        "size": limit
                     }
                 }
             }
@@ -815,6 +838,7 @@ class Functions:
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
+        print("index for CLUSTERS: ", index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
@@ -854,16 +878,18 @@ class Functions:
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
-            if data and data["duplicates"]:
+            if data is not None and data["duplicates"] is not None:
                 q2 = {
                     "query": {
                         "term": {"imagesCluster": cluster['key']}
                     }
                 }
                 cres = my_connector.count(q2)
-                images = data['duplicates'][cluster['key']]
-                cluster['image'] = images[0]
-                cluster['size'] = cres['count']
+                if cluster['key'] is not None or cluster['key'].strip() == "":
+                    images = data['duplicates'][cluster['key']]
+                    cluster['image'] = images[0]
+                    cluster['size'] = cres['count']
+                else: print("The key does not exist: ", cluster['key'])
             else:
                 cluster['image'] = "Missing 'duplicated' file"
                 cluster['size'] = "Missing 'duplicated' file"
@@ -977,7 +1003,6 @@ class Functions:
 
     def fix_read_only_allow_delete(self, index, connector):
 
-        print("index: ", index)
         connector.es.indices.put_settings(index=index, body={
             "index": {
                 "blocks": {
@@ -1198,6 +1223,17 @@ class Functions:
         }
         res = tweets_connector.update(tid, query)
         return res
+
+    def set_retweets_state(self, **kwargs):
+
+        tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")
+        return tweets_connector.update_by_query({
+            "query": {
+                "match_phrase": {
+                    "text": kwargs["text"]
+                }
+              }
+        }, "ctx._source." + kwargs["session"] + " = '" + kwargs["tag"] + "'")
 
     def export_event(self, index, session):
         my_connector = Es_connector(index=index)

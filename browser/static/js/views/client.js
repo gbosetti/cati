@@ -5,15 +5,20 @@ app.views.client = Backbone.View.extend({
 				'click #reset_impact': 'reset_impact',
 				'click .tl_options_btn': 'mark_event',
 				'click .cluster_tweets': 'cluster_tweets',
-				'click .tweet_state': 'tweet_state',
         		'click .scroll_tweets': 'scroll_tweets',
 				'click .cluster_state': 'cluster_state',
 				'click .btn_filter': 'filter_tweets',
-				'click .event-tweets-tab': 'filter_tweets_matching_tab'
+				'click .event-tweets-tab': 'filter_tweets_matching_tab',
+				'click .event-ngrams-tab': 'filter_ngrams_matching_tab'
 		},
 	  initialize: function() {
-            this.render();
-            var handler = _.bind(this.render, this);
+            this.ngrams = { //Session data for the ngrams
+                bigrams: undefined,
+                tweets: undefined,
+                graphHeight: undefined,
+                formData: []
+            };
+            //var handler = _.bind(this.render, this);
             var self = this;
             $(document).on("click","body .tweet_state",function(e){ // Search tweets
                 self.tweet_state(e);
@@ -27,10 +32,120 @@ app.views.client = Backbone.View.extend({
 		await app.views.mabed.prototype.setSessionTopBar();
 		app.views.mabed.prototype.getClassificationStats();
 
-		this.load_timeline();
+		this.load_timeline(); //This method loads also the tweets and ngrams
 		this.load_impact();
+
+		this.enableAccordion();
 	  	return this;
 	  },
+	  enableAccordion: function(){
+	    $(".event-accordion-shrink").on( "click", evt => {
+
+            if (evt.target.tagName.toLocaleLowerCase() == "span")
+                return;
+
+	        if(evt.target.classList.contains("event-accordion-shrink")){
+	            evt.target.classList.remove("event-accordion-shrink");
+	            evt.target.classList.add("event-accordion-expand");
+                $(evt.target.parentNode.nextElementSibling).hide();
+            }
+            else{
+                evt.target.classList.add("event-accordion-shrink");
+	            evt.target.classList.remove("event-accordion-expand");
+	            $(evt.target.parentNode.nextElementSibling).show();
+            }
+
+            evt.preventDefault();
+            evt.stopImmediatePropagation();
+        });
+	  },
+	    load_ngrams: function(eventId){
+
+            this.lastNgramsEventId = eventId;
+
+            var event = app.eventsCollection.get({ cid: this.lastNgramsEventId }).toJSON(); // JSON.stringify(
+	        var data =  app.views.tweets.prototype.getIndexAndSession().concat(
+	                    app.views.tweets.prototype.getTabSearchDataFor("#event-ngrams-tabs li.active a")).concat(
+	                    [{name: "event", value: JSON.stringify(event)}]).concat(
+	                    app.views.tweets.prototype.getBigramsFormData());
+
+	        this.request_ngrams(data).then( response => {
+
+	            var containerSelector = ".event-ngrams";
+	            this.ngrams.lastQueryParams = data;
+
+	            if($.isEmptyObject(response.ngrams)){
+                    app.views.tweets.prototype.showNoBigramsFound(containerSelector);
+                }else {
+
+                    $(containerSelector).html("");
+                    app.views.tweets.prototype.renderBigramsGrid(containerSelector, 600, false, "col-12");
+                    app.views.tweets.prototype.updateBigramsControls(response.ngrams, this.ngrams);
+
+                    var onBubbleClick = (label, evt) => {
+
+                        var ngram = label.split(" ").join("-");
+                        var ngramsToGenerate = this.ngrams.formData.filter(item => {return item.name == "n-grams-to-generate"})[0];
+                            ngramsToGenerate = ngramsToGenerate!=undefined? ngramsToGenerate.value : 2;
+                        app.views.tweets.prototype.showNgramTweets(this.ngrams, this, ngramsToGenerate, label, ngram, "#event-ngrams-tabs li.active a", 'search_event_bigrams_related_tweets');
+                    };
+
+                    app.views.tweets.prototype.renderBigramsChart(onBubbleClick, this.ngrams, ".bigrams-graph-area", response.ngrams, 600);
+                }
+
+                $(".regenerate-bigrams").prop("disabled",true);
+	        });
+
+	    },
+	    markBigramTweets: function(self, label, graphBasedLabelNgram, clientData){ //graphBasedLabelNgram may be changed (space for -, or ... when it is longer)
+
+            var jc = self.createChangingStatePopup();
+
+            var data = clientData.lastQueryParams.concat([
+                {name: "ngram", value: graphBasedLabelNgram },
+                {name: "query_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value },
+                {name: "new_label", value: label }
+            ]);
+            console.log("data", data);
+
+            var client = this;
+
+            $.post(app.appURL+'mark_event_ngram_tweets', data, function(response){
+                    try{
+                        console.log(response);
+                        //Update the UI in case the user wants to exclude some tweets from the global tagging
+                        document.querySelectorAll(".ngram_rel_tweets .t_state").forEach(node => {
+
+                            var label_status;
+                            if(label == "confirmed"){
+                                label_status = '<span class="badge badge-success">'+label+'</span>';
+                            }else if (label == "negative"){
+                                label_status = '<span class="badge badge-danger">'+label+'</span>';
+                            }else{
+                                label_status = '<span class="badge badge-secondary">'+label+'</span>';
+                            }
+
+                            $(node).html(label_status)
+                        });
+                    }catch(err){console.log(err)}
+                    //Close the "wait" message
+                    jc.close();
+                    //self.searchForTweets();
+                    client.load_ngrams(client.lastNgramsEventId);
+                }).fail(this.cnxError);
+            return false;
+        },
+	    request_ngrams: function(data){
+
+	        return new Promise((resolve, reject)=>{
+                $.post(app.appURL+'event_ngrams_with_higher_ocurrence', data, (response) => {
+                    resolve(response)
+                }, 'json').fail(function(err){
+                    console.log(err);
+                    reject(err)
+                });
+	        });
+	    },
 		load_timeline: function(){
 			var self = this;
 			app.eventsCollection.get_timeline_events().then(data => {
@@ -46,9 +161,9 @@ app.views.client = Backbone.View.extend({
                     self.eventTweetsParams = {obj: JSON.stringify(s_ev), index: app.session.s_index};
 
                     $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
-                        console.log("load_timeline");
                         try{
                             self.display_tweets(response, t0, timeline.config.events[0].unique_id);
+                            self.load_ngrams(timeline.config.events[0].unique_id);
                         }catch(err){console.log(err)}
                     }, 'json').fail(function(err) {
                           console.log(err);
@@ -67,6 +182,7 @@ app.views.client = Backbone.View.extend({
                             $.post(app.appURL+'event_tweets', self.eventTweetsParams, function(response){
                                 try{
                                     self.display_tweets(response, t0, data.unique_id);
+                                    self.load_ngrams(data.unique_id);
                                 }catch(err){console.log(err)}
                             }, 'json');
                         }catch(err){console.log(err)}
@@ -263,46 +379,37 @@ app.views.client = Backbone.View.extend({
                 console.log("NO imagesPath");
 			}
 
-			 //$.post(app.appURL+'get_image_folder', [
-             //       { name: "index", value: app.session.s_index },
-             //       { name: "session", value: app.session.s_name }
-             //   ],function(image_folder){
+			console.log("ASSOCIATED CLUSTERS: ", response.clusters.length);
 
-                    if(response.clusters) {
-                        $.each(response.clusters, function (i, cluster) {
-                            if (i >= 40) {
-                                return false;
-                            }
-                            i++;
-                            var cbg = "";
-                            if (cluster.size > cluster.doc_count) {
-                                cbg = 'yellow-tweet';
-                            }
-                            if (eid) {
-                                cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="' + eid + '" data-cid="' + cluster.key + '"><strong>Show tweets</strong></a>';
-                                state_btns = '<div class="cluster_state_btns">';
-                                state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
-                                state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
-                                state_btns += '</div>';
-                            }
-
-                            chtml += '<div class="card p-3 ' + cbg + '">' +
-                                '<img class="card-img-top" src="' +app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() + '" alt="">' +
-                                state_btns +
-                                '<div class="card-body">' +
-                                '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
-                                // '<p class="card-text">'+cluster.size2+' related tweets contain this image</p>'+
-                                '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
-                                '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
-                                cbtn +
-                                '</div>' +
-                                '</div>';
-                        });
-                        $('#eventsClusters').html(chtml);
+            if(response.clusters) {
+                $.each(response.clusters, function (i, cluster) {
+                    i++;
+                    var cbg = "";
+                    if (cluster.size > cluster.doc_count) {
+                        cbg = 'yellow-tweet';
                     }
-                //}
-            //);
-            console.log("individual_tweets_result");
+                    if (eid) {
+                        cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="' + eid + '" data-cid="' + cluster.key + '"><strong>Show tweets</strong></a>';
+                        state_btns = '<div class="cluster_state_btns">';
+                        state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
+                        state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
+                        state_btns += '</div>';
+                    }
+
+                    chtml += '<div class="card p-3 ' + cbg + '">' +
+                        '<img class="card-img-top" src="' +app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() + '" alt="">' +
+                        state_btns +
+                        '<div class="card-body">' +
+                        '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
+                        // '<p class="card-text">'+cluster.size2+' related tweets contain this image</p>'+
+                        '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
+                        '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
+                        cbtn +
+                        '</div>' +
+                        '</div>';
+                });
+                $('#eventsClusters').html(chtml);
+            }
 			$('.individual_tweets_result:visible:last').html(html);
 			$('.loading_text').fadeOut('slow');
 			$('.tweets_results').fadeIn('slow');
@@ -414,9 +521,20 @@ app.views.client = Backbone.View.extend({
 	},
 	filter_tweets_matching_tab: function(evt){
 	    evt.preventDefault();
+	    console.log("filter_tweets");
 	    this.filter_tweets(evt, this.currentClusterId, evt.target.getAttribute("tag"));
         $('#event-results-tabs-area li').removeClass('active');
         $(evt.target).parent().addClass('active');
+    },
+    filter_ngrams_matching_tab: function(evt){
+
+        evt.preventDefault();
+	    console.log("filter_ngrams_matching_tab");
+	    $('.event-ngrams').html("");
+	    $('#event-ngrams-tabs li').removeClass('active');
+        $(evt.target).parent().addClass('active');
+
+	    this.load_ngrams(this.lastNgramsEventId);
     },
 	filter_tweets: function(e, eid, state){
 	    e.preventDefault();

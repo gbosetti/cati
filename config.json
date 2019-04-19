@@ -10,6 +10,17 @@
       "doc_type": "tweet",
       "image_duplicates": "/home/ssh_user/IMAGES/2017-Image-Classif.json",
       "images_folder": "Twitter_2017_Imgs"
+    },
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "lyon2016",
+      "doc_type": "tweet",
+      "image_duplicates": "/home/ssh_user/IMAGES/2016-Image-Classif.json",
+      "images_folder": "Twitter_2016_Imgs"
     }
   ],
   "default": {
