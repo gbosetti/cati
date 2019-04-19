@@ -855,6 +855,8 @@ app.views.tweets = Backbone.View.extend({
     showImageClusters: function(clusters, word, clustersAreaSelector){
         var cbtn = "", chtml = "", state_btns="";
 
+        console.log("TOP CLUSTERS TO PRESENT (max.100): ", clusters.length);
+
         if(clusters){
             $.each(clusters, function(i, cluster){
                 //if(i>=20){return false;}

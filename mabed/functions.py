@@ -879,7 +879,6 @@ class Functions:
 
         for cluster in clusters:
             if data is not None and data["duplicates"] is not None:
-                print("\n\nCLUSTER----------------------", cluster['key'])
                 q2 = {
                     "query": {
                         "term": {"imagesCluster": cluster['key']}

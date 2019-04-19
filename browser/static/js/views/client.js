@@ -379,46 +379,37 @@ app.views.client = Backbone.View.extend({
                 console.log("NO imagesPath");
 			}
 
-			 //$.post(app.appURL+'get_image_folder', [
-             //       { name: "index", value: app.session.s_index },
-             //       { name: "session", value: app.session.s_name }
-             //   ],function(image_folder){
+			console.log("ASSOCIATED CLUSTERS: ", response.clusters.length);
 
-                    if(response.clusters) {
-                        $.each(response.clusters, function (i, cluster) {
-                            if (i >= 40) {
-                                return false;
-                            }
-                            i++;
-                            var cbg = "";
-                            if (cluster.size > cluster.doc_count) {
-                                cbg = 'yellow-tweet';
-                            }
-                            if (eid) {
-                                cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="' + eid + '" data-cid="' + cluster.key + '"><strong>Show tweets</strong></a>';
-                                state_btns = '<div class="cluster_state_btns">';
-                                state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
-                                state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
-                                state_btns += '</div>';
-                            }
-
-                            chtml += '<div class="card p-3 ' + cbg + '">' +
-                                '<img class="card-img-top" src="' +app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() + '" alt="">' +
-                                state_btns +
-                                '<div class="card-body">' +
-                                '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
-                                // '<p class="card-text">'+cluster.size2+' related tweets contain this image</p>'+
-                                '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
-                                '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
-                                cbtn +
-                                '</div>' +
-                                '</div>';
-                        });
-                        $('#eventsClusters').html(chtml);
+            if(response.clusters) {
+                $.each(response.clusters, function (i, cluster) {
+                    i++;
+                    var cbg = "";
+                    if (cluster.size > cluster.doc_count) {
+                        cbg = 'yellow-tweet';
                     }
-                //}
-            //);
-            console.log("individual_tweets_result");
+                    if (eid) {
+                        cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="' + eid + '" data-cid="' + cluster.key + '"><strong>Show tweets</strong></a>';
+                        state_btns = '<div class="cluster_state_btns">';
+                        state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
+                        state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';
+                        state_btns += '</div>';
+                    }
+
+                    chtml += '<div class="card p-3 ' + cbg + '">' +
+                        '<img class="card-img-top" src="' +app.imagesURL + app.imagesPath +'/'+ cluster.image.split("/").pop() + '" alt="">' +
+                        state_btns +
+                        '<div class="card-body">' +
+                        '<p class="card-text">' + cluster.doc_count + ' related tweets contain this image</p>' +
+                        // '<p class="card-text">'+cluster.size2+' related tweets contain this image</p>'+
+                        '<p class="card-text">Cluster size: ' + cluster.size + '</p>' +
+                        '<p class="card-text">Cluster ID: ' + cluster.key + '</p>' +
+                        cbtn +
+                        '</div>' +
+                        '</div>';
+                });
+                $('#eventsClusters').html(chtml);
+            }
 			$('.individual_tweets_result:visible:last').html(html);
 			$('.loading_text').fadeOut('slow');
 			$('.tweets_results').fadeIn('slow');
