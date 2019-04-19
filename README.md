@@ -44,6 +44,18 @@ E.g. mabed/browser/static/images/lyon2017-images
 Once you analyzed and generated the clusters, export the json file and keep track of such filename. Let's say we name it and save it as:
 mabed/browser/static/images/image-clusters-lyon2017.json
 
+You can also place the images in another folder and create a symlink in this location:
+
+```
+ln -s <nom du fichier ou répertoire de destination > <nom du lien symbolique>
+```
+
+So, e.g.
+
+```
+ cd browser/static/images/
+ ln -s ../../../../IMAGES/lyon2017-images lyon2017-images
+```
 
 ### Set the source in the config.json file
 
