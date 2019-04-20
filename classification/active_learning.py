@@ -212,7 +212,10 @@ class ActiveLearning:
         retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
                                                      label='proposed', retweets_number=kwargs['results_size'])
 
-        return retweets["aggregations"]["top_text"]["buckets"]
+        if retweets["aggregations"] is None:
+            return []
+        else:
+            return retweets["aggregations"]["top_text"]["buckets"]
 
     def get_top_bigrams(self, **kwargs):
 
@@ -221,7 +224,10 @@ class ActiveLearning:
                                                       label='proposed', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)
 
-        return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
+        if matching_ngrams["aggregations"] is None:
+            return []
+        else:
+            return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
 
     def get_samples_closer_to_hyperplane(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
 
