@@ -116,7 +116,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
     learner = ActiveLearningNoUi()
-    logs_filename = args.gt_session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+    logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
     learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
                 gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
                 download_files=args.download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
@@ -126,7 +126,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
     for weights in selected_combinations:
 
         learner = ActiveLearningNoUi()
-        logs_filename = args.gt_session + "_OUR_" + str(max_samples_to_sort) + "_" + \
+        logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
                         "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
                         "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
 
