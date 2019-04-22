@@ -480,7 +480,7 @@ app.views.client = Backbone.View.extend({
     	var cid = $(e.currentTarget).data("cid");
     	var data = [];
 		data.push({name: "index", value: app.session.s_index});
-		data.push({name: "session", value: app.session.s_name});
+		data.push({name: "session", value: "session_" + app.session.s_name});
 		data.push({name: "state", value: state});
 		data.push({name: "cid", value: cid});
 		var jc = $.confirm({
