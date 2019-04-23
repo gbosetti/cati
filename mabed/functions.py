@@ -25,7 +25,7 @@ __email__ = "odehfiras@gmail.com"
 
 # Interface Functions
 class Functions:
-    #TODO check if this needs to e configured on master
+    # TODO check if this needs to e configured on master
     def __init__(self, config_relative_path=''):
         self.sessions_index = 'mabed_sessions'
         self.sessions_doc_type = 'session'
@@ -59,20 +59,19 @@ class Functions:
         except RequestError:
             return '...'
 
-
     def get_mapping_spec(self, index, doc):
 
         return Es_connector(index=index, doc_type=doc).es.indices.get_mapping(index=index, doc_type=doc)
 
-    def get_total_mentions(self,index):
-        my_connector = Es_connector(index=index, doc_type= "tweet")
+    def get_total_mentions(self, index):
+        my_connector = Es_connector(index=index, doc_type="tweet")
         print("Index for get mentions ", index)
         try:
             res = my_connector.search({
-                    "size": 0,
-                    "query": {
-                        "exists": {"field": "entities.user_mentions"}
-                    }
+                "size": 0,
+                "query": {
+                    "exists": {"field": "entities.user_mentions"}
+                }
             })
             if my_connector.field_exists(field="entities.user_mentions*"):
                 return res['hits']['total']
@@ -147,21 +146,21 @@ class Functions:
             )
             return res['aggregations']['count']['value']
         except RequestError:
-              # this may happen if media.id_str is not bound to a keyword multi field
-              # PUT / twitterfdl2017 / _mapping / tweet
+            # this may happen if media.id_str is not bound to a keyword multi field
+            # PUT / twitterfdl2017 / _mapping / tweet
 
-              # {
-              # "properties": {
-              # "extended_entities.media.id_str": {
-              # "type": "text",
-              # "fields": {
-              # "keyword": {
-              # "type": "keyword"
-              # }
-              # }
-              # }
-              # }
-              # }
+            # {
+            # "properties": {
+            # "extended_entities.media.id_str": {
+            # "type": "text",
+            # "fields": {
+            # "keyword": {
+            # "type": "keyword"
+            # }
+            # }
+            # }
+            # }
+            # }
             return '...'
 
     def top_retweets(self, **kwargs):
@@ -199,7 +198,7 @@ class Functions:
                         "aggregations": {
                             "top_text_hits": {
                                 "top_hits": {
-                                    "size" : 1
+                                    "size": 1
                                 }
                             }
                         }
@@ -211,10 +210,9 @@ class Functions:
             print('Error: ' + str(e))
             return {}
 
-
     def get_classification_stats(self, index, session_name):
         session = "session_" + session_name
-        keyword = session+".keyword"
+        keyword = session + ".keyword"
         my_connector = Es_connector(index=index)
         try:
             res = my_connector.search(
@@ -223,7 +221,7 @@ class Functions:
                  "aggs": {
                      "classification_status": {
                          "terms": {
-                             "field":  keyword,
+                             "field": keyword,
                              "size": 10
                          }
                      },
@@ -237,7 +235,7 @@ class Functions:
             return res['aggregations']['classification_status']['buckets']
         except RequestError:
             return {
-                 [
+                [
                     {'key': 'proposed', 'doc_count': '0'},
                     {'key': 'positive', 'doc_count': '0'},
                     {'key': 'negative', 'doc_count': '0'}
@@ -247,11 +245,13 @@ class Functions:
     # Event Detection
     # ==================================================================
 
-    def detect_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2, **kwargs):
+    def detect_events(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2,
+                      **kwargs):
         sw = 'stopwords/twitter_all.txt'
         sep = '\t'
 
-        kwargs["logger"].add_log('Parameters:   Index: %s\n   k: %d\n   Stop-words: %s\n   Min. abs. word frequency: %d\n   Max. rel. word frequency: %f' %
+        kwargs["logger"].add_log(
+            'Parameters:   Index: %s\n   k: %d\n   Stop-words: %s\n   Min. abs. word frequency: %d\n   Max. rel. word frequency: %f' %
             (index, k, sw, maf, mrf))
         kwargs["logger"].add_log('   p: %d\n   theta: %f\n   sigma: %f' % (p, theta, sigma))
         kwargs["logger"].add_log('Loading corpus...')
@@ -276,7 +276,8 @@ class Functions:
         kwargs["logger"].add_log('Event detection performed in %f seconds.' % elapsed)
         return mabed
 
-    def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2, **kwargs):
+    def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2,
+                           **kwargs):
         mabed = self.detect_events(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=kwargs["logger"])
 
         # format data
@@ -348,7 +349,8 @@ class Functions:
 
     def filtered_event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6,
                                     session=False, filter=False, cluster=2, **kwargs):
-        mabed = self.detect_filtered_events(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=kwargs["logger"])
+        mabed = self.detect_filtered_events(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster,
+                                            logger=kwargs["logger"])
         if not mabed:
             return False
 
@@ -395,7 +397,7 @@ class Functions:
             "query": {
                 "bool": {
                     "must": [
-                        {"match": {"text": word }},
+                        {"match": {"text": word}},
                         {"match": {session: label}}
                     ]
                 }
@@ -529,10 +531,10 @@ class Functions:
 
         my_connector = Es_connector(index=index)
         print(my_connector.protocol + '://' + my_connector.host + ':' + str(my_connector.port))
-        res = requests.get(my_connector.protocol + '://' + my_connector.host + ':' + str(my_connector.port) + '/_tasks?detailed=true&actions=*byquery')
+        res = requests.get(my_connector.protocol + '://' + my_connector.host + ':' + str(
+            my_connector.port) + '/_tasks?detailed=true&actions=*byquery')
         return res.json()
         # GET _tasks?detailed=true&actions=*byquery
-
 
     def massive_tag_event_tweets(self, index="test3", session="", labeling_class="", main_term="", related_terms=""):
 
@@ -549,7 +551,7 @@ class Functions:
                         "minimum_should_match": 1
                     }
                 }
-            }).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"' )
+            }).script(source='ctx._source.session_' + session + ' = "' + labeling_class + '"')
             response = ubq.execute()
 
         except RequestError as err:
@@ -675,13 +677,13 @@ class Functions:
             return res["aggregations"]
 
         except RequestError:
-            print("Error: try creating the keyword field")  #TODO
+            print("Error: try creating the keyword field")  # TODO
             return {}
 
-    def get_event_image(self, index="test3", main_term="", related_terms="",s_name=""):
+    def get_event_image(self, index="test3", main_term="", related_terms="", s_name=""):
         my_connector = Es_connector(index=index)
         terms = []
-        session = 'session_'+s_name
+        session = 'session_' + s_name
         words = main_term + ' '
         for t in related_terms:
             terms.append({"match": {
@@ -757,7 +759,7 @@ class Functions:
 
         my_connector = Es_connector(index=index)
 
-        if word==None:
+        if word == None:
             query = {
                 "bool": {
                     "must": [
@@ -804,31 +806,29 @@ class Functions:
 
         return clusters
 
-    def get_clusters_stats(self, index="test3", word="", session="" ):
-        confirmed = self.get_clusters(index=index,word=word,session=session,label="confirmed")
-        negative = self.get_clusters(index=index,word=word,session=session,label="negative")
-        proposed = self.get_clusters(index=index,word=word,session=session,label="proposed")
-        confirmed_dict = {c['key']:c['doc_count']for c in confirmed}
-        negative_dict = {n['key']:n['doc_count']for n in negative}
-        proposed_dict = {p['key']:p['doc_count']for p in proposed}
+    def get_clusters_stats(self, index="test3", word="", session=""):
+        confirmed = self.get_clusters(index=index, word=word, session=session, label="confirmed")
+        negative = self.get_clusters(index=index, word=word, session=session, label="negative")
+        proposed = self.get_clusters(index=index, word=word, session=session, label="proposed")
+        confirmed_dict = {c['key']: c['doc_count'] for c in confirmed}
+        negative_dict = {n['key']: n['doc_count'] for n in negative}
+        proposed_dict = {p['key']: p['doc_count'] for p in proposed}
 
         stats = {}
-        for key,con in confirmed_dict.items():
+        for key, con in confirmed_dict.items():
             stats[key] = (con, 0, 0)
-        for key,neg in negative_dict.items():
+        for key, neg in negative_dict.items():
             if stats.get(key) is None:
                 stats[key] = (0, neg, 0)
             else:
                 stats[key] = (stats[key][0], neg, 0)
-        for key,pro in proposed_dict.items():
+        for key, pro in proposed_dict.items():
             if stats.get(key) is None:
                 stats[key] = (0, 0, pro)
             else:
                 stats[key] = (stats[key][0], stats[key][1], pro)
 
         return stats
-
-
 
     def get_image_folder(self, index):
 
@@ -860,6 +860,99 @@ class Functions:
         except IOError as err:
             print("The image-duplicated file was not found.", err)
             return
+
+    def get_event_image_clusters_stats(self, index="test3", main_term="", related_terms="", session=""):
+
+        confirmed = self.get_event_clusters_state(index=index, main_term=main_term, related_terms=related_terms,
+                                                  session=session, label="confirmed")
+        negative = self.get_event_clusters_state(index=index, main_term=main_term, related_terms=related_terms,
+                                                 session=session, label="negative")
+        proposed = self.get_event_clusters_state(index=index, main_term=main_term, related_terms=related_terms,
+                                                 session=session, label="proposed")
+        confirmed_dict = {c['key']: c['doc_count'] for c in confirmed}
+        negative_dict = {n['key']: n['doc_count'] for n in negative}
+        proposed_dict = {p['key']: p['doc_count'] for p in proposed}
+
+        stats = {}
+        for key, con in confirmed_dict.items():
+            stats[key] = (con, 0, 0)
+        for key, neg in negative_dict.items():
+            if stats.get(key) is None:
+                stats[key] = (0, neg, 0)
+            else:
+                stats[key] = (stats[key][0], neg, 0)
+        for key, pro in proposed_dict.items():
+            if stats.get(key) is None:
+                stats[key] = (0, 0, pro)
+            else:
+                stats[key] = (stats[key][0], stats[key][1], pro)
+
+        return stats
+
+    def get_event_clusters_state(self, index="test3", session="", main_term="", related_terms="", limit=None,
+                                 label="confirmed OR "
+                                       "proposed OR "
+                                       "negative"):
+
+        if limit is None:
+            limit = 9999
+        my_connector = Es_connector(index=index)
+        terms = []
+        words = main_term + ' '
+        session_field = 'session_'+session
+        for t in related_terms:
+            terms.append({"match": {
+                "text": {
+                    "query": t['word'],
+                    "boost": t['value']
+                }
+            }})
+            words += t['word'] + " "
+        terms.append({"match": {
+            "text": {
+                "query": main_term,
+                "boost": 2
+            }
+        }})
+
+        query = {
+            "bool": {
+                "filter":
+                    {"term": {session_field: label}}
+                ,
+                "should": terms
+            }
+        }
+        try:
+            q = {
+                "size": 1,
+                "query": query,
+                "aggs": {
+                    "group_by_cluster": {
+                        "terms": {
+                            "field": "imagesCluster",
+                            "size": limit
+                        }
+                    }
+                }
+            }
+            res = my_connector.search(q)
+        except RequestError as re:
+            print("Failed to get event cluster state: ",q)
+            print(re)
+        clusters = res['aggregations']['group_by_cluster']['buckets']
+        data = self.get_current_session_data(index)
+
+        for cluster in clusters:
+            if data and data["duplicates"]:
+                images = data['duplicates'][cluster['key']]
+                cluster['image'] = images[0]
+                cluster['size'] = len(images)
+            else:
+                cluster['image'] = "Missing 'duplicated' file"
+                cluster['size'] = "Missing 'duplicated' file"
+
+        return clusters
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
@@ -1049,7 +1142,8 @@ class Functions:
             session = self.get_session_by_Name(name)
 
             if session['hits']['total'] == 0:
-                self.fix_read_only_allow_delete(self.sessions_index, my_connector)  # Just in case we import it and the property isn't there
+                self.fix_read_only_allow_delete(self.sessions_index,
+                                                my_connector)  # Just in case we import it and the property isn't there
                 # Creating the new entry in the mabed_sessions
                 res = my_connector.post({
                     "s_name": name,
@@ -1071,8 +1165,6 @@ class Functions:
         except RequestError as e:  # This is the correct syntax
             print(e)
             return False
-
-
 
     # Update specific field value in an Index
     def update_all(self, index, doc_type, field, value, **kwargs):
@@ -1255,7 +1347,7 @@ class Functions:
                 "match_phrase": {
                     "text": kwargs["text"]
                 }
-              }
+            }
         }, "ctx._source." + kwargs["session"] + " = '" + kwargs["tag"] + "'")
 
     def export_event(self, index, session):
