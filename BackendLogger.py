@@ -8,6 +8,10 @@ class BackendLogger:
         #self.logs = []
         self.filename = filename
 
+        # folder = os.path.dirname(filename)
+        #if not os.path.exists(folder):
+        #    os.makedirs(folder)
+
     def add_log(self, message):
         curr_timestamp = time.time()
         #self.logs.append({"timestamp": curr_timestamp, "content": message})
@@ -39,7 +43,7 @@ class BackendLogger:
             logs = logs[:-1]
             logs = logs + ']'
 
-            print('logs', logs)
+            #print('logs', logs)
             return logs
 
         except IOError as err:

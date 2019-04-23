@@ -51,7 +51,7 @@ class ActiveLearning:
 
     def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled"):
 
-        DATA_FOLDER = os.path.join(os.getcwd(), "tmp_data")
+        DATA_FOLDER = os.path.join(os.getcwd(), "classification", "tmp_data")
 
         self.TRAIN_FOLDER = os.path.join(DATA_FOLDER, train_folder)
         self.TEST_FOLDER = os.path.join(DATA_FOLDER, test_folder)
@@ -81,7 +81,7 @@ class ActiveLearning:
 
         debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
-        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path='../')
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
         res = my_connector.init_paginatedSearch(kwargs["query"])
 
         sid = res["sid"]
@@ -198,28 +198,36 @@ class ActiveLearning:
 
 
         question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
-        formatted_samples = self.fill_questions(question_samples, predictions, confidences, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
+        formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
 
-        selected_samples =sorted(formatted_samples, key=lambda k: (k.get('cnf_pos', 0) + k.get('ret_pos', 0) + k.get('bgr_pos', 0)), reverse=False)
+        selected_samples =sorted(formatted_samples, key=lambda k: (kwargs["cnf_weight"] * k.get('cnf_pos', 0) + kwargs["ret_weight"] * k.get('ret_pos', 0) + kwargs["bgr_weight"] * k.get('bgr_pos', 0)), reverse=False)
+
+        selected_samples = selected_samples[0:num_questions]
 
         return selected_samples
 
     def get_top_retweets(self, **kwargs):
 
-        functions = Functions(config_relative_path='../')
+        functions = Functions()  # config_relative_path='../')
         retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
                                                      label='proposed', retweets_number=kwargs['results_size'])
 
-        return retweets["aggregations"]["top_text"]["buckets"]
+        try:
+            return retweets["aggregations"]["top_text"]["buckets"]
+        except KeyError as e:
+            return []
 
     def get_top_bigrams(self, **kwargs):
 
-        ngram_classifier = NgramBasedClasifier(config_relative_path='../')
+        ngram_classifier = NgramBasedClasifier() #  config_relative_path='../')
         matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
                                                       label='proposed', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)
 
-        return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
+        try:
+            return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
 
     def get_samples_closer_to_hyperplane(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
 
@@ -237,7 +245,7 @@ class ActiveLearning:
         sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
 
-        selected_samples = self.fill_questions(question_samples, predictions, confidences)
+        selected_samples = self.fill_questions(question_samples, predictions, confidences, categories)
 
         return selected_samples
 
@@ -428,7 +436,7 @@ class ActiveLearning:
 
         matching_queries = []
         for tweet in kwargs["target_tweets"]:
-            matching_queries.append({"match": {"id_str": {"query": tweet["_source"]["id_str"]}}})
+            matching_queries.append({"match": {"id_str": tweet["_source"]["id_str"]}})
 
         confirmed_data = self.download_tweets_from_elastic(
             log=False,
@@ -527,6 +535,14 @@ class ActiveLearning:
         # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
         X_train = vectorizer.fit_transform(data_train.data)
 
+        if(len(data_test.data)==0):
+            raise Exception('The test set is empty.')
+            return
+
+        if(len(self.data_unlabeled)==0):
+            raise Exception('The target (unlabeled) set is empty.')
+            return
+
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
         X_test = vectorizer.transform(data_test.data)
 
@@ -555,7 +571,7 @@ class ActiveLearning:
         return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
 
 
-    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
@@ -565,7 +581,7 @@ class ActiveLearning:
             question ={
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
-                "pred_label":  int(predictions[index]),
+                "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
                 "confidence": confidences[index],
                 "cnf_pos": i,
@@ -611,7 +627,8 @@ class ActiveLearning:
 
         # print("Moving the user labeled questions into the proper folders")
         for question in labeled_questions:
-            file_path = os.path.join(self.TEST_FOLDER, question["label"], question["filename"])
+            basename = os.path.basename(question["filename"])
+            file_path = os.path.join(self.TEST_FOLDER, question["label"], basename)
             if os.path.exists(file_path):
                 os.remove(file_path)
 

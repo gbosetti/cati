@@ -956,6 +956,7 @@ class Functions:
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
+        print("index for CLUSTERS: ", index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
@@ -995,16 +996,18 @@ class Functions:
         data = self.get_current_session_data(index)
 
         for cluster in clusters:
-            if data and data["duplicates"]:
+            if data is not None and data["duplicates"] is not None:
                 q2 = {
                     "query": {
                         "term": {"imagesCluster": cluster['key']}
                     }
                 }
                 cres = my_connector.count(q2)
-                images = data['duplicates'][cluster['key']]
-                cluster['image'] = images[0]
-                cluster['size'] = cres['count']
+                if cluster['key'] is not None or cluster['key'].strip() == "":
+                    images = data['duplicates'][cluster['key']]
+                    cluster['image'] = images[0]
+                    cluster['size'] = cres['count']
+                else: print("The key does not exist: ", cluster['key'])
             else:
                 cluster['image'] = "Missing 'duplicated' file"
                 cluster['size'] = "Missing 'duplicated' file"
