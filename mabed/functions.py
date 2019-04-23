@@ -899,7 +899,6 @@ class Functions:
         my_connector = Es_connector(index=index)
         terms = []
         words = main_term + ' '
-        session_field = 'session_'+session
         for t in related_terms:
             terms.append({"match": {
                 "text": {
@@ -918,7 +917,7 @@ class Functions:
         query = {
             "bool": {
                 "filter":
-                    {"term": {session_field: label}}
+                    {"term": {session: label}}
                 ,
                 "should": terms
             }
