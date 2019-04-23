@@ -249,7 +249,8 @@ def search_for_tweets():
 def search_for_image_clusters():
     data = request.form
     clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label'], limit=data['image_clusters_limit'])
-    return jsonify({"clusters": clusters, "keywords": data['word'] })
+    clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
+    return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
 
 
 # Get Tweets
@@ -517,12 +518,14 @@ def n_grams_classification():
 def event_tweets():
     data = request.form
     source_index = data['index']
+    session = data['session']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
     tweets = functions.get_event_tweets(source_index, main_term, related_terms)
     clusters = functions.get_event_clusters(source_index, main_term, related_terms)
-    return jsonify({"tweets": tweets, "clusters": clusters})
+    clusters_stats = functions.get_event_image_clusters_stats(source_index, main_term, related_terms, session)
+    return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
 
 # Get Event related tweets
 @app.route('/massive_tag_event_tweets', methods=['POST'])
@@ -542,15 +545,16 @@ def massive_tag_event_tweets():
 @app.route('/event_filter_tweets', methods=['POST'])
 def event_filter_tweets():
     data = request.form
-    index = data['index']
+    source_index = data['index']
     state = data['state']
     session = data['session']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    tweets = functions.get_event_filter_tweets(index, main_term, related_terms, state, session)
-    clusters = functions.get_event_clusters(index, main_term, related_terms)
-    return jsonify({"tweets": tweets, "clusters": clusters})
+    tweets = functions.get_event_filter_tweets(source_index, main_term, related_terms, state, session)
+    clusters = functions.get_event_clusters(source_index, main_term, related_terms)
+    clusters_stats = functions.get_event_image_clusters_stats(source_index, main_term, related_terms, session)
+    return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
 
 
 @app.route('/tweets_state', methods=['POST'])
