@@ -155,6 +155,7 @@ app.views.client = Backbone.View.extend({
     },
     load_timeline: function () {
         var self = this;
+        let session = "session_"+app.session.s_name;
         app.eventsCollection.get_timeline_events().then(data => {
 
             if ($('#timeline-embed').length) {
@@ -165,7 +166,7 @@ app.views.client = Backbone.View.extend({
                 var s_ev = app.eventsCollection.get({cid: timeline.config.events[0].unique_id}).toJSON();
                 self.currentClusterId = timeline.config.events[0].unique_id;
                 var t0 = performance.now();
-                self.eventTweetsParams = {obj: JSON.stringify(s_ev), index: app.session.s_index, session: app.session.s_name};
+                self.eventTweetsParams = {obj: JSON.stringify(s_ev), index: app.session.s_index, session: session};
 
                 $.post(app.appURL + 'event_tweets', self.eventTweetsParams, function (response) {
                     try {
@@ -186,7 +187,7 @@ app.views.client = Backbone.View.extend({
                         $('.tweets_results').fadeOut('slow');
                         $('.loading_text').fadeIn('slow');
                         var t0 = performance.now();
-                        self.eventTweetsParams = {obj: JSON.stringify(ev), index: app.session.s_index, session: app.session.s_name};
+                        self.eventTweetsParams = {obj: JSON.stringify(ev), index: app.session.s_index, session: session};
 
                         $.post(app.appURL + 'event_tweets', self.eventTweetsParams, function (response) {
                             try {
