@@ -3,6 +3,7 @@ import argparse
 import itertools
 import os
 import shutil
+import json
 
 # PARAMS
 # ----------------------------------------------------------------------------------------
@@ -81,7 +82,7 @@ parser.add_argument("-cr",
 parser.add_argument("-sc",
                     "--selected_combinations",
                     dest="selected_combinations",
-                    help="The combinations of weights that you want to use. If it is not set, all the permutations of the multiples of 0.1 from 0 to 1 are used instead.",
+                    help="The combinations of weights that you want to use. Write it as a string. E.g. '[[0.9, 0.0, 0.1], [0.9, 0.1, 0.0]]' If it is not set, all the permutations of the multiples of 0.1 from 0 to 1 are used instead.",
                     default=None)
 
 parser.add_argument("-sh",
@@ -109,6 +110,8 @@ if args.selected_combinations is None:
     all_percentages = [round(x * 0.1,2) for x in range(0, 11)]  # [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     all_combinations = list(itertools.permutations(all_percentages, 3))  # not combinations_with_replacement
     selected_combinations = [x for x in all_combinations if x[0] + x[1] + x[2] == 1 or x[0] + x[1] + x[2] == 1.0]
+else:
+    selected_combinations = json.loads(args.selected_combinations)
 
 
 # Running the algorythm with all the configurations
