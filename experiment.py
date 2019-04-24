@@ -78,6 +78,19 @@ parser.add_argument("-cr",
                     help="Do you want to clear all folders with the generated results?",
                     default=True)
 
+parser.add_argument("-sc",
+                    "--selected_combinations",
+                    dest="selected_combinations",
+                    help="The combinations of weights that you want to use. If it is not set, all the permutations of the multiples of 0.1 from 0 to 1 are used instead.",
+                    default=None)
+
+parser.add_argument("-sh",
+                    "--skip_hyperplane",
+                    dest="skip_hyperplane",
+                    help="If True, it skips the processing with the uncertainty distance method. Default is False.",
+                    default=False)
+
+
 args = parser.parse_args()
 
 if args.index is None or args.session is None or args.gt_session is None:
@@ -91,9 +104,11 @@ if args.index is None or args.session is None or args.gt_session is None:
 # It is mandatory just when you use the closer_to_hyperplane_bigrams_rt strategy.
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
-all_percentages = [round(x * 0.1,2) for x in range(0, 11)]  # [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-all_combinations = list(itertools.permutations(all_percentages, 3))  # not combinations_with_replacement
-selected_combinations = [x for x in all_combinations if x[0] + x[1] + x[2] == 1 or x[0] + x[1] + x[2] == 1.0]
+
+if args.selected_combinations is None:
+    all_percentages = [round(x * 0.1,2) for x in range(0, 11)]  # [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    all_combinations = list(itertools.permutations(all_percentages, 3))  # not combinations_with_replacement
+    selected_combinations = [x for x in all_combinations if x[0] + x[1] + x[2] == 1 or x[0] + x[1] + x[2] == 1.0]
 
 
 # Running the algorythm with all the configurations
@@ -115,15 +130,18 @@ if args.clear_results:
 for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
-    learner = ActiveLearningNoUi()
-    logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
-    learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
-                gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                download_files=args.download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
-                text_field=args.text_field, is_field_array=args.is_field_array, max_samples_to_sort=max_samples_to_sort)
+    if args.skip_hyperplane is False:
+        learner = ActiveLearningNoUi()
+        logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+        learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
+                    gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
+                    download_files=args.download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
+                    text_field=args.text_field, is_field_array=args.is_field_array, max_samples_to_sort=max_samples_to_sort)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     for weights in selected_combinations:
+
+        print("Looping with weights: ", weights)
 
         learner = ActiveLearningNoUi()
         logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
