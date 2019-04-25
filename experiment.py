@@ -114,6 +114,9 @@ else:
     selected_combinations = json.loads(args.selected_combinations)
 
 
+if args.download_files is not None and args.download_files.lower() in ('yes', 'true', 't', 'y', '1'):
+    args.download_files = True
+
 # Running the algorythm with all the configurations
 # ----------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------
@@ -151,6 +154,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                         "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
                         "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
 
+        print("args.download_files", args.download_files)
         learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
                     gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
                     min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,

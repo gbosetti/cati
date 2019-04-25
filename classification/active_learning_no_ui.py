@@ -82,6 +82,7 @@ class ActiveLearningNoUi:
         classifier = ActiveLearning()
 
         if kwargs["download_files"]:
+            print("--df", kwargs["download_files"])
             backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
             classifier.clean_directories()
             backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
