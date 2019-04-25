@@ -194,6 +194,21 @@ You can access the full list of optional arguments by executing:
 python experiment.py -h
 ```
 
+## Managing sessions
+Elasticsearch provides tools to manage our sessions, but some repetitive actions can be automated using the scripts 
+available.
+### Exporting a session
+In order to export parts of a dataset we can use the export.py script.
+
+```
+python3 export.py -s session_to_export -i index_of_the_session -p path_to_the_folder_containing_the_images
+```
+Running it is as is this script will create a folder containing the images of the labeled tweets in the session
+
+```
+python3 export.py -s session -i index -p /path/to/images -c true
+```
+If the c argument is set we will get only the confirmed tweets.
 # MABED
 
 ## About
