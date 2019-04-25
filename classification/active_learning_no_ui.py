@@ -85,8 +85,6 @@ class ActiveLearningNoUi:
         backend_logger.clear_logs()  # Just in case there is a file with the same name
         classifier = ActiveLearning()
 
-        print("\n SECOND DF? ", kwargs["download_files"])
-        print("\nIs boolean?", isinstance(kwargs["download_files"], bool))
         if kwargs["download_files"]:
             backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
             classifier.clean_directories()

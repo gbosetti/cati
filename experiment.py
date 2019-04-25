@@ -91,13 +91,22 @@ parser.add_argument("-sh",
                     help="If True, it skips the processing with the uncertainty distance method. Default is False.",
                     default=False)
 
+def to_boolean(str_param):
+    if str_param.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    else:
+        return False
 
 args = parser.parse_args()
 
 if args.index is None or args.session is None or args.gt_session is None:
     raise Exception('You are missing some required params')
 
-
+download_files = to_boolean(args.download_files)
+debug_limit = to_boolean(args.debug_limit)
+is_field_array = to_boolean(args.is_field_array)
+clear_results = to_boolean(args.clear_results)
+skip_hyperplane = to_boolean(args.skip_hyperplane)
 
 
 # Different configurations to run the algorythm.
@@ -113,13 +122,6 @@ if args.selected_combinations is None:
 else:
     selected_combinations = json.loads(args.selected_combinations)
 
-if args.download_files.lower() in ('yes', 'true', 't', 'y', '1'):
-    download_files = True
-else:
-    download_files = False
-
-print("\n\nDOWNLOADING??", download_files)
-
 # print("Is boolean?",isinstance(download_files, bool))
 
 # Running the algorythm with all the configurations
@@ -132,7 +134,7 @@ def delete_folder(path):
         #os.remove(path)
         shutil.rmtree(path)
 
-if args.clear_results:
+if clear_results:
     delete_folder(os.path.join(os.getcwd(), "classification", "logs"))
     delete_folder(os.path.join(os.getcwd(), "classification", "images"))
     delete_folder(os.path.join(os.getcwd(), "classification", "tmp_data"))
@@ -141,14 +143,14 @@ if args.clear_results:
 for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
-    if args.skip_hyperplane is False:
+    if skip_hyperplane is False:
         print("\nRunning hyperplane strategy\n")
         learner = ActiveLearningNoUi()
         logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
         learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
                     gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                    download_files=download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
-                    text_field=args.text_field, is_field_array=args.is_field_array, max_samples_to_sort=max_samples_to_sort)
+                    download_files=download_files, debug_limit=debug_limit, num_questions=args.num_questions,
+                    text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     for weights in selected_combinations:
@@ -164,8 +166,8 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
                     gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
                     min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                    download_files=download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
-                    text_field=args.text_field, is_field_array=args.is_field_array, max_samples_to_sort=max_samples_to_sort)
+                    download_files=download_files, debug_limit=debug_limit, num_questions=args.num_questions,
+                    text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
 
 
 
