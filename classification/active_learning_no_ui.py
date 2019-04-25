@@ -15,10 +15,7 @@ class ActiveLearningNoUi:
         for question in kwargs["questions"]:
 
             # Adding the label field
-            print("question:", question["filename"])
             question_id = kwargs["classifier"].extract_filename_no_ext(question["filename"])
-            print("question_id:", question_id)
-
             res = my_connector.search({
                 "query": {
                     "match": {
@@ -26,9 +23,6 @@ class ActiveLearningNoUi:
                     }
                 }
             })
-
-            print("RES: ", res)
-            print("GTS", kwargs["gt_session"])
 
             question["label"] = res["hits"]["hits"][0]["_source"][kwargs["gt_session"]]
 
