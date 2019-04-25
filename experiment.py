@@ -92,7 +92,9 @@ parser.add_argument("-sh",
                     default=False)
 
 def to_boolean(str_param):
-    if str_param.lower() in ('yes', 'true', 't', 'y', '1'):
+    if isinstance(str_param, bool):
+        return str_param
+    elif str_param.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     else:
         return False
