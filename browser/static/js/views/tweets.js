@@ -861,21 +861,7 @@ app.views.tweets = Backbone.View.extend({
             $.each(clusters, function(i, cluster){
                 //if(i>=20){return false;}
                 var cbg = "";
-                let confirmed = clusters_stats[cluster.key][0];
-                let negative = clusters_stats[cluster.key][1];
-                let proposed = clusters_stats[cluster.key][2];
-                let total = confirmed + negative + proposed;
-                let confirmed_width, negative_width, proposed_width;
-                if(total == 0){
-                    proposed_width = "100";
-                    confirmed_width = "0";
-                    negative_width= "0";
-                }
-                else {
-                    proposed_width = Math.trunc(1000 * proposed / total) / 10.0;
-                    confirmed_width = Math.trunc(1000 * confirmed/total)/10.0;
-                    negative_width = Math.trunc(1000 * negative/total)/10.0;
-                }
+
                 if(parseInt(cluster.size)>parseInt(cluster.doc_count)){
                     cbg = 'yellow-tweet';
                 }
@@ -892,14 +878,35 @@ app.views.tweets = Backbone.View.extend({
                     '<div class="card-body">'+
                         '<p class="card-text">'+cluster.doc_count+' related tweets contain this image</p>'+
                         '<p class="card-text">Cluster size: '+cluster.size+'</p>'+
-                        '<p class="card-text">Cluster ID: '+cluster.key+'</p>'+
-                        '<div class="progress" style="border-radius: 0px;" data-toggle="tooltip" data-placement="top" title="Confirmed: '
+                        '<p class="card-text">Cluster ID: '+cluster.key+'</p>';
+
+                if(clusters_stats){
+
+                    let confirmed = clusters_stats[cluster.key][0];
+                    let negative = clusters_stats[cluster.key][1];
+                    let proposed = clusters_stats[cluster.key][2];
+                    let total = confirmed + negative + proposed;
+                    let confirmed_width, negative_width, proposed_width;
+                    if(total == 0){
+                        proposed_width = "100";
+                        confirmed_width = "0";
+                        negative_width= "0";
+                    }
+                    else {
+                        proposed_width = Math.trunc(1000 * proposed / total) / 10.0;
+                        confirmed_width = Math.trunc(1000 * confirmed/total)/10.0;
+                        negative_width = Math.trunc(1000 * negative/total)/10.0;
+                    }
+
+                    chtml += '<div class="progress" style="border-radius: 0px;" data-toggle="tooltip" data-placement="top" title="Confirmed: '
                     +confirmed+' , Negative :'+negative+' , Unlabeled : '+proposed+'">'+
                             '<div class="progress-bar bg-success" role="progressar" style="width:'+confirmed_width+'%"></div>'+
                             '<div class="progress-bar bg-danger" role="progressar" style="width:'+negative_width+'%"></div>'+
                             '<div class="progress-bar bg-grey" role="progressar" style="width:'+proposed_width+'%"></div>'+
-                        '</div>'+
-                        cbtn+
+                        '</div>';
+                }
+
+                chtml +=    cbtn+
                     '</div>'+
                 '</div>';
             });
