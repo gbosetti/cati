@@ -11,10 +11,14 @@ class ActiveLearningNoUi:
         my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
         wrong_labels=0
 
+        print("all the questions", kwargs["questions"])
         for question in kwargs["questions"]:
 
             # Adding the label field
+            print("question:", question["filename"])
             question_id = kwargs["classifier"].extract_filename_no_ext(question["filename"])
+            print("question_id:", question_id)
+
             res = my_connector.search({
                 "query": {
                     "match": {
