@@ -11,7 +11,7 @@ class ActiveLearningNoUi:
         my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
         wrong_labels=0
 
-        print("all the questions", kwargs["questions"])
+        # print("all the questions", kwargs["questions"])
         for question in kwargs["questions"]:
 
             # Adding the label field
@@ -26,6 +26,10 @@ class ActiveLearningNoUi:
                     }
                 }
             })
+
+            print("RES: ", res)
+            print("GTS", kwargs["gt_session"])
+
             question["label"] = res["hits"]["hits"][0]["_source"][kwargs["gt_session"]]
 
             if question["pred_label"] != question["label"]:
@@ -81,8 +85,9 @@ class ActiveLearningNoUi:
         backend_logger.clear_logs()  # Just in case there is a file with the same name
         classifier = ActiveLearning()
 
+        print("\n SECOND DF? ", kwargs["download_files"])
+        print("\nIs boolean?", isinstance(kwargs["download_files"], bool))
         if kwargs["download_files"]:
-            print("--df", kwargs["download_files"])
             backend_logger.add_raw_log('{ "cleaning_dirs": "' + str(datetime.now()) + '"} \n')
             classifier.clean_directories()
             backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')

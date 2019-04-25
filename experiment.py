@@ -113,9 +113,14 @@ if args.selected_combinations is None:
 else:
     selected_combinations = json.loads(args.selected_combinations)
 
+if args.download_files.lower() in ('yes', 'true', 't', 'y', '1'):
+    download_files = True
+else:
+    download_files = False
 
-if args.download_files is not None and args.download_files.lower() in ('yes', 'true', 't', 'y', '1'):
-    args.download_files = True
+print("\n\nDOWNLOADING??", download_files)
+
+# print("Is boolean?",isinstance(download_files, bool))
 
 # Running the algorythm with all the configurations
 # ----------------------------------------------------------------------------------------
@@ -137,11 +142,12 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
     if args.skip_hyperplane is False:
+        print("\nRunning hyperplane strategy\n")
         learner = ActiveLearningNoUi()
         logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
         learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
                     gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                    download_files=args.download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
+                    download_files=download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
                     text_field=args.text_field, is_field_array=args.is_field_array, max_samples_to_sort=max_samples_to_sort)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
@@ -154,11 +160,11 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                         "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
                         "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
 
-        print("args.download_files", args.download_files)
+        print("download_files", download_files)
         learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
                     gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
                     min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                    download_files=args.download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
+                    download_files=download_files, debug_limit=args.debug_limit, num_questions=args.num_questions,
                     text_field=args.text_field, is_field_array=args.is_field_array, max_samples_to_sort=max_samples_to_sort)
 
 
