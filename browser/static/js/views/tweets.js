@@ -1028,10 +1028,33 @@ app.views.tweets = Backbone.View.extend({
                 });
             }catch(err){console.log(err)}
             //Close the "wait" message
-			jc.close();
-			self.searchForTweets();
+			setTimeout(function(){
+			    jc.close();
+			    self.searchForTweets();
+			}, 2000);
 		}).fail(self.cnxError);
     	return false;
+    },
+    updateImageClusterStatus: function(e, data){
+
+        setTimeout(function(){
+            $.post(app.appURL + 'event_image_cluster_stats', data, function (response) {  // image-based cluster
+
+                proposed = response.filter(status => status.key == "proposed")[0].doc_count;
+                confirmed = response.filter(status => status.key == "confirmed")[0].doc_count;
+                negative = response.filter(status => status.key == "negative")[0].doc_count;
+
+                total = proposed + confirmed + negative;
+                proposed_width = proposed * 100 / total;
+                confirmed_width = confirmed * 100 /total;
+                negative_width =negative * 100 /total;
+                console.log(proposed_width, confirmed_width, negative_width);
+
+                e.currentTarget.parentElement.parentElement.querySelector(".progress-bar.bg-success").style.width = confirmed_width + "%";
+                e.currentTarget.parentElement.parentElement.querySelector(".progress-bar.bg-danger").style.width = negative_width + "%";
+                e.currentTarget.parentElement.parentElement.querySelector(".progress-bar.bg-grey").style.width = proposed_width + "%";
+            });
+        }, 3000);
     },
 	cluster_state: function(e){
     	e.preventDefault();
@@ -1043,9 +1066,11 @@ app.views.tweets = Backbone.View.extend({
 		data.push({name: "state", value: state});
 		data.push({name: "cid", value: cid});
 		var jc = this.createChangingStatePopup();
+		var self = this;
 		$.post(app.appURL+'mark_cluster', data, function(response){
 			jc.close();
             app.views.mabed.prototype.getClassificationStats();
+            self.updateImageClusterStatus(e, data);
 		}).fail(function() {
             jc.close();
             $.confirm({

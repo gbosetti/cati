@@ -527,6 +527,21 @@ def event_tweets():
     clusters_stats = functions.get_event_image_clusters_stats(source_index, main_term, related_terms, session)
     return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
 
+
+# Get Event related tweets
+@app.route('/event_image_cluster_stats', methods=['POST'])
+# @cross_origin()
+def event_image_cluster_stats():
+    data = request.form
+    source_index = data['index']
+    session = data['session']
+    cluster_id = data['cid']
+
+    clusters_stats = functions.get_single_event_image_cluster_stats(source_index, session, cluster_id)
+
+    return jsonify(clusters_stats)
+
+
 # Get Event related tweets
 @app.route('/massive_tag_event_tweets', methods=['POST'])
 # @cross_origin()

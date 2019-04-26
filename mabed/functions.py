@@ -861,6 +861,37 @@ class Functions:
             print("The image-duplicated file was not found.", err)
             return
 
+    def get_single_event_image_cluster_stats(self, index="", session="", cid=""):
+
+        my_connector = Es_connector(index=index)
+        res = my_connector.search({
+            "query": {
+              "match": {
+                "imagesCluster": cid
+              }
+            },
+            "size": 0,
+            "aggs": {
+              "status": {
+                  "terms": {
+                      "field": session + ".keyword"
+                  }
+              }
+            }
+        })
+        buckets = res["aggregations"]["status"]["buckets"]
+
+
+
+        if len([categ for categ in buckets if 'confirmed' == categ["key"]])==0:
+            buckets.append({'key': 'confirmed', 'doc_count': 0})
+        if len([categ for categ in buckets if 'negative' == categ["key"]])==0:
+            buckets.append({'key': 'negative', 'doc_count': 0})
+        if len([categ for categ in buckets if 'proposed' == categ["key"]])==0:
+            buckets.append({'key': 'proposed', 'doc_count': 0})
+
+        return buckets
+
     def get_event_image_clusters_stats(self, index="test3", main_term="", related_terms="", session=""):
 
         confirmed = self.get_event_clusters_state(index=index, main_term=main_term, related_terms=related_terms,

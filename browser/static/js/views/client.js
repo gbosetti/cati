@@ -487,6 +487,7 @@ app.views.client = Backbone.View.extend({
             theme: 'pix-default-modal',
             title: 'Changing tweets state',
             boxWidth: '600px',
+            boxWidth: '600px',
             useBootstrap: false,
             backgroundDismiss: false,
             content: 'Please Don\'t close the page.<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>',
@@ -498,9 +499,12 @@ app.views.client = Backbone.View.extend({
                 }
             }
         });
-        $.post(app.appURL + 'mark_cluster', data, function (response) {
-            jc.close();
+        $.post(app.appURL + 'mark_cluster', data, function (response) {  // image-based cluster
+            //jc.close();
+            //data["obj"] = JSON.stringify(app.eventsCollection.get({cid: $(e.currentTarget).data("cid")}));
             app.views.mabed.prototype.getClassificationStats();
+            app.views.tweets.prototype.updateImageClusterStatus(e, data);
+            jc.close();
         }).fail(function () {
             jc.close();
             $.confirm({
