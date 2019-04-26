@@ -852,7 +852,7 @@ app.views.tweets = Backbone.View.extend({
         }
         else this.showNoTweetsFound('.individual_tweets_result:visible:last');
     },
-    showImageClusters: function(clusters, word, clustersAreaSelector, clusters_stats){
+    showImageClusters: function(clusters, word,clustersAreaSelector, clusters_stats, eid){
         var cbtn = "", chtml = "", state_btns="";
 
         console.log("TOP CLUSTERS TO PRESENT (max.100): ", clusters.length);
@@ -866,7 +866,7 @@ app.views.tweets = Backbone.View.extend({
                     cbg = 'yellow-tweet';
                 }
                 //if(word){
-                    cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-word="'+word+'" data-cid="'+cluster.key+'"><strong>Show tweets</strong></a>';
+                    cbtn = '<a href="#" class="btn btn-primary btn-flat cluster_tweets" data-eid="'+eid+'" data-word="'+word+'" data-cid="'+cluster.key+'"><strong>Show tweets</strong></a>';
                     state_btns = '<div class="cluster_state_btns">';
                         state_btns += '<a href="#" class="btn btn-outline-success cluster_state" data-state="confirmed" data-cid="' + cluster.key + '"><strong>Confirmed</strong></a>';
                         state_btns += ' <a href="#" class="btn btn-outline-danger cluster_state" data-state="negative" data-cid="' + cluster.key + '"><strong>Negative</strong></a>';

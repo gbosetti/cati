@@ -306,7 +306,7 @@ app.views.client = Backbone.View.extend({
         e.preventDefault();
         var self = this;
         var cid = $(e.currentTarget).data("cid");
-        var ev = app.eventsCollection.get({cid: $(e.currentTarget).data("eid")}).toJSON();
+        var ev = app.eventsCollection.get({cid: $(e.currentTarget).data("eid")});
         console.log("cluster_tweets")
         $.confirm({ //Show tweets
             theme: 'pix-cluster-modal',
@@ -402,7 +402,7 @@ app.views.client = Backbone.View.extend({
         if (app.imagesPath == null || app.imagesPath == undefined) {
             console.log("NO imagesPath");
         }
-        app.views.tweets.prototype.showImageClusters(response.clusters, eid,'#eventsClusters',response.clusters_stats)
+        app.views.tweets.prototype.showImageClusters(response.clusters, undefined,'#eventsClusters',response.clusters_stats, eid)
 
         console.log("individual_tweets_result");
         $('.individual_tweets_result:visible:last').html(html);
