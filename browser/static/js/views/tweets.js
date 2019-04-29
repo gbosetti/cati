@@ -855,7 +855,7 @@ app.views.tweets = Backbone.View.extend({
     showImageClusters: function(clusters, word,clustersAreaSelector, clusters_stats, eid){
         var cbtn = "", chtml = "", state_btns="";
 
-        console.log("TOP CLUSTERS TO PRESENT (max.100): ", clusters.length);
+        console.log("TOP CLUSTERS TO PRESENT (max. in search 100): ", clusters.length);
 
         if(clusters){
             $.each(clusters, function(i, cluster){
@@ -910,11 +910,7 @@ app.views.tweets = Backbone.View.extend({
                     '</div>'+
                 '</div>';
             });
-        }
 
-
-
-        if(chtml.trim().length > 0) {
             $(clustersAreaSelector).html(chtml);
         }
         else this.showNoImageClustersFound(".images-clusters-container:visible:last");
