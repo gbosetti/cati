@@ -18,16 +18,19 @@ parser.add_argument("-i",
                     "--index",
                     dest="index",
                     help="The target index to classify")
+                    #, default="experiment_2017")
 
 parser.add_argument("-s",
                     "--session",
                     dest="session",
                     help="The target session to classify")
+                    #, default="session_lyon2017_test_04")
 
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
                     help="The grountruth session to simulate the user's answer and to measure accuracy")
+                    #, default="session_lyon2017_test_gt")
 
 
 # Optional arguments
@@ -124,7 +127,6 @@ if args.selected_combinations is None:
 else:
     selected_combinations = json.loads(args.selected_combinations)
 
-# print("Is boolean?",isinstance(download_files, bool))
 
 # Running the algorythm with all the configurations
 # ----------------------------------------------------------------------------------------
@@ -140,18 +142,25 @@ if clear_results:
     delete_folder(os.path.join(os.getcwd(), "classification", "logs"))
     delete_folder(os.path.join(os.getcwd(), "classification", "images"))
     delete_folder(os.path.join(os.getcwd(), "classification", "tmp_data"))
+    delete_folder(os.path.join(os.getcwd(), "classification", "original_tmp_data"))
 
-# Running the algorythm multiple times
+if download_files:
+    learner = ActiveLearningNoUi(logs_filename="default.txt")
+    learner.download_data(index=args.index, session=args.session,
+                    gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
+                    text_field=args.text_field, is_field_array=is_field_array)
+
+#  Running the algorythm multiple times
 for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
     if skip_hyperplane is False:
         print("\nRunning hyperplane strategy\n")
-        learner = ActiveLearningNoUi()
         logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+        learner = ActiveLearningNoUi(logs_filename=logs_filename)
+
         learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
-                    gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                    download_files=download_files, debug_limit=debug_limit, num_questions=args.num_questions,
+                    gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
                     text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
@@ -159,16 +168,14 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
         print("Looping with weights: ", weights)
 
-        learner = ActiveLearningNoUi()
         logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
                         "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
                         "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+        learner = ActiveLearningNoUi(logs_filename=logs_filename)
 
-        print("download_files", download_files)
         learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
                     gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
-                    min_diff_accuracy=args.min_diff_accuracy, logs_filename=logs_filename,
-                    download_files=download_files, debug_limit=debug_limit, num_questions=args.num_questions,
+                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
                     text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
 
 

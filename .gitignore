@@ -17,6 +17,7 @@ classification/unlabeled/*
 classification/classification/*
 classification/tmp_data/*
 classification/tmp_data*
+classification/original_tmp_data/*
 browser/static/images/2017
 browser/static/images/Twitter_2017_Imgs
 browser/static/images/Twitter_2016_Imgs/

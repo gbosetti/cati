@@ -51,17 +51,34 @@ class ActiveLearning:
 
     def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled"):
 
-        DATA_FOLDER = os.path.join(os.getcwd(), "classification", "tmp_data")
+        self.DATA_FOLDER = os.path.join(os.getcwd(), "classification", "tmp_data")
+        self.ORIGINAL_DATA_FOLDER = os.path.join(os.getcwd(), "classification", "original_tmp_data")
 
-        self.TRAIN_FOLDER = os.path.join(DATA_FOLDER, train_folder)
-        self.TEST_FOLDER = os.path.join(DATA_FOLDER, test_folder)
-        self.UNLABELED_FOLDER = os.path.join(DATA_FOLDER, unlabeled_folder)
+        self.ORIGINAL_TRAIN_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, train_folder)
+        self.ORIGINAL_TEST_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, test_folder)
+        self.ORIGINAL_UNLABELED_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, unlabeled_folder)
+
+        self.TRAIN_FOLDER = os.path.join(self.DATA_FOLDER, train_folder)
+        self.TEST_FOLDER = os.path.join(self.DATA_FOLDER, test_folder)
+        self.UNLABELED_FOLDER = os.path.join(self.DATA_FOLDER, unlabeled_folder)
 
         self.POS_CLASS_FOLDER = "confirmed"
         self.NEG_CLASS_FOLDER = "negative"
         self.NO_CLASS_FOLDER = "proposed"
 
         self.ENCODING = 'latin1'  # latin1
+
+    def clone_original_files(self):
+        #try:
+        self.delete_folder_contents(self.DATA_FOLDER)
+
+        shutil.copytree(self.ORIGINAL_DATA_FOLDER, self.DATA_FOLDER)
+        # # Directories are the same
+        # except shutil.Error as e:
+        #     print('Directory not copied. Error: %s' % e)
+        # # Any error saying that the directory doesn't exist
+        # except OSError as e:
+        #     print('Directory not copied. Error: %s' % e)
 
     def read_raw_tweets_from_elastic(self, **kwargs):
 
@@ -161,17 +178,18 @@ class ActiveLearning:
 
     def delete_folder_contents(self, folder):
 
-        if not os.path.exists(folder):
-            os.makedirs(folder)
+        if os.path.exists(folder):
+            # os.remove(folder)
+            shutil.rmtree(folder)
 
-        for the_file in os.listdir(folder):
-            file_path = os.path.join(folder, the_file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-                # elif os.path.isdir(file_path): shutil.rmtree(file_path)
-            except Exception as e:
-                print(e)
+            # for the_file in os.listdir(folder):
+            #     file_path = os.path.join(folder, the_file)
+            #     try:
+            #         if os.path.isfile(file_path):
+            #             os.unlink(file_path)
+            #         # elif os.path.isdir(file_path): shutil.shutil.rmtree(file_path)(file_path)
+            #     except Exception as e:
+            #         print(e)
 
 
     def writeFile(self, fullpath, content):
@@ -262,15 +280,11 @@ class ActiveLearning:
 
     def clean_directories(self):
         print("Cleaning directories")
-
-        # if not os.path.exists(DATA_FOLDER):
-        #     os.makedirs(DATA_FOLDER)
-
-        self.delete_folder_contents(os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
 
     def read_data_from_dataset(self, **kwargs):
 
@@ -404,7 +418,7 @@ class ActiveLearning:
 
     def download_testing_data(self, **kwargs):
 
-        unlabeled_dir = os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER)
+        unlabeled_dir = os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER)
         # Traversing all unlabeled files to download the testing set accordingly
         accum_ids = []
         processed = 0
@@ -441,7 +455,7 @@ class ActiveLearning:
 
         confirmed_data = self.download_tweets_from_elastic(
             log=False,
-            folder=os.path.join(self.TEST_FOLDER, self.POS_CLASS_FOLDER),
+            folder=os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER),
             query={
                 "query": {
                     "bool": {
@@ -457,7 +471,7 @@ class ActiveLearning:
         )
 
         negative_data = self.download_tweets_from_elastic(
-            folder=os.path.join(self.TEST_FOLDER, self.NEG_CLASS_FOLDER),
+            folder=os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER),
             query={
                 "query": {
                     "bool": {
@@ -476,7 +490,7 @@ class ActiveLearning:
 
         print("Getting (+) TRaining data from the elastic index: ", kwargs["index"])
         confirmed_data = self.download_tweets_from_elastic(
-            folder=os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER),
+            folder=os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER),
             query={"query": {
                 "match": {
                     kwargs["session"]: "confirmed"
@@ -487,7 +501,7 @@ class ActiveLearning:
 
         print("Getting (-) TRaining data from the elastic index: ", kwargs["index"])
         negative_data = self.download_tweets_from_elastic(
-            folder=os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER),
+            folder=os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER),
             query={"query": {
                 "match": {
                     kwargs["session"]: "negative"
@@ -505,7 +519,7 @@ class ActiveLearning:
         print("Getting UNclassified data from the elastic index: ", kwargs["index"])
 
         total_proposed_data = self.download_tweets_from_elastic(
-            folder=os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER),
+            folder=os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER),
             query={"query": {
                 "match": {
                     kwargs["session"]: "proposed"
@@ -560,13 +574,33 @@ class ActiveLearning:
         # fits the model according to the training set (passing its data and the vectorized feature)
         clf.fit(X_train, y_train)
 
+        #print("DIMENTIONS test: ", y_test.ndim)
+        #print("DIMENTIONS pred: ", pred.ndim)
+
         pred = clf.predict(X_test)
         score = metrics.f1_score(y_test, pred)
         accscore = metrics.accuracy_score(y_test, pred)
+        recall_score = metrics.recall_score(y_test, pred)
+        precision_score = metrics.precision_score(y_test, pred)
+
+        pos_categ_number = [ idx for [idx, cat] in enumerate(self.categories) if cat == "confirmed"]  # Returns 0 or 1. categories[int(pos_pred[index])]
+
+        pos_indexes = []
+        for index, x in np.ndenumerate(pred):
+            if(x == pos_categ_number):
+                pos_indexes.append(index)
+
+        pos_y_test = y_test[pos_indexes]
+        pos_pred = pred[pos_indexes]
+
+        pos_precision_score = metrics.precision_score(pos_y_test, pos_pred)
+
 
         scores = {
             "f1": score,
-            "accuracy": accscore
+            "accuracy": accscore,
+            "recall": recall_score,
+            "positive_precision": pos_precision_score
         }
 
         return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
