@@ -102,6 +102,7 @@ class ActiveLearning:
                 print("Downloading: ", round(processed * 100 / total, 2), "%")
 
             if debug_limit:
+                print("\nDEBUG LIMIT\n")
                 scroll_size = 0
 
         if(total > 0):

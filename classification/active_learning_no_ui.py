@@ -12,19 +12,28 @@ class ActiveLearningNoUi:
         wrong_labels=0
 
         # print("all the questions", kwargs["questions"])
+        all_ids = ""
         for question in kwargs["questions"]:
 
             # Adding the label field
             question_id = kwargs["classifier"].extract_filename_no_ext(question["filename"])
-            res = my_connector.search({
-                "query": {
-                    "match": {
-                        "id_str": question_id
-                    }
-                }
-            })
+            all_ids += question_id + " or "
 
-            question["label"] = res["hits"]["hits"][0]["_source"][kwargs["gt_session"]]
+        all_ids = all_ids[:-3]
+
+        res = my_connector.search({
+            "query": {
+                "match": {
+                    "id_str": all_ids
+                }
+            }
+        })
+
+        for question in kwargs["questions"]:
+
+            question_id = kwargs["classifier"].extract_filename_no_ext(question["filename"])
+            gt_tweet = [tweet for tweet in res["hits"]["hits"] if tweet["_source"]["id_str"] == question_id]
+            question["label"] = gt_tweet[0]["_source"][kwargs["gt_session"]]
 
             if question["pred_label"] != question["label"]:
                 wrong_labels += 1
