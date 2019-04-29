@@ -122,12 +122,12 @@ class ActiveLearning:
                 print("\nDEBUG LIMIT\n")
                 scroll_size = 0
 
-        if(total > 0):
-            #res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
-            processed += res["scroll_size"]
-            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
-            if log_enabled:
-                print("Downloading: ", round(processed * 100 / total, 2), "%")
+        # if(total > 0):
+        #     #res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
+        #     processed += res["scroll_size"]
+        #     self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+        #     if log_enabled:
+        #         print("Downloading: ", round(processed * 100 / total, 2), "%")
 
         return total
 

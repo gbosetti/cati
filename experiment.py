@@ -17,20 +17,18 @@ parser = argparse.ArgumentParser(description="CATI's Active Learning module")
 parser.add_argument("-i",
                     "--index",
                     dest="index",
-                    help="The target index to classify")
-                    #, default="experiment_2017")
+                    help="The target index to classify", default="experiment_2017")
 
 parser.add_argument("-s",
                     "--session",
                     dest="session",
-                    help="The target session to classify")
-                    #, default="session_lyon2017_test_04")
+                    help="The target session to classify" , default="session_lyon2017_test_04")
 
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
-                    help="The grountruth session to simulate the user's answer and to measure accuracy")
-                    #, default="session_lyon2017_test_gt")
+                    help="The grountruth session to simulate the user's answer and to measure accuracy"
+                    , default="session_lyon2017_test_gt")
 
 
 # Optional arguments
