@@ -6,7 +6,7 @@ import plotly.io as pio
 import os
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\Experiments"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\demo"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -66,19 +66,24 @@ def process_results(logs):
 
     loops_values = [log["loop"] for log in logs if 'loop' in log]  # datetime
     accuracies = [log["accuracy"] for log in logs if 'loop' in log]
-    diff_accuracies = [0 if log["diff_accuracy"] == 'None' else float(log["diff_accuracy"]) for log in logs if
-                       'loop' in log]
-    # diff_accuracies = [float(log["diff_accuracy"]) for log in logs if 'loop' in log if log["diff_accuracy"] != 'None']
+    #diff_accuracies = [0 if log["diff_accuracy"] == 'None' else float(log["diff_accuracy"]) for log in logs if 'loop' in log]
+    precision = [log["precision"] for log in logs if 'loop' in log]
+    positive_precision = [log["positive_precision"] for log in logs if 'loop' in log]
+    recall = [log["recall"] for log in logs if 'loop' in log]
     wrong_answers = [log["wrong_pred_answers"] for log in logs if 'loop' in log]
 
-    return loops_values, accuracies, diff_accuracies, wrong_answers
+    return loops_values, accuracies, wrong_answers, precision, positive_precision, recall #diff_accuracies, wrong_answers
 
 def print_in_file(content, path):
     file = open(path, "a+")
     file.write(content)
     file.close()
 
-
+def draw_evolution(var_name, labeled_var_name, res):
+    draw_scatterplot(title="Evolution of " + labeled_var_name + " across loops", results=res,
+        x_axis_label="Loop", y_axis_label=labeled_var_name,
+        x_axis_prop="loops", y_axis_prop=var_name,
+        trace_name="scenario_name", full_path=os.path.join(output_path, '_HYP_' + labeled_var_name + '.png'))
 
 
 # Initialization
@@ -96,26 +101,22 @@ for path in logs_folders:
     logs = read_file(session_files[0].path)
 
     # Get the values from such file
-    loops_values, accuracies, diff_accuracies, wrong_answers = process_results(logs)
-    hyp_results.append({ "loops": loops_values, "_total_loops": len(loops_values),
-                         "accuracies": accuracies, "diff_accuracies": diff_accuracies,
-                         "wrong_answers": wrong_answers, "_total_wrong_answers": sum(wrong_answers),
+    loops_values, accuracies, wrong_answers, precision, positive_precision, recall = process_results(logs)
+    hyp_results.append({ "loops": loops_values,
+                         "accuracies": accuracies, # "diff_accuracies": diff_accuracies,
+                         "precision": precision,
+                         "positive_precision": positive_precision,
+                         "recall": recall,
+                         "wrong_answers": wrong_answers,
+                         "_total_wrong_answers": sum(wrong_answers),
+                         "_total_loops": len(loops_values),
                          "scenario_name": "Secnario " + path[-1:], "_max_accuracy": round(max(accuracies), 2)})
 
 print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
 
-draw_scatterplot(title="Evolution of accuracy across loops", results=hyp_results,
-    x_axis_label="Loop", y_axis_label="Accuracy",
-    x_axis_prop="loops", y_axis_prop="accuracies",
-    trace_name="scenario_name", full_path=os.path.join(output_path, 'HYP_accuracies.png'))
-
-draw_scatterplot(title="Evolution of diff. accuracy across loops", results=hyp_results,
-    x_axis_label="Loop", y_axis_label="Diff. accuracy",
-    x_axis_prop="loops", y_axis_prop="diff_accuracies",
-    trace_name="scenario_name", full_path=os.path.join(output_path, 'HYP_diff_accuracies.png'))
-
-draw_scatterplot(title="Evolution of wrongly predicted labels across loops", results=hyp_results,
-    x_axis_label="Loop", y_axis_label="Wrong predictions (max. 20 by loop)",
-    x_axis_prop="loops", y_axis_prop="wrong_answers",
-    trace_name="scenario_name", full_path=os.path.join(output_path, 'HYP_req_clicks.png'))
-
+draw_evolution("accuracies", "accuracy", hyp_results)
+# draw_evolution("diff_accuracies", "diff. accuracy", hyp_results)
+draw_evolution("wrong_answers", "wrong answers", hyp_results)
+draw_evolution("recall", "recall", hyp_results)
+draw_evolution("precision", "precision", hyp_results)
+draw_evolution("positive_precision", "positive precision", hyp_results)
