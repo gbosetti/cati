@@ -156,7 +156,6 @@ class Es_connector:
 
     def update(self,id, query):
 
-        print(self.index, self.doc_type, query)
         res = self.es.update(
             index=self.index,
             doc_type=self.doc_type,
@@ -184,7 +183,6 @@ class Es_connector:
 
     def get(self, id):
 
-        print("SEARCHING FOR SESSION ", id)
         res = self.es.get(index=self.index,
             doc_type=self.doc_type,
             id=id)
@@ -655,8 +653,6 @@ class Es_connector:
                 }
             }
         }
-        print(body)
-
         # Init scroll by search
 
         # filepath = "models/" + str(hash(words)).replace("-", "") + ".model"
@@ -703,7 +699,6 @@ class Es_connector:
 
         words = self.tokenize(words, stopwords)
         pwords=words
-        print("pwords", pwords)
         # context = model.most_similar(positive=['fête','lumières'], topn=10)
         context = model.most_similar(positive=pwords, topn=count)
         # context = model.most_similar(positive=['fête','lumières'], topn=count)
@@ -891,7 +886,6 @@ class Es_connector:
                 }
             }
         }
-        print(body)
 
         # Init scroll by search
 
@@ -939,8 +933,6 @@ class Es_connector:
 
         words = self.tokenize(words, stopwords)
         pwords = words
-        print("pwords")
-        print(pwords)
         # context = model.most_similar(positive=['fête','lumières'], topn=10)
         context = model.most_similar(positive=pwords, topn=count)
         # context = model.most_similar(positive=['fête','lumières'], topn=count)

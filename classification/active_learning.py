@@ -96,8 +96,6 @@ class ActiveLearning:
 
     def download_tweets_from_elastic(self, **kwargs):
 
-        print("\n", kwargs["query"], "\n")
-
         debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
         my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
