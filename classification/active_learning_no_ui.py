@@ -12,9 +12,13 @@ class ActiveLearningNoUi:
         folder = os.path.dirname(logs_path)
         if not os.path.exists(folder):
             os.makedirs(folder)
-
         self.backend_logger = BackendLogger(logs_path)
+
         self.classifier = ActiveLearning()
+
+    def clean_logs(self, **kwargs):
+
+        self.backend_logger.clear_logs()
 
     def get_answers(self, **kwargs):
 

@@ -145,10 +145,11 @@ if clear_results:
     delete_folder(os.path.join(os.getcwd(), "classification", "original_tmp_data"))
 
 if download_files:
-    learner = ActiveLearningNoUi(logs_filename="default.txt")
+    learner = ActiveLearningNoUi(logs_filename="download.txt")
     learner.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
                     text_field=args.text_field, is_field_array=is_field_array)
+    learner.clean_logs()
 
 #  Running the algorythm multiple times
 for max_samples_to_sort in args.selected_max_samples_to_sort:
