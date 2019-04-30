@@ -96,6 +96,8 @@ class ActiveLearning:
 
     def download_tweets_from_elastic(self, **kwargs):
 
+        print("\n", kwargs["query"], "\n")
+
         debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
         my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
@@ -104,14 +106,14 @@ class ActiveLearning:
         sid = res["sid"]
         scroll_size = res["scroll_size"]
         total = int(res["total"])
-        processed=0
+        processed=len(res["results"])
 
         self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
 
         while scroll_size > 0:
             res = my_connector.loop_paginatedSearch(sid, scroll_size)
             scroll_size = res["scroll_size"]
-            processed += scroll_size
+            processed += len(res["results"])
 
             # Writing the retrieved files into the folders
             self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
@@ -122,14 +124,15 @@ class ActiveLearning:
                 print("\nDEBUG LIMIT\n")
                 scroll_size = 0
 
-        # if(total > 0):
-        #     #res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
-        #     processed += res["scroll_size"]
-        #     self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
-        #     if log_enabled:
-        #         print("Downloading: ", round(processed * 100 / total, 2), "%")
-
+        # print("\n-----total: ", total, " processed: ", processed, "\n")
         return total
+
+        # my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
+        # res = my_connector.bigSearch(kwargs["query"])
+        #
+        # self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res)
+        #
+        # return len(res)
 
 
     def get_langs_from_unlabeled_tweets(self, **kwargs):

@@ -169,12 +169,17 @@ class Es_connector:
             return False
 
     def delete(self, id):
-        res = self.es.delete(index=self.index,
-            doc_type=self.doc_type,
-            id=id)
-        if res['result'] == "deleted":
-            return res
-        else:
+
+        try:
+            res = self.es.delete(index=self.index,
+                doc_type=self.doc_type,
+                id=id)
+            if res['result'] == "deleted":
+                return res
+            else:
+                return False
+        except Exception as err:
+            print("Error: ", err)
             return False
 
     def get(self, id):
@@ -264,7 +269,7 @@ class Es_connector:
         # Before scroll, process current batch of hits
         res = process_hits(data['hits']['hits'], res)
         total = data['hits']['total']
-        scroll_size = total - scroll_size
+        # scroll_size = total - scroll_size
 
         return {"results":res, "sid":sid, "scroll_size":scroll_size, "total":total}
 
