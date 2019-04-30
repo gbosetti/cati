@@ -104,7 +104,7 @@ class ActiveLearningNoUi:
         start_time = datetime.now()
         accuracy = 0
         prev_accuracy = 0
-        stage_scores = []
+        # stage_scores = []
 
         loop_index = 0
         looping_clicks = 0
@@ -120,23 +120,22 @@ class ActiveLearningNoUi:
 
             print("\n---------------------------------")
             loop_index+=1
-            #try:
             scores, wrong_pred_answers = self.loop(**kwargs)
             looping_clicks += wrong_pred_answers
 
-            if len(stage_scores) > 0:
-                accuracy = scores["accuracy"]
-                prev_accuracy = stage_scores[-1]["accuracy"]
-                diff_accuracy = abs(accuracy - prev_accuracy)
+            # if len(stage_scores) > 0:
+            #     accuracy = scores["accuracy"]
+            #     prev_accuracy = stage_scores[-1]["accuracy"]
+            #     diff_accuracy = abs(accuracy - prev_accuracy)
 
             self.backend_logger.add_raw_log('{ "loop": ' + str(loop_index) + ', "datetime": "' + str(datetime.now()) +
                                        '", "accuracy": ' + str(scores["accuracy"]) +
-                                       '", "recall": ' + str(scores["recall"]) + '", "positive_precision": ' + str(scores["positive_precision"]) +
+                                       '", "f1": ' + str(scores["f1"]) +
+                                       '", "recall": ' + str(scores["recall"]) +
+                                       '", "precision": ' + str(scores["precision"]) +
+                                       '", "positive_precision": ' + str(scores["positive_precision"]) +
                                        '", "wrong_pred_answers": ' + str(wrong_pred_answers) + " } \n")
-            stage_scores.append(scores)
-            # except Exception as e:
-            #     self.backend_logger.add_raw_log('{ "error": ' + str(e) + '} \n')
-            #     break
+            # stage_scores.append(scores)
 
         self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
         self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')

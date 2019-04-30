@@ -574,33 +574,49 @@ class ActiveLearning:
         clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         # fits the model according to the training set (passing its data and the vectorized feature)
         clf.fit(X_train, y_train)
-
-        #print("DIMENTIONS test: ", y_test.ndim)
-        #print("DIMENTIONS pred: ", pred.ndim)
-
         pred = clf.predict(X_test)
+
+        print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
+        print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
+
         score = metrics.f1_score(y_test, pred)
         accscore = metrics.accuracy_score(y_test, pred)
         recall_score = metrics.recall_score(y_test, pred)
         precision_score = metrics.precision_score(y_test, pred)
 
-        pos_categ_number = [ idx for [idx, cat] in enumerate(self.categories) if cat == "confirmed"]  # Returns 0 or 1. categories[int(pos_pred[index])]
+        pos_category = [ idx for [idx, cat] in enumerate(self.categories) if cat == "confirmed"][0]  # Returns 0 or 1. categories[int(pos_pred[index])]
 
-        pos_indexes = []
+        # Number of correct predictions on positives
+        true_positives = 0
         for index, x in np.ndenumerate(pred):
-            if(x == pos_categ_number):
-                pos_indexes.append(index)
+            if(x == pos_category and y_test[index[0]] == pred[index[0]]):
+                true_positives +=1
 
-        pos_y_test = y_test[pos_indexes]
-        pos_pred = pred[pos_indexes]
+        # Total expected positives from the ground truth
+        total_expected_positives = 0
+        for index, x in np.ndenumerate(y_test):
+            if(x == pos_category):
+                total_expected_positives += 1
 
-        pos_precision_score = metrics.precision_score(pos_y_test, pos_pred)
+        pos_precision_score = true_positives/total_expected_positives
+
+        # pos_y_test = np.array(y_test[pos_indexes])
+        # pos_pred = np.array(pred[pos_indexes])
+
+        # test_condition = np.where(idx in pos_indexes)
+        # pos_y_test = np.extract(condition, pos_indexes)
+        #
+        # pred_condition = np.where(idx in pos_indexes)
+        # pos_pred = np.extract(condition, pred)
+
+        # pos_precision_score = metrics.precision_score(np.array(pos_y_test), np.array(pos_pred))
 
 
         scores = {
             "f1": score,
             "accuracy": accscore,
             "recall": recall_score,
+            "precision": precision_score,
             "positive_precision": pos_precision_score
         }
 
