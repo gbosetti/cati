@@ -6,7 +6,7 @@ import plotly.io as pio
 import os
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\full_experiments"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -39,22 +39,33 @@ def read_file(path):
     file = open(path, "r")
     logs = '['
     for line in file:
+
+        # This is fixing the bug for the first printed results
+        line = line.replace('", "f1"', ', "f1"')
+        line = line.replace('", "recall"', ', "recall"')
+        line = line.replace('", "precision"', ', "precision"')
+        line = line.replace('", "positive_precision"', ', "positive_precision"')
+        line = line.replace('", "wrong_pred_answers"', ', "wrong_pred_answers"')
+
         logs = logs + line
+
     logs = logs[:-1]
     logs = logs + ']'
-    return json.loads(logs.replace('\n', ','))
+    textual_logs = logs.replace('\n', ',')
+
+    print(textual_logs)
+
+    return json.loads(textual_logs)
 
 def process_results(logs):
     loop_logs = [log for log in logs if 'loop' in log]
 
     loops_values = [log["loop"] for log in logs if 'loop' in log]  # datetime
     accuracies = [log["accuracy"] for log in logs if 'loop' in log]
-    diff_accuracies = [0 if log["diff_accuracy"] == 'None' else float(log["diff_accuracy"]) for log in logs if
-                       'loop' in log]
     # diff_accuracies = [float(log["diff_accuracy"]) for log in logs if 'loop' in log if log["diff_accuracy"] != 'None']
     wrong_answers = [log["wrong_pred_answers"] for log in logs if 'loop' in log]
 
-    return loops_values, accuracies, diff_accuracies, wrong_answers
+    return loops_values, accuracies, wrong_answers
 
 def print_in_file(content, path):
     file = open(path, "a+")
@@ -79,9 +90,9 @@ for path in logs_folders:
     logs = read_file(session_files[0].path)
 
     # Get the values from such file
-    loops_values, accuracies, diff_accuracies, wrong_answers = process_results(logs)
+    loops_values, accuracies, wrong_answers = process_results(logs)
     hyp_results.append({ "loops": loops_values, "_total_loops": len(loops_values),
-                         "accuracies": accuracies, "diff_accuracies": diff_accuracies,
+                         "accuracies": accuracies,
                          "wrong_answers": wrong_answers, "_total_wrong_answers": sum(wrong_answers),
                          "scenario_name": "Secnario " + path[-1:], "_max_accuracy": round(max(accuracies), 2)})
 

@@ -6,7 +6,7 @@ import plotly.io as pio
 import os
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\demo"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -56,6 +56,13 @@ def read_file(path):
     file = open(path, "r")
     logs = '['
     for line in file:
+
+        line = line.replace('", "f1"', ', "f1"')
+        line = line.replace('", "recall"', ', "recall"')
+        line = line.replace('", "precision"', ', "precision"')
+        line = line.replace('", "positive_precision"', ', "positive_precision"')
+        line = line.replace('", "wrong_pred_answers"', ', "wrong_pred_answers"')
+
         logs = logs + line
     logs = logs[:-1]
     logs = logs + ']'
@@ -95,7 +102,7 @@ hyp_results = []
 for path in logs_folders:
 
     # Get all the HYP files for the session
-    session_files = [f for f in os.scandir(path) if not f.is_dir() and "_HYP_" in f.name]
+    session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
 
     # Get the logs of the only file for HYP
     logs = read_file(session_files[0].path)
