@@ -17,9 +17,13 @@ def draw_barchart(**kwargs):
 
     for res in kwargs["results"]:
 
+        max_var_value_by_config = []
+        for config in kwargs["configs"]:
+            print("...")
+
         trace = go.Bar(
-            x=res[kwargs["configs"]],  # ['0-0-1', '1-0-0', '2-2-6'],
-            y=res[kwargs["max_var_value_by_config"]],  # [0.9, 0.3, 0.7],
+            x=kwargs["configs"],  # ['0-0-1', '1-0-0', '2-2-6'],
+            y=max_var_value_by_config,  # [0.9, 0.3, 0.7],
             name=res[kwargs["trace_name"]] # at loop 10
         )
         data.append(trace)
@@ -77,17 +81,33 @@ def print_in_file(content, path):
 
 # Initialization
 logs_folders = [f.path for f in os.scandir(logs_path) if f.is_dir() ]
+target_loops = [10, 20, 30, 60, 100]
+configs = []
+
+def get_config_value(prop_name, full_text):
+    start_index = full_text.index("_cnf") + 5
+    end_index = start_index + 3
+
+    return full_text[start_index:end_index]
 
 
 # Looping each session to get the HYP results
 hyp_results = []
 for path in logs_folders:
 
-    # Get all the HYP files for the session
-    session_files = [f for f in os.scandir(path) if not f.is_dir() and "_HYP_" in f.name]
+    # Get all the OUR files for the session
+    session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
 
-    # Get the logs of the only file for HYP
-    logs = read_file(session_files[0].path)
+    for file in session_files:
+        # Get the logs of the only file for HYP
+        logs = read_file(file.path)
+
+        config_name = get_config_value("_cnf", file.name)  # 'session_lyon2017_test_04_OUR_500__cnf0.0_ret0.1_bgr0.9_mda0.005_smss[500].txt'
+        config_name = get_config_value("_ret", file.name)
+        config_name = get_config_value("_bgr", file.name)
+
+        configs.append(file.name)
+
 
     # Get the values from such file
     loops_values, accuracies, wrong_answers = process_results(logs)
@@ -99,6 +119,6 @@ for path in logs_folders:
 print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
 
 draw_barchart(title="Evolution of accuracy across loops", results=hyp_results,
-                trace_name="at loop 10", full_path=os.path.join(output_path, 'OUR_accuracies' +  + '.png'),
+                trace_name="at loop 10", full_path=os.path.join(output_path, 'OUR_accuracies' + '.png'),
                 configs=['0-0-1', '1-0-0', '2-2-6'],
                 max_var_value_by_config=[0.9, 0.3, 0.7])
