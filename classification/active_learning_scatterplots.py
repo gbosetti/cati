@@ -3,11 +3,12 @@ import ast
 import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.io as pio
+import matplotlib.pyplot as plt
 import os
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\demo"
-output_path = "C:\\Users\\gbosetti\\Desktop"
+logs_path = "/home/stage/experiment/Experiments"
+output_path = "/home/stage/experiment/figures"
 
 
 # Functions
@@ -51,6 +52,21 @@ def draw_scatterplot(**kwargs):
     )
     fig = go.Figure(data=data, layout=layout)
     pio.write_image(fig, kwargs["full_path"])
+
+
+def scatterplot_using_matplotlib(**kwargs):
+    plt.figure()
+    for res in kwargs['results']:
+        x=res[kwargs['x_axis_prop']]
+        y=res[kwargs['y_axis_prop']]
+        plt.scatter(x=x, y=y, s=12, linewidth=3,label=res[kwargs['trace_name']])
+        plt.plot(x,y)
+        for x_val, y_val in zip(x,y):
+            plt.annotate("{:12.2f}".format(y_val), xy=(x_val, y_val),horizontalalignment="center", verticalalignment='bottom')
+    plt.xlabel(kwargs['x_axis_label'])
+    plt.ylabel(kwargs['y_axis_label'])
+    plt.legend()
+    plt.show()
 
 def read_file(path):
     file = open(path, "r")

@@ -120,9 +120,19 @@ If you execute the images.py script more than one, the values are updated, not d
 
 ### Start the web application
 
-First, configure the URL that the client should use to communicate with the server. To do so, edut the first line of the mabed/browser/static/App.js file. E.g.
+First, configure the URL that the client should use to communicate with the server.
+To do so, set the environment varialbe SERVER_NAME E.g.
 
-    var app_url = "http://localhost:5000/";  // Or some url like: https://your_sub_domain.your_domain.fr/
+In Debian-based systems:
+```
+export SERVER_NAME=[your adress, it defaults to localhost otherwise]
+```
+In Windows:
+```
+set SERVER_NAME=[your adress, it defaults to localhost otherwise]
+```
+
+Or some url like: https://your_sub_domain.your_domain.fr/
 
 Then, start the elasticsearchserver:
 
