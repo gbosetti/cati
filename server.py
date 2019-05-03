@@ -488,6 +488,11 @@ def suggest_classification():
     questions = json.loads(data['questions'])
     return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
 
+@app.route('/get_tweets_by_str_ids', methods=['POST'])
+def get_tweets_by_str_ids():
+    data = request.form
+    return jsonify(functions.get_tweets_by_str_ids(index=data['index'], id_strs=data["id_strs"]))
+
 
 @app.route('/most_frequent_n_grams', methods=['POST'])
 def most_frequent_n_grams():

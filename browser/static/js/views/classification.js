@@ -64,27 +64,62 @@ app.views.classification = Backbone.View.extend({
         console.log(questions);
         this.spinner.remove();
         var tweetsHtml = '', ids;
-        questions.forEach(question => {
-            // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
-            tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
-                                            '<div class="card-body"> ' +
-                                                '<p class="card-text">' + question.text + '</p> ' +
-                                                '<p class="card-text"> ' +
-                                                    '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
-                                                    '<i>Predicted</i>: ' + question.pred_label +
-                                                '</p> ' +
-                                                '<div class=""> ' +
-                                                    '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
+
+        this.getRelatedTweetsToQueries(questions).then(question_rel_tweets => {
+
+            questions.forEach(question => {
+
+                question.bigrams = question.text;
+                question.text = question_rel_tweets.filter(tweet => tweet._source.id_str == question.str_id)[0]["_source"]["text"];
+                question.imageSrc = app.imagesURL + app.imagesPath +'/'+ question.str_id + "_0.jpg";
+
+                // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
+                tweetsHtml += ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
+                                                '<img class="card-img-top" src="' + question.imageSrc + '" alt=""> ' +
+                                                '<div class="card-body"> ' +
+                                                    '<p class="card-text">' + question.text + '</p> ' +
+                                                    '<p class="card-text"> ' +
+                                                        '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
+                                                        '<i>Predicted</i>: ' + question.pred_label +
+                                                    '</p> ' +
+                                                    '<div class=""> ' +
+                                                        '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" ';
+
+                                                        if(question.pred_label == "confirmed"){
+                                                            tweetsHtml += 'checked';
+                                                        }
+
+                                                        tweetsHtml += '>' +
+                                                    '</div> ' +
                                                 '</div> ' +
-                                            '</div> ' +
-                                        '</div>';
-        })
+                                            '</div>';
+            })
 
-        $("#tweet-questions").html(tweetsHtml);
+            $("#tweet-questions").html(tweetsHtml);
 
-        $(".card .card-body input").each(function() {
-            $(this).bootstrapToggle();
-            this.style.padding = "right";
+            $(".card .card-body input").each(function() {
+                $(this).bootstrapToggle();
+                this.style.padding = "right";
+            });
+        });
+    },
+    getRelatedTweetsToQueries: function(questions){
+
+        return new Promise(function(resolve, reject) {
+            questions_ids = "";
+            questions.forEach(question => {
+                questions_ids += question.str_id + " or ";
+            });
+            questions_ids = questions_ids.substring(0, questions_ids.length-3);
+
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "id_strs", value: questions_ids}
+            ];
+
+            $.post(app.appURL+'get_tweets_by_str_ids', data, response => {
+                resolve(response)
+            }, 'json');
         });
     },
     requestTweetsForLearningStage: function(numQuestions){
