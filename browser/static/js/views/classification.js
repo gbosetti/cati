@@ -137,7 +137,9 @@ app.views.classification = Backbone.View.extend({
         ];
 
         $.post(app.appURL+'start_learning', data, response => {
-            this.loadTweetsForLearningStage(response);
+            console.log(response);
+            this.last_al_scores = response.scores;
+            this.loadTweetsForLearningStage(response.questions);
         }, 'json');
     },
     getQuestionsFromUI: function(){
@@ -159,11 +161,11 @@ app.views.classification = Backbone.View.extend({
         data = [
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
-            {name: "questions", value: JSON.stringify(questions) }
+            {name: "questions", value: JSON.stringify(questions) },
+            {name: "scores", value: JSON.stringify(this.last_al_scores) }
         ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
-
             this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
     },
