@@ -121,9 +121,17 @@ skip_hyperplane = to_boolean(args.skip_hyperplane)
 # ----------------------------------------------------------------------------------------
 
 if args.selected_combinations is None:
-    all_percentages = [round(x * 0.1,2) for x in range(0, 11)]  # [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    all_combinations = list(itertools.permutations(all_percentages, 3))  # not combinations_with_replacement
-    selected_combinations = [x for x in all_combinations if x[0] + x[1] + x[2] == 1 or x[0] + x[1] + x[2] == 1.0]
+    # all_percentages = [round(x * 0.1,2) for x in range(0, 11)]  # [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    # all_combinations = list(itertools.permutations(all_percentages, 3))  # not combinations_with_replacement
+    # [round(x * 0.2,1) for x in range(0, 6)]
+    all_percentages = [round(x * 0.2,1) for x in range(0, 6)]
+    all_combinations = list(itertools.combinations_with_replacement(all_percentages, 3))
+    combinations= [x for x in all_combinations if x[0] + x[1] + x[2] == 1 or x[0] + x[1] + x[2] == 1.0]
+
+    selected_combinations = []
+    for comb in combinations:
+        selected_combinations.extend(set(list(itertools.permutations(comb))))
+    selected_combinations = sorted(set(selected_combinations))
 else:
     selected_combinations = json.loads(args.selected_combinations)
 

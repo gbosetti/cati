@@ -61,6 +61,7 @@ app.views.classification = Backbone.View.extend({
     },
     loadTweetsForLearningStage: function(questions){
 
+        console.log(questions);
         this.spinner.remove();
         var tweetsHtml = '', ids;
         questions.forEach(question => {
@@ -96,7 +97,8 @@ app.views.classification = Backbone.View.extend({
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
             {name: "num_questions", value: numQuestions },
-            {name: "remove_stopwords", value: removeStopwords }
+            {name: "remove_stopwords", value: removeStopwords },
+            {name: "max_samples_to_sort", value:500}
         ];
 
         $.post(app.appURL+'start_learning', data, response => {
