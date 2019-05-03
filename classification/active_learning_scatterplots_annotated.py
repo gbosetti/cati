@@ -28,8 +28,8 @@ def draw_scatterplot(**kwargs):
         y = res[kwargs['y_axis_prop']]
         point_count=0
         for x_val, y_val in zip(x,y):
-            if point_count%10 == 0:
-                annotations.append(go.layout.Annotation(text="{:12.2f}".format(y_val), x=x_val, y=y_val,align="center", valign='top', showarrow=False))
+            if point_count%20 == 0:
+                annotations.append(go.layout.Annotation(text="{:12.2f}".format(y_val).strip(), x=x_val, y=y_val,align="center", valign='bottom', showarrow=False))
             point_count = point_count+1
 
     layout = go.Layout(
@@ -102,7 +102,7 @@ def draw_evolution(var_name, labeled_var_name, res):
     draw_scatterplot(title="Evolution of " + labeled_var_name + " across loops", results=res,
         x_axis_label="Loop", y_axis_label=labeled_var_name,
         x_axis_prop="loops", y_axis_prop=var_name,
-        trace_name="scenario_name", full_path=os.path.join(output_path, '_ANNOTATED_10_HYP_' + labeled_var_name + '.png'))
+        trace_name="scenario_name", full_path=os.path.join(output_path, '_ANNOTATED_20_HYP_' + labeled_var_name + '.png'))
 
 
 # Initialization
