@@ -116,7 +116,7 @@ class ActiveLearningNoUi:
 
         #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
         loop_index = 0
-        while loop_index in range(100) and accuracy<1:
+        while loop_index in range(100):  # and accuracy<1:
 
             print("\n---------------------------------")
             loop_index+=1

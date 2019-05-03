@@ -215,9 +215,9 @@ class ActiveLearning:
             print("when categories are more than 2")
 
         sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        question_samples = self.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.data_unlabeled, kwargs["max_samples_to_sort"]) # returns just unique (removes duplicated files)
+        # question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
 
-
-        question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
         formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
 
         selected_samples =sorted(formatted_samples, key=lambda k: (kwargs["cnf_weight"] * k.get('cnf_pos', 0) + kwargs["ret_weight"] * k.get('ret_pos', 0) + kwargs["bgr_weight"] * k.get('bgr_pos', 0)), reverse=False)
@@ -225,6 +225,23 @@ class ActiveLearning:
         selected_samples = selected_samples[0:num_questions]
 
         return selected_samples
+
+    def get_unique_sorted_samples_by_conf(self, sorted_samples_by_conf, data_unlabeled, max_docs):
+
+        top_samples_indexes = []
+        top_samples_text = []
+
+        for index in sorted_samples_by_conf.tolist(): # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            file_textual_content = self.data_unlabeled.data[index]
+            if file_textual_content not in top_samples_text:  # text
+                top_samples_text.append(file_textual_content)
+                top_samples_indexes.append(index)
+
+            if len(top_samples_indexes) == max_docs:
+                break
+
+        return top_samples_indexes
 
     def get_top_retweets(self, **kwargs):
 

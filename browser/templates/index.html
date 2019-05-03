@@ -40,7 +40,7 @@
 							<a class="nav-link" href="#results">Event-detection results</a>
 						</li>
 						<!--<li class="nav-item" id="nav-classification">
-							<a class="nav-link" href="#classification">Other classifiers</a>
+							<a class="nav-link" href="#classification">Active Learning</a>
 						</li>-->
 						<li class="nav-item" id="nav-tweets">
 							<a class="nav-link" href="#tweets">Tweets Search</a>
@@ -272,15 +272,15 @@
 			    <div class="row">
 
 			      <div class="col-12 pix-margin-bottom-30">
-			        <h3 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Classification assistants</span></h3>
+			        <h3 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Active Learning</span></h3>
 			      </div>
 
 			      <div class="col-6 col-sm-12">
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" href="#clusted-based-active-learning" data-toggle="tab">Cluster-based Active Learning</a></li>
-			                    <li class="nav-item" disabled><a class="nav-link">Density-Weighted Active Learning</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
+			                    <li class="nav-item active"><a class="nav-link active" href="#clusted-based-active-learning" data-toggle="tab">Uncertainty Sampling</a></li>
+			                    <li class="nav-item" disabled><a class="nav-link">Extended Uncertainty Sampling</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
 			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
 			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
 			                </ul>
@@ -309,7 +309,7 @@
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
 			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
-			                                                            <input class="form-control" type="number" value="10" id="num-tweet-questions">
+			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
 			                                                        </div>
 
 			                                                        <!--<div class="form-group">
