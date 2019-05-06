@@ -3,6 +3,8 @@ app.views.classification = Backbone.View.extend({
     initialize: function() {
         var handler = _.bind(this.render, this);
 
+        app.views.mabed.prototype.setSessionTopBar();
+
         String.prototype.chunk = function(size) {
             return [].concat.apply([],
                 this.split('').map(function(x,i){ return i%size ? [] : this.slice(i,i+size) }, this)
@@ -219,11 +221,11 @@ app.views.classification = Backbone.View.extend({
             .fontSize(function(d) {
                 return d.size;
             })
-            .on("end", drawSkillCloud)
+            .on("end", drawCloud)
             .start();
 
         // apply D3.js drawing API
-        function drawSkillCloud(words) {
+        function drawCloud(words) {
             d3.select(selector).append("svg")
                 .attr("width", width)
                 .attr("height", height)
@@ -248,7 +250,8 @@ app.views.classification = Backbone.View.extend({
                 })
                 .attr("text-anchor", "middle")
                 .attr("transform", function(d) {
-                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                    return "translate(" + [d.x, d.y] + ")";
+                    //return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
                 })
                 .text(function(d) {
                     return d.text;
