@@ -150,6 +150,26 @@ class NgramBasedClasifier:
 
         return self.get_ngrams_by_query(query=query, **kwargs)
 
+    def get_ngrams_for_ids(self, **kwargs):
+
+        ids = ""
+        for id in kwargs["ids"]:
+            ids += id + " or "
+        ids = ids[:-4]
+
+        query = {
+            "match": {
+                "id_str": ids
+            }
+        }
+
+        res = self.get_ngrams_by_query(query=query, **kwargs)
+
+        try:
+            return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
+
     def get_ngrams_for_event(self, **kwargs):
 
         query = {

@@ -19,6 +19,7 @@ from flask import Response
 from flask_htpasswd import HtPasswdAuth
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
+from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.ngram_based_classifier import NgramBasedClasifier
 
 
@@ -444,8 +445,13 @@ def start_learning():
     data = request.form
     num_questions = int(data["num_questions"])
     max_samples_to_sort = int(data["max_samples_to_sort"])
-
     sampling_strategy = "closer_to_hyperplane"
+
+    # download
+    if(True==False): #This just downloads, then add code to copy to tmp_data
+       classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
+                             gt_session=data["gt_session"], text_field=data["text_field"],
+                             is_field_array=data["is_field_array"], debug_limit=data["debug_limit"])
 
     # Building the model and getting the questions
     model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
@@ -456,15 +462,15 @@ def start_learning():
     #                                                                  X_unlabeled, categories, num_questions)
     #if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
     questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
-                                                                                X_unlabeled, categories,
-                                                                                num_questions,
-                                                                                max_samples_to_sort=max_samples_to_sort,
-                                                                                index=data["index"],
-                                                                                session=data["session"],
-                                                                                text_field=False,
-                                                                                cnf_weight=1,
-                                                                                ret_weight=0,
-                                                                                bgr_weight=0)
+                                                                        X_unlabeled, categories,
+                                                                        num_questions,
+                                                                        max_samples_to_sort=max_samples_to_sort,
+                                                                        index=data["index"],
+                                                                        session=data["session"],
+                                                                        text_field=False,
+                                                                        cnf_weight=1,
+                                                                        ret_weight=0,
+                                                                        bgr_weight=0)
 
     # # Asking the user (gt_dataset) to answer the questions
     # answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions,
@@ -482,15 +488,35 @@ def start_learning():
     return jsonify({"questions": questions, "scores": scores})
 
 
+
+
 @app.route('/suggest_classification', methods=['POST'])
 def suggest_classification():
     data = request.form
     questions = json.loads(data['questions'])
     scores = json.loads(data['scores'])
-
     # classifier.move_answers_to_training_set(answers)
     # classifier.remove_matching_answers_from_test_set(answers)
-    print("TODO: suggest_classification")
+    # RE-TRAIN THE MODEL
+    # model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
+    #    num_questions=num_questions, remove_stopwords=False)
+
+    high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids = classifier.get_full_queries_ids()
+    return jsonify({
+        "high": {
+            "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_pos_ids,
+                                                       n_size="2", results_size=data["results_size"]),
+            "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_neg_ids,
+                                                       n_size="2", results_size=data["results_size"])
+        },
+        "low": {
+            "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_pos_ids,
+                                                       n_size="2", results_size=data["results_size"]),
+            "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_neg_ids,
+                                                       n_size="2", results_size=data["results_size"])
+        }
+    })
+
     #return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
 
 @app.route('/get_tweets_by_str_ids', methods=['POST'])

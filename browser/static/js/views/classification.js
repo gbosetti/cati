@@ -131,9 +131,13 @@ app.views.classification = Backbone.View.extend({
         data = [
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
+            {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
             {name: "num_questions", value: numQuestions },
             {name: "remove_stopwords", value: removeStopwords },
-            {name: "max_samples_to_sort", value:500}
+            {name: "max_samples_to_sort", value:500}, //TODO
+            {name: "text_field", value:"2grams"}, //TODO
+            {name: "is_field_array", value:false}, //TODO
+            {name: "debug_limit", value:true}
         ];
 
         $.post(app.appURL+'start_learning', data, response => {
@@ -146,7 +150,7 @@ app.views.classification = Backbone.View.extend({
 
         var questions = [];
         document.querySelectorAll(".card").forEach(question => {
-            var label = (question.querySelector("input").checked)? "pos" : "neg"; //The labels in the folders used by the active_learning.py algorythm
+            var label = (question.querySelector("input").checked)? "confirmed" : "negative"; //The labels in the folders used by the active_learning.py algorythm
             var labeled_question = {};
                 labeled_question["id"] = question.id;
                 labeled_question["label"] = label;
@@ -162,12 +166,22 @@ app.views.classification = Backbone.View.extend({
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
             {name: "questions", value: JSON.stringify(questions) },
-            {name: "scores", value: JSON.stringify(this.last_al_scores) }
+            {name: "scores", value: JSON.stringify(this.last_al_scores)},
+            {name: "results_size", value:"7"}
         ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
-            this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
+            console.log("RESPONSE", response);
+            this.drawQuadrants( this.formatQuadrantResults(response.high.pos),
+                                this.formatQuadrantResults(response.high.neg),
+                                this.formatQuadrantResults(response.low.pos),
+                                this.formatQuadrantResults(response.low.neg));
+            //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
+    },
+    formatQuadrantResults: function(res){
+
+        return res.map(res => { return {"text": res.key , "size": res.doc_count }})
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
@@ -176,7 +190,6 @@ app.views.classification = Backbone.View.extend({
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
         var divHeight = 350;
-        console.log(positiveTweets);
         this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
         this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
 
@@ -184,9 +197,68 @@ app.views.classification = Backbone.View.extend({
         this.positiveTweets = positiveTweets;
         this.negativeTweets = negativeTweets;
     },
-    drawQuadrants: function(positiveTweets, negativeTweets){
+    drawQuadrants: function(highPos, highNeg, lowPos, lowNeg){
 
+        this.drawD3TagCloud(highPos, "#cloud_q1", 400, 250);
+        this.drawD3TagCloud(highNeg, "#cloud_q2", 400, 250);
+        this.drawD3TagCloud(lowPos, "#cloud_q3", 400, 250);
+        this.drawD3TagCloud(lowNeg, "#cloud_q4", 400, 250);
+    },
+    drawD3TagCloud: function(data, selector, width, height){
 
+        $(selector).html("");
+
+		var fill = d3.scale.category20();
+        d3.layout.cloud()
+            .size([width, height])
+            .words(data)
+            .rotate(function() {
+                return ~~(Math.random() * 2) * 90;
+            })
+            .font("Impact")
+            .fontSize(function(d) {
+                return d.size;
+            })
+            .on("end", drawSkillCloud)
+            .start();
+
+        // apply D3.js drawing API
+        function drawSkillCloud(words) {
+            d3.select(selector).append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(" + ~~(width / 2) + "," + ~~(height / 2) + ")")
+                .selectAll("text")
+                .data(words)
+                .enter().append("text")
+                .style("font-size", function(d) {
+                    return d.size + "px";
+                })
+                .style("-webkit-touch-callout", "none")
+                .style("-webkit-user-select", "none")
+                .style("-khtml-user-select", "none")
+                .style("-moz-user-select", "none")
+                .style("-ms-user-select", "none")
+                .style("user-select", "none")
+                .style("cursor", "default")
+                .style("font-family", "Impact")
+                .style("fill", function(d, i) {
+                    return fill(i);
+                })
+                .attr("text-anchor", "middle")
+                .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                })
+                .text(function(d) {
+                    return d.text;
+                });
+        }
+
+        var svg = document.querySelector(selector).getElementsByTagName("svg")[0];
+        var bbox = svg.getBBox();
+        var viewBox = [bbox.x, bbox.y, bbox.width, bbox.height].join(" ");
+        svg.setAttribute("viewBox", viewBox);
     },
     drawTagCloud: function(title, tweetsTexts, divId, divHeight, tweetsTextsVarName){
 

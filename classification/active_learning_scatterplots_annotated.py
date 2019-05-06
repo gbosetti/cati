@@ -6,8 +6,8 @@ import plotly.io as pio
 import os
 
 #PARAMS
-logs_path = "/home/stage/experiment/final_experiment"
-output_path = "/home/stage/experiment/figures"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
+output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
 # Functions
