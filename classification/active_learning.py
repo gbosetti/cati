@@ -215,6 +215,11 @@ class ActiveLearning:
             print("when categories are more than 2")
 
         sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
+
+        self.last_samples = sorted_samples_by_conf
+        self.last_confidences = confidences
+        self.last_predictions = predictions
+
         question_samples = self.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.data_unlabeled, kwargs["max_samples_to_sort"]) # returns just unique (removes duplicated files)
         # question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
 
@@ -283,6 +288,10 @@ class ActiveLearning:
         question_samples = sorted_samples[0:num_questions].tolist()
 
         selected_samples = self.fill_questions(question_samples, predictions, confidences, categories)
+
+        self.last_samples = sorted_samples
+        self.last_confidences = confidences
+        self.last_predictions = predictions
 
         return selected_samples
 
@@ -360,22 +369,27 @@ class ActiveLearning:
     def loading_tweets_from_files(self):
 
         # Loading the datasets
+        print("Loading training data")
         data_train = load_files(self.TRAIN_FOLDER, encoding=self.ENCODING)  # data_train
+        print("Loading testing data")
         data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+        print("Loading target data")
         unlabeled = load_files(self.UNLABELED_FOLDER, encoding=self.ENCODING)
+
+        print("Loading categories")
         categories = data_train.target_names
 
-        data_train_size_mb = self.size_mb(data_train.data)
-        data_test_size_mb = self.size_mb(data_test.data)
-        unlabeled_size_mb = self.size_mb(unlabeled.data)
-
-        print("%d documents - %0.3fMB (training set)" % (
-            len(data_train.data), data_train_size_mb))
-        print("%d documents - %0.3fMB (test set)" % (
-            len(data_test.data), data_test_size_mb))
-        print("%d documents - %0.3fMB (unlabeled set)" % (
-            len(unlabeled.data), unlabeled_size_mb))
-        print("%d categories" % len(categories), categories)
+        # data_train_size_mb = self.size_mb(data_train.data)
+        # data_test_size_mb = self.size_mb(data_test.data)
+        # unlabeled_size_mb = self.size_mb(unlabeled.data)
+        #
+        # print("%d documents - %0.3fMB (training set)" % (
+        #     len(data_train.data), data_train_size_mb))
+        # print("%d documents - %0.3fMB (test set)" % (
+        #     len(data_test.data), data_test_size_mb))
+        # print("%d documents - %0.3fMB (unlabeled set)" % (
+        #     len(unlabeled.data), unlabeled_size_mb))
+        # print("%d categories" % len(categories), categories)
 
         return data_train, data_test, unlabeled, categories
 
@@ -433,6 +447,20 @@ class ActiveLearning:
         # The full list of languages may be found in C:/Users/username/AppData/Roming/nltk_data/corpora/stopwords
 
         return swords
+
+    def download_data(self, **kwargs):
+
+        self.clean_directories()
+        self.download_training_data(index=kwargs["index"], session=kwargs["session"],
+                                               field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                               debug_limit=kwargs["debug_limit"])
+        self.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
+                                                   field=kwargs["text_field"],
+                                                   is_field_array=kwargs["is_field_array"],
+                                                   debug_limit=kwargs["debug_limit"])
+        self.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
+                                              field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                              debug_limit=kwargs["debug_limit"])
 
     def download_testing_data(self, **kwargs):
 
@@ -577,11 +605,13 @@ class ActiveLearning:
             return
 
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
+        print("Vectorizing the test set")
         X_test = vectorizer.transform(data_test.data)
 
         print("X_test n_samples: %d, n_features: %d" % X_test.shape)
 
         # Extracting features from the unlabled dataset using the same vectorizer
+        print("Vectorizing the target set")
         X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
         print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
@@ -593,8 +623,8 @@ class ActiveLearning:
         clf.fit(X_train, y_train)
         pred = clf.predict(X_test)
 
-        print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
-        print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
+        #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
+        #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
 
         score = metrics.f1_score(y_test, pred)
         accscore = metrics.accuracy_score(y_test, pred)
@@ -704,8 +734,40 @@ class ActiveLearning:
 
     def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
 
+        full_queries = classifier.get_full_queries()
 
         return
+
+    def get_tweets_for_validation(self):
+
+        full_queries = self.get_full_queries()
+        return
+
+    def get_full_queries_ids(self):
+
+        middle_conf = np.average(self.last_confidences)
+        high_pos_ids = []
+        high_neg_ids = []
+        low_pos_ids = []
+        low_neg_ids = []
+
+        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
+            pred_label = self.categories[int(self.last_predictions[index])]
+
+            if(self.last_confidences[index] > middle_conf):
+                if (pred_label == "confirmed"):
+                    high_pos_ids.append(id_str)
+                else: high_neg_ids.append(id_str)
+
+            else:
+                if (pred_label == "confirmed"):
+                    low_pos_ids.append(id_str)
+                else:
+                    low_neg_ids.append(id_str)
+
+        return high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids
 
     def suggest_classification(self, predictions, confidences, **kwargs):
 

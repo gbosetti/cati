@@ -371,7 +371,53 @@
 			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified. If you believe that the classification is accurate, the process ends. But, it continues to train the algorithm.</p>
 
 			                                                <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
-			                                                    <div id="classif-graph-area"></div>
+			                                                    <div id="classif-graph-area">
+
+																	<div>
+																	  <div class="row">
+																		<!-- HEADERS -->
+																		<div id="cloud_header" class="col-1"></div>
+																		<div class="row col">
+																		  <div id="cloud_header_q1" class="col-6 d-flex justify-content-center">
+																			<div class="align-self-center p-2">
+																			  Positive
+																			</div>
+																		  </div>
+																		  <div id="cloud_header_q2" class="col-6 d-flex justify-content-center">
+																			<div class="align-self-center p-2">
+																			  Negative
+																			</div>
+																		  </div>
+																		</div>
+																	  </div>
+
+																	  <div class="row">
+																		<!-- Q1 Q2 -->
+																		<div id="cloud_header_top" class="col-1 d-flex justify-content-center">
+																		  <div class="align-self-center p-2">
+																			High
+																		  </div>
+																		</div>
+
+																		<div class="row col">
+																		  <div id="cloud_q1" class="col-6 border"></div>
+																		<div id="cloud_q2" class="col-6 border"></div>
+																		</div>
+																	  </div>
+																	  <div class="row">
+																		<!-- Q3 Q4 -->
+																		<div id="cloud_header_bottom" class="col-1 d-flex justify-content-center">
+																		  <div class="align-self-center p-2">
+																			Low
+																		  </div>
+																		</div>
+																		<div class="row col">
+																		  <div id="cloud_q3" class="col-6 border"></div>
+																		<div id="cloud_q4" class="col-6 border"></div>
+																		</div>
+																	  </div>
+																	</div>
+																</div>
 			                                                </div>
 			                                                <!-- Carousel navigation -->
 			                                                <nav aria-label="..." style="padding-top: 3em;">
