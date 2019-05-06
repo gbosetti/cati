@@ -94,6 +94,20 @@ class Functions:
         except RequestError:
             return '...'
 
+    def get_tweets_by_str_ids(self, index="", id_strs=""):
+
+        my_connector = Es_connector(index=index, doc_type="tweet")
+        print("IDS: ", id_strs)
+        res = my_connector.search({
+            "query": {
+                "match": {
+                    "id_str": id_strs
+                }
+            }
+        })
+
+        return res['hits']['hits']
+
     # get the 10 most used languages
     def get_lang_count(self, index):
 

@@ -444,7 +444,6 @@ def start_learning():
     data = request.form
     num_questions = int(data["num_questions"])
     max_samples_to_sort = int(data["max_samples_to_sort"])
-    classifier = ActiveLearning()
 
     sampling_strategy = "closer_to_hyperplane"
 
@@ -479,14 +478,25 @@ def start_learning():
     # # ...
     #
     # return scores, wrong_pred_answers
-    return jsonify(questions)
+    # return {questions: jsonify(questions), scores: scores}
+    return jsonify({"questions": questions, "scores": scores})
 
 
 @app.route('/suggest_classification', methods=['POST'])
 def suggest_classification():
     data = request.form
     questions = json.loads(data['questions'])
-    return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
+    scores = json.loads(data['scores'])
+
+    # classifier.move_answers_to_training_set(answers)
+    # classifier.remove_matching_answers_from_test_set(answers)
+    print("TODO: suggest_classification")
+    #return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
+
+@app.route('/get_tweets_by_str_ids', methods=['POST'])
+def get_tweets_by_str_ids():
+    data = request.form
+    return jsonify(functions.get_tweets_by_str_ids(index=data['index'], id_strs=data["id_strs"]))
 
 
 @app.route('/most_frequent_n_grams', methods=['POST'])

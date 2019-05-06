@@ -650,6 +650,7 @@ class ActiveLearning:
             question ={
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
+                "str_id": self.extract_filename_no_ext(self.data_unlabeled.filenames[index]),
                 "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
                 "confidence": confidences[index],
