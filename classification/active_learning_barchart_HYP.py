@@ -7,6 +7,8 @@ import os
 import re
 
 # PARAMS
+# this expects that Experiments_for_plotting contains folders called experiment_n
+# these folders contain logs_0n, and the latter contains the actual logs for the case
 scenario_number = "4"
 logs_path = "/home/stage/experiment/Experiments_for_plotting/experiment_" + scenario_number
 output_path = "/home/stage/experiment/figures_" + scenario_number
