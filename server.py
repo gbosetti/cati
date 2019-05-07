@@ -52,6 +52,7 @@ for source in config['elastic_search_sources']:
 
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
+classifier = ActiveLearning()
 
 # ==================================================================
 # 1. Tests and Debug
@@ -436,8 +437,15 @@ def tweets_scroll():
     return jsonify({"tweets": tweets})
 
 
-classifier = ActiveLearning()
 
+
+def to_boolean(str_param):
+    if isinstance(str_param, bool):
+        return str_param
+    elif str_param.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    else:
+        return False
 
 @app.route('/start_learning', methods=['POST'])
 # @cross_origin()
@@ -446,12 +454,14 @@ def start_learning():
     num_questions = int(data["num_questions"])
     max_samples_to_sort = int(data["max_samples_to_sort"])
     sampling_strategy = "closer_to_hyperplane"
+    download_data = to_boolean(data["download_data"])
+    debug_limit = to_boolean(data["debug_limit"])
 
     # download
-    if(True==False): #This just downloads, then add code to copy to tmp_data
+    if(True==download_data): #This just downloads, then add code to copy to tmp_data
        classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
                              gt_session=data["gt_session"], text_field=data["text_field"],
-                             is_field_array=data["is_field_array"], debug_limit=data["debug_limit"])
+                             is_field_array=data["is_field_array"], debug_limit=debug_limit)
 
     # Building the model and getting the questions
     model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
@@ -501,21 +511,30 @@ def suggest_classification():
     # model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
     #    num_questions=num_questions, remove_stopwords=False)
 
-    high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids = classifier.get_full_queries_ids()
+    #high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids = classifier.get_full_queries_ids()
+    positives, negatives = classifier.get_classified_queries_ids()
     return jsonify({
-        "high": {
-            "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_pos_ids,
-                                                       n_size="2", results_size=data["results_size"]),
-            "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_neg_ids,
-                                                       n_size="2", results_size=data["results_size"])
-        },
-        "low": {
-            "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_pos_ids,
-                                                       n_size="2", results_size=data["results_size"]),
-            "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_neg_ids,
-                                                       n_size="2", results_size=data["results_size"])
-        }
+       "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
+                                                  ids=positives,
+                                                  n_size="2", results_size=data["results_size"]),
+       "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
+                                                  ids=negatives,
+                                                  n_size="2", results_size=data["results_size"])
     })
+    # return jsonify({
+    #     "high": {
+    #         "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_pos_ids,
+    #                                                    n_size="2", results_size=data["results_size"]),
+    #         "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_neg_ids,
+    #                                                    n_size="2", results_size=data["results_size"])
+    #     },
+    #     "low": {
+    #         "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_pos_ids,
+    #                                                    n_size="2", results_size=data["results_size"]),
+    #         "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_neg_ids,
+    #                                                    n_size="2", results_size=data["results_size"])
+    #     }
+    # })
 
     #return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
 
