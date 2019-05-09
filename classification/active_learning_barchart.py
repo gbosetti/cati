@@ -4,10 +4,11 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.io as pio
 import os
+import re
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
-output_path = "C:\\Users\\gbosetti\\Desktop"
+logs_path = "/home/stage/experiment/Experiments_for_plotting/experiment_1/"
+output_path = "/home/stage/experiment/figures1"
 
 
 # Functions
@@ -125,11 +126,16 @@ def get_config_value(prop_name, full_text):
 
 def get_config_name(full_text):
 
-    cnf = str(int(float(get_config_value("_cnf", full_text))*100))
-    ret = str(int(float(get_config_value("_ret", full_text))*100))
-    bgr = str(int(float(get_config_value("_bgr", full_text))*100))
+    hyp = re.search(r'HYP', full_text, re.M | re.I)
+    if hyp is None:
+        cnf = str(int(float(get_config_value("_cnf", full_text))*100))
+        ret = str(int(float(get_config_value("_ret", full_text))*100))
+        bgr = str(int(float(get_config_value("_bgr", full_text))*100))
 
-    return cnf + "·" + ret + "·" + bgr
+        return cnf + "·" + ret + "·" + bgr
+    else:
+        print("hyp")
+        return "HYP"
 
 def get_value_at_loop(prop_name, loop_index, logs):
 
@@ -143,7 +149,8 @@ hyp_results = []
 for path in logs_folders:
 
     # Get all the OUR files for the session
-    session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
+    # session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
+    session_files = [f for f in os.scandir(path) if not f.is_dir() ]
 
     for file in session_files:
         # Get the logs of the only file for HYP
