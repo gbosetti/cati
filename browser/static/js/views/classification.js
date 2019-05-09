@@ -3,6 +3,8 @@ app.views.classification = Backbone.View.extend({
     initialize: function() {
         var handler = _.bind(this.render, this);
 
+        app.views.mabed.prototype.setSessionTopBar();
+
         String.prototype.chunk = function(size) {
             return [].concat.apply([],
                 this.split('').map(function(x,i){ return i%size ? [] : this.slice(i,i+size) }, this)
@@ -137,7 +139,8 @@ app.views.classification = Backbone.View.extend({
             {name: "max_samples_to_sort", value:500}, //TODO
             {name: "text_field", value:"2grams"}, //TODO
             {name: "is_field_array", value:false}, //TODO
-            {name: "debug_limit", value:true}
+            {name: "debug_limit", value:true}, //TODO
+            {name: "download_data", value:false}
         ];
 
         $.post(app.appURL+'start_learning', data, response => {
@@ -167,21 +170,55 @@ app.views.classification = Backbone.View.extend({
             {name: "session", value: "session_" + app.session.s_name},
             {name: "questions", value: JSON.stringify(questions) },
             {name: "scores", value: JSON.stringify(this.last_al_scores)},
-            {name: "results_size", value:"7"}
+            {name: "results_size", value:"20"}
         ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
             console.log("RESPONSE", response);
-            this.drawQuadrants( this.formatQuadrantResults(response.high.pos),
-                                this.formatQuadrantResults(response.high.neg),
-                                this.formatQuadrantResults(response.low.pos),
-                                this.formatQuadrantResults(response.low.neg));
+            this.drawQuadrants( this.formatQuadrantResults(response.pos),
+                                this.formatQuadrantResults(response.neg),
+                                400, 500);
+            this.drawQuadrantsSlider('pips-range-vertical');
             //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
     },
+    drawQuadrantsSlider: function(selector){
+         noUiSlider.create(document.getElementById(selector), {
+          start: [0.2, 0.5],
+          connect: true,
+          direction: 'rtl',  // ltr or rtl
+          orientation: 'vertical',
+          tooltips: true,
+          range: {
+            'min': 0,
+            'max': 1
+          },
+          pips: { // Show a scale with the slider
+            mode: 'steps',
+            stepped: false,
+            density: 4
+          }
+       })
+    },
+    fit_to_max: function(collection, max){
+
+        var sizes = collection.map(elem => { return elem.size });
+        var max_in_coll = Math.max(...sizes);
+        var min_in_coll = Math.min(...sizes);
+
+        collection.forEach(elem => {
+
+            elem.size = ((elem.size - min_in_coll) / (max_in_coll - min_in_coll)) * max;
+        });
+
+        return collection;
+    },
     formatQuadrantResults: function(res){
 
-        return res.map(res => { return {"text": res.key , "size": res.doc_count }})
+        //return res.map(res => { return {"text": (res.key.length>10)? res.key.substring(0,10) : res.key , "size": res.doc_count }})
+
+        var mapped = res.map(res => { return {"text": res.key , "size": res.doc_count }});
+        return this.fit_to_max(mapped, 35);
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
@@ -197,33 +234,32 @@ app.views.classification = Backbone.View.extend({
         this.positiveTweets = positiveTweets;
         this.negativeTweets = negativeTweets;
     },
-    drawQuadrants: function(highPos, highNeg, lowPos, lowNeg){
+    drawQuadrants: function(highPos, highNeg, width, height){
 
-        this.drawD3TagCloud(highPos, "#cloud_q1", 400, 250);
-        this.drawD3TagCloud(highNeg, "#cloud_q2", 400, 250);
-        this.drawD3TagCloud(lowPos, "#cloud_q3", 400, 250);
-        this.drawD3TagCloud(lowNeg, "#cloud_q4", 400, 250);
+        this.drawD3TagCloud(highPos, "#cloud_q1", width, height);
+        this.drawD3TagCloud(highNeg, "#cloud_q2", width, height);
     },
     drawD3TagCloud: function(data, selector, width, height){
 
         $(selector).html("");
+        $(selector).css("width", width);
+        $(selector).css("height", height);
 
 		var fill = d3.scale.category20();
         d3.layout.cloud()
             .size([width, height])
             .words(data)
-            .rotate(function() {
-                return ~~(Math.random() * 2) * 90;
-            })
+            .rotate(0)
+            //.padding(3)
             .font("Impact")
             .fontSize(function(d) {
                 return d.size;
             })
-            .on("end", drawSkillCloud)
+            .on("end", drawCloud)
             .start();
 
         // apply D3.js drawing API
-        function drawSkillCloud(words) {
+        function drawCloud(words) {
             d3.select(selector).append("svg")
                 .attr("width", width)
                 .attr("height", height)
@@ -248,12 +284,13 @@ app.views.classification = Backbone.View.extend({
                 })
                 .attr("text-anchor", "middle")
                 .attr("transform", function(d) {
-                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                    return "translate(" + [d.x, d.y] + ")";
+                    //return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
                 })
                 .text(function(d) {
                     return d.text;
                 });
-        }
+        };
 
         var svg = document.querySelector(selector).getElementsByTagName("svg")[0];
         var bbox = svg.getBBox();

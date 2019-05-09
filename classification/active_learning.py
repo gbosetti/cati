@@ -743,9 +743,25 @@ class ActiveLearning:
         full_queries = self.get_full_queries()
         return
 
+    def get_classified_queries_ids(self):
+        positives = []
+        negatives = []
+
+        for index in self.last_samples:
+
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
+            pred_label = self.categories[int(self.last_predictions[index])]
+
+            if (pred_label == "confirmed"):
+                positives.append(id_str)
+            else:
+                negatives.append(id_str)
+
+        return positives, negatives
+
     def get_full_queries_ids(self):
 
-        middle_conf = np.average(self.last_confidences)
+        middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
         high_pos_ids = []
         high_neg_ids = []
         low_pos_ids = []

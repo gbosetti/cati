@@ -16,12 +16,14 @@
 		<link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
 		<link rel="stylesheet" type="text/css" href="static/css/main.css"/>
 		<link rel="stylesheet" type="text/css" href="static/css/client.css"/>
+		<link rel="stylesheet" type="text/css" href="static/css/classification.css"/>
 		<link rel="stylesheet" type="text/css" href="static/css/tweets.css" />
 		<link rel="stylesheet" type="text/css" href="static/css/style.css" />
 		<link rel="stylesheet" type="text/css" href="static/css/jquery-confirm.css" />
 		<link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
 		<link rel="stylesheet" type="text/css" href="static/css/bootstrap4-toggle.min.css">
 		<link rel="stylesheet" type="text/css" href="static/css/spin.css">
+		<link rel="stylesheet" type="text/css" href="static/plugins/nouislider/nouislider.min.css"/>
 		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 	</head>
 	<body>
@@ -368,24 +370,30 @@
 			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
 			                                            <div class="col-md-12 col-md-offset-12">
 			                                                <h3>Validation stage</h3>
-			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified. If you believe that the classification is accurate, the process ends. But, it continues to train the algorithm.</p>
+			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified.
+																If you believe that the classification is accurate, then proceed to finish the process. Otherwise, continue training the algorithm.</p>
 
 			                                                <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
 			                                                    <div id="classif-graph-area">
 
-																	<div>
+																	<div style="padding:5px">
+
 																	  <div class="row">
 																		<!-- HEADERS -->
-																		<div id="cloud_header" class="col-1"></div>
 																		<div class="row col">
-																		  <div id="cloud_header_q1" class="col-6 d-flex justify-content-center">
+																		  <div id="cloud_header_q1" class="col-2 d-flex justify-content-center">
 																			<div class="align-self-center p-2">
-																			  Positive
+																			  Confidence
 																			</div>
 																		  </div>
-																		  <div id="cloud_header_q2" class="col-6 d-flex justify-content-center">
+																		  <div id="cloud_header_q1" class="col-5 d-flex justify-content-center">
 																			<div class="align-self-center p-2">
-																			  Negative
+																			  Bigrams on positive documents
+																			</div>
+																		  </div>
+																		  <div id="cloud_header_q2" class="col-5 d-flex justify-content-center">
+																			<div class="align-self-center p-2">
+																			  Bigrams on negative documents
 																			</div>
 																		  </div>
 																		</div>
@@ -393,31 +401,38 @@
 
 																	  <div class="row">
 																		<!-- Q1 Q2 -->
-																		<div id="cloud_header_top" class="col-1 d-flex justify-content-center">
-																		  <div class="align-self-center p-2">
-																			High
-																		  </div>
-																		</div>
-
 																		<div class="row col">
-																		  <div id="cloud_q1" class="col-6 border"></div>
-																		<div id="cloud_q2" class="col-6 border"></div>
+																		  <div id="cloud_slider" class="col-2 d-flex justify-content-center">
+																			<div id="content" >
+																			  <div id="pips-range-vertical" class="slider-range"></div>
+																			</div>
+																		  </div>
+																		  <div id="cloud_q1" class="col-5 border tag-cloud"></div>
+																		  <div id="cloud_q2" class="col-5 border tag-cloud"></div>
 																		</div>
 																	  </div>
+
 																	  <div class="row">
-																		<!-- Q3 Q4 -->
-																		<div id="cloud_header_bottom" class="col-1 d-flex justify-content-center">
-																		  <div class="align-self-center p-2">
-																			Low
+																		<div class="row col-12">
+																			<form class="static_box pix-padding-20 white-bg bigrams-controls">
+																			  <div class="form-row">
+																				<div class="col-3">
+																				  <label>Max bigrams to show</label>
+																				  <div class="input-group mb-3">
+																					<input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1">
+																					<div class="input-group-append">
+																					  <button class="btn btn-default" type="submit"><i class="fa fa-refresh"></i></button>
+																					</div>
+																				  </div>
+																				 </div>
+																			  </div>
+
+																			</form>
 																		  </div>
-																		</div>
-																		<div class="row col">
-																		  <div id="cloud_q3" class="col-6 border"></div>
-																		<div id="cloud_q4" class="col-6 border"></div>
-																		</div>
 																	  </div>
 																	</div>
-																</div>
+
+																</div> <!-- end of classif-graph-area -->
 			                                                </div>
 			                                                <!-- Carousel navigation -->
 			                                                <nav aria-label="..." style="padding-top: 3em;">
@@ -1117,6 +1132,7 @@
 		<script src="static/js/vendor/jarallax-video.min.js"></script>
 		<script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
 		<script src="static/js/vendor/plotly-latest.min.js"></script>
+		<script src="static/plugins/nouislider/nouislider.js"></script>
 		<script>
 			window.onload = function() {
 			  app.init();
