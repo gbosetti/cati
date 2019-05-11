@@ -1,11 +1,12 @@
-# MABED
+# CATI
 ## About
 
-MABED is a Python 3 implementation of [MABED](#mabed), distributed under the terms of the MIT licence. If you make use of this software in your research, please cite one the [references](#references) below.
+CATI is a Python 3 implementation of [CATI], distributed under the terms of the MIT licence. If you make use of this software in your research, please cite one the [references](#references) below.
+It uses the [MABED](#mabed) library.
 
 ## Requirements
 
-MABED requires scipy, numpy and networkx; these scientific libraries come pre-installed with the [Anaconda Python](https://anaconda.org) distribution. You can also install them manually via [pip](https://pypi.python.org):
+CATI requires scipy, numpy and networkx; these scientific libraries come pre-installed with the [Anaconda Python](https://anaconda.org) distribution. You can also install them manually via [pip](https://pypi.python.org):
 
 	pip install scipy
 	pip install numpy
@@ -23,7 +24,7 @@ python3 and pip3 for these to work
 
 ## Usage
 
-Provided a set of tweets, MABED can (i) perform event detection and (ii) generate a visualization of the detected events.
+Provided a set of tweets, CATI can (i) perform event detection and (ii) generate a visualization of the detected events.
 
 ### Import tweets into Elasticsearch
 
