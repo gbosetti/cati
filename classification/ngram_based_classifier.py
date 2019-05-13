@@ -57,6 +57,8 @@ class NgramBasedClasifier:
                }
             }
 
+        print(query)
+
         return my_connector.init_paginatedSearch(query)
 
     def update_tweets_state_by_ngram(self, **kwargs):

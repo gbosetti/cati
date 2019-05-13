@@ -73,6 +73,8 @@ app.views.client = Backbone.View.extend({
             var containerSelector = ".event-ngrams";
             this.ngrams.lastQueryParams = data;
 
+            console.log("NGRAMS:", response.ngrams);
+
             if ($.isEmptyObject(response.ngrams)) {
                 app.views.tweets.prototype.showNoBigramsFound(containerSelector);
             } else {

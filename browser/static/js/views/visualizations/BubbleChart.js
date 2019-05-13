@@ -12,6 +12,14 @@ class BubbleChart{
         console.log("Default behaviour");
     }
 
+    clearContainer(selector){
+        $(selector).html("");
+    }
+
+    clearNgramsGraph(){
+        this.clearContainer(".bigrams-graph-area:visible");
+    }
+
     // Returns a flattened hierarchy containing all leaf nodes under the root.
     classes(root) {
         var classes = [];

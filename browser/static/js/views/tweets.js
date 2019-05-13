@@ -511,19 +511,20 @@ app.views.tweets = Backbone.View.extend({
             onContentReady: function () {
 
                 try{
-                client.delegateEvents();
+                    if(client.delegateEvents)
+                        client.delegateEvents();
 
-                var jc = this;
-                //var data = self.getIndexAndSession().concat(self.getTabSearchDataFor(searchClass)).concat(self.getBigramsFormData()).concat([
-                var data = clientData.lastQueryParams.concat([
-                    {name: "ngram", value: ngram} //,
-                    //{name: "search_by_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
-                ]);
-                console.log(data);
+                    var jc = this;
+                    //var data = self.getIndexAndSession().concat(self.getTabSearchDataFor(searchClass)).concat(self.getBigramsFormData()).concat([
+                    var data = clientData.lastQueryParams.concat([
+                        {name: "ngram", value: ngram} //,
+                        //{name: "search_by_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
+                    ]);
+                    console.log(data);
 
-                $.post(app.appURL+endpoint, data, function(response){
-                    self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel, client);
-                });
+                    $.post(app.appURL+endpoint, data, function(response){
+                        self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel, client);
+                    });
                 }catch(err){console.log(err)}
             },
             buttons: {
