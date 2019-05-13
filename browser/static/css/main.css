@@ -1117,19 +1117,21 @@ a.timeline_btn.options_btn_valid { color: #279b37 !important;border-color: #279b
 a.timeline_btn.options_btn_valid:hover { background-color: #279b37 !important;border-color: #279b37;color: #fff !Important; }
 
 .timeline_options {
-    opacity: 0;
+    /*opacity: 0;*/
     -moz-transition:    all 0.2s ease-in-out;
         -webkit-transition: all 0.2s ease-in-out;
         -o-transition:      all 0.2s ease-in-out;
         -ms-transition:     all 0.2s ease-in-out;
         transition:         all 0.2s ease-in-out;
 }
-.tl-slide-content:hover .timeline_options { opacity: 1;}
+.tl-slide-content:hover .timeline_options { /*opacity: 1;*/ }
 
 .tl_btns { max-width: 50%;display: inline-block;}
 .h_field { padding-top: 12px;}
 .h_field label { color: #777;margin-bottom: 4px;}
 .tl-attribution { display: none;}
+
+.ui-dialog { z-index: 2147483647 !important }
 
 /*Tweets*/
 .tweet_box .t_name { font-weight: bold;font-size: 14px; }

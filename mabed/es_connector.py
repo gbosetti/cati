@@ -2,42 +2,44 @@
 import json
 import time
 from elasticsearch import Elasticsearch
+from elasticsearch.client import IndicesClient
 import os
 import gensim
 import mabed.utils as utils
 import string
 import re
+from elasticsearch_dsl import UpdateByQuery
 from pathlib import Path
 
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
 
-default_source = config['default']['index']
-sessions_source = config['default']['sessions_index']['index']
-session_host = config['default']['sessions_index']['host']
-session_port = config['default']['sessions_index']['port']
-session_user = config['default']['sessions_index']['user']
-session_password = config['default']['sessions_index']['password']
-session_timeout = config['default']['sessions_index']['timeout']
-session_index = config['default']['sessions_index']['index']
-session_doc_type = config['default']['sessions_index']['doc_type']
-for source in config['elastic_search_sources']:
-    if source['index'] == default_source:
-        default_host = source['host']
-        default_port = source['port']
-        default_user = source['user']
-        default_password = source['password']
-        default_timeout = source['timeout']
-        default_index = source['index']
-        default_doc_type = source['doc_type']
 
 class Es_connector:
-    def __init__(self, host=default_host, port=default_port, user=default_user, password=default_password,
-    timeout=default_timeout, index=default_index, doc_type=default_doc_type):
-    # def __init__(self, host='localhost', port=9200, user='', password='', timeout=1000, index="test2", doc_type="tweet"):
+    def __init__(self, host='', port='', user='', password='', timeout='', index='', doc_type='', protocol='http', config_relative_path=''):
+
+        with open(config_relative_path + 'config.json', 'r') as f:
+            config = json.load(f)
+
+        default_source = config['default']['index']
+        sessions_source = config['default']['sessions_index']['index']
+        session_host = config['default']['sessions_index']['host']
+        session_port = config['default']['sessions_index']['port']
+        session_user = config['default']['sessions_index']['user']
+        session_password = config['default']['sessions_index']['password']
+        session_timeout = config['default']['sessions_index']['timeout']
+        session_index = config['default']['sessions_index']['index']
+        session_doc_type = config['default']['sessions_index']['doc_type']
+        for source in config['elastic_search_sources']:
+            if source['index'] == default_source:
+                default_host = source['host']
+                default_port = source['port']
+                default_user = source['user']
+                default_password = source['password']
+                default_timeout = source['timeout']
+                default_index = source['index']
+                default_doc_type = source['doc_type']
 
         available = False
         if index == default_index:
@@ -75,11 +77,11 @@ class Es_connector:
         if not available:
             # We can just throw an error instead
             # Or have elastic search throw it
-            print('Datasource not available, check config.json', index)
-            raise Exception("Datasource initialisation")
+            raise Exception('The "' + index + '" index is not available, please check that it is defined in the config.json file and try again.')
 
         self.size = 500
         self.body = {"query": {"match_all": {}}}
+        self.protocol = protocol
         self.result = []
 
         # Init Elasticsearch instance
@@ -91,6 +93,7 @@ class Es_connector:
             # TODO: use SSL
             use_ssl=False
         )
+        self.ic = IndicesClient(self.es)
 
     # def search(self, query):
     #     res = self.es.search(
@@ -152,6 +155,7 @@ class Es_connector:
             return False
 
     def update(self,id, query):
+
         res = self.es.update(
             index=self.index,
             doc_type=self.doc_type,
@@ -164,15 +168,21 @@ class Es_connector:
             return False
 
     def delete(self, id):
-        res = self.es.delete(index=self.index,
-            doc_type=self.doc_type,
-            id=id)
-        if res['result'] == "deleted":
-            return res
-        else:
+
+        try:
+            res = self.es.delete(index=self.index,
+                doc_type=self.doc_type,
+                id=id)
+            if res['result'] == "deleted":
+                return res
+            else:
+                return False
+        except Exception as err:
+            print("Error: ", err)
             return False
 
     def get(self, id):
+
         res = self.es.get(index=self.index,
             doc_type=self.doc_type,
             id=id)
@@ -257,7 +267,7 @@ class Es_connector:
         # Before scroll, process current batch of hits
         res = process_hits(data['hits']['hits'], res)
         total = data['hits']['total']
-        scroll_size = total - scroll_size
+        # scroll_size = total - scroll_size
 
         return {"results":res, "sid":sid, "scroll_size":scroll_size, "total":total}
 
@@ -381,46 +391,80 @@ class Es_connector:
         # date = self.result[0]['_source']['timestamp_ms']
         return self.result
 
-    def update_all(self, field, value):
+    def update_by_query(self, query, script_source):
+
+        try:
+            self.fix_read_only_allow_delete()
+            ubq = UpdateByQuery(using=self.es, index=self.index).update_from_dict(query).script(source=script_source)
+            ubq.execute()
+
+        except Exception as err:
+            print("Error: ", err)
+            return False
+
+        return True
+
+    def fix_read_only_allow_delete(self):
+
+        self.es.indices.put_settings(index=self.index, body={
+            "index": {
+                "blocks": {
+                    "read_only_allow_delete": "false"
+                }
+            }
+        })
+
+    def update_all(self, field, value, **kwargs):
         # Process hits here
-        def process_hits(hits):
-            for item in hits:
-                self.update_field(item['_id'], field, value)
+        # def process_hits(hits):
+        #     for item in hits:
+        #         self.update_field(item['_id'], field, value)
+
+        logger = kwargs.get("logger", None)
 
         # Check index exists
         if not self.es.indices.exists(index=self.index):
             # print("Index " + self.index + " not exists")
             exit()
 
-        # Init scroll by search
-        data = self.es.search(
-            index=self.index,
-            doc_type=self.doc_type,
-            scroll='15m',
-            size=self.size,
-            body=self.body
-        )
+        ubq = UpdateByQuery(using=self.es, index=self.index).update_from_dict({"query": {"match_all": {}}}).script(
+            source="ctx._source." + field + " = '" + value + "'")
+        response = ubq.execute()
 
-        # Get the scroll ID
-        sid = data['_scroll_id']
-        scroll_size = len(data['hits']['hits'])
-
-        # Before scroll, process current batch of hits
-        # print(data['hits']['total'])
-        process_hits(data['hits']['hits'])
-
-        while scroll_size > 0:
-            "Scrolling..."
-            data = self.es.scroll(scroll_id=sid, scroll='15m')
-
-            # Process current batch of hits
-            process_hits(data['hits']['hits'])
-
-            # Update the scroll ID
-            sid = data['_scroll_id']
-
-            # Get the number of results that returned in the last scroll
-            scroll_size = len(data['hits']['hits'])
+        # # Init scroll by search
+        # data = self.es.search(
+        #     index=self.index,
+        #     doc_type=self.doc_type,
+        #     scroll='15m',
+        #     size=self.size,
+        #     body=self.body
+        # )
+        #
+        # # Get the scroll ID
+        # sid = data['_scroll_id']
+        # scroll_size = len(data['hits']['hits'])
+        #
+        # # Before scroll, process current batch of hits
+        # # print(data['hits']['total'])
+        # process_hits(data['hits']['hits'])
+        # processed_docs = 0
+        #
+        # while scroll_size > 0:
+        #
+        #     data = self.es.scroll(scroll_id=sid, scroll='15m')
+        #
+        #     # Process current batch of hits
+        #     process_hits(data['hits']['hits'])
+        #
+        #     # Update the scroll ID
+        #     sid = data['_scroll_id']
+        #
+        #     # Get the number of results that returned in the last scroll
+        #     scroll_size = len(data['hits']['hits'])
+        #
+        #     if (logger):
+        #         processed_docs += scroll_size
+        #         logger.add_log("Scrolling " + str(round(processed_docs * 100 / data['hits']['total'],2)) + "% documents")
         return True
 
     def update_query(self, query, field, value):
@@ -609,8 +653,6 @@ class Es_connector:
                 }
             }
         }
-        print(body)
-
         # Init scroll by search
 
         # filepath = "models/" + str(hash(words)).replace("-", "") + ".model"
@@ -657,7 +699,6 @@ class Es_connector:
 
         words = self.tokenize(words, stopwords)
         pwords=words
-        print("pwords", pwords)
         # context = model.most_similar(positive=['fête','lumières'], topn=10)
         context = model.most_similar(positive=pwords, topn=count)
         # context = model.most_similar(positive=['fête','lumières'], topn=count)
@@ -845,7 +886,6 @@ class Es_connector:
                 }
             }
         }
-        print(body)
 
         # Init scroll by search
 
@@ -893,8 +933,6 @@ class Es_connector:
 
         words = self.tokenize(words, stopwords)
         pwords = words
-        print("pwords")
-        print(pwords)
         # context = model.most_similar(positive=['fête','lumières'], topn=10)
         context = model.most_similar(positive=pwords, topn=count)
         # context = model.most_similar(positive=['fête','lumières'], topn=count)
@@ -905,3 +943,11 @@ class Es_connector:
         # context = model.similar_by_vector(vector=['lyon','fdl','fdl2017'], topn=5)
 
         return context
+
+    def field_exists(self, field):
+        res = self.ic.get_field_mapping(
+            index=self.index,
+            doc_type=self.doc_type,
+            fields=[field]
+        )
+        return len(res[(next(iter(res)))]['mappings'])  > 0

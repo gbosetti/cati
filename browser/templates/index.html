@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
 	<head>
+		<script>
+			let app_url = '{{ url_for("index") }}'
+		</script>
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,12 +15,15 @@
 		<!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
 		<link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
 		<link rel="stylesheet" type="text/css" href="static/css/main.css"/>
+		<link rel="stylesheet" type="text/css" href="static/css/client.css"/>
+		<link rel="stylesheet" type="text/css" href="static/css/classification.css"/>
 		<link rel="stylesheet" type="text/css" href="static/css/tweets.css" />
 		<link rel="stylesheet" type="text/css" href="static/css/style.css" />
 		<link rel="stylesheet" type="text/css" href="static/css/jquery-confirm.css" />
 		<link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto|Poppins|Playfair+Display:300,400,900" rel="stylesheet">
 		<link rel="stylesheet" type="text/css" href="static/css/bootstrap4-toggle.min.css">
 		<link rel="stylesheet" type="text/css" href="static/css/spin.css">
+		<link rel="stylesheet" type="text/css" href="static/plugins/nouislider/nouislider.min.css"/>
 		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 	</head>
 	<body>
@@ -36,21 +42,28 @@
 							<a class="nav-link" href="#results">Event-detection results</a>
 						</li>
 						<li class="nav-item" id="nav-classification">
-							<a class="nav-link" href="#classification">Tweets classification</a>
+							<a class="nav-link" href="#classification">Active Learning</a>
 						</li>
 						<li class="nav-item" id="nav-tweets">
-							<a class="nav-link" href="#tweets">Tweet Search</a>
+							<a class="nav-link" href="#tweets">Tweets Search</a>
 						</li>
-						<li class="nav-item" id="nav-beta2">
+						<!--<li class="nav-item" id="nav-beta2">
 							<a class="nav-link" href="#beta2">Event-detection Model</a>
-						</li>
+						</li>-->
 					</ul>
 					<ul class="nav navbar-nav navbar-right">
 						<li class="nav-item" id="nav-events">
 							<a class="nav-link" href="#events"><i class="pixicon-map-pin-1-place-2" style="margin-right:5px;position:relative;top:2px;"></i> Review & Export</a>
 						</li>
 						<li class="nav-item" id="nav-settings">
-							<a class="nav-link" href="#settings"><i class="pixicon-user-male-cog" style="margin-right:5px;position:relative;top:2px;"></i> Settings</a>
+								<form id="topbar_session_form">
+									<div class="input-group">
+										<label class="nav-link" for="session_topbar">
+											<i class="pixicon-user-male-cog" style="margin-right:5px;position:relative;top:2px;"></i >Session :</label>
+										<select name="id" class="custom-select" id="session_topbar" onchange="app.views.mabed.prototype.switchSession()">
+										</select>
+									</div>
+								</form>
 						</li>
 					</ul>
 				</div>
@@ -60,7 +73,7 @@
 			<div id="progress_classification" class="progress" style=" border-radius:0px;" data-toggle="tooltip" data-placement="bottom" title="Confirmed: 0 , Negative: 0, Unlabeled : 0">
 				<div id="classification_confirmed" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
 				<div id="classification_negative" class="progress-bar bg-danger" role="progressbar" style="width:0%"></div>
-				<div id="classification_proposed" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
+				<div id="classification_proposed" class="progress-bar bg-grey" role="progressbar" style="width:0%"></div>
 			</div>
 		</div>
 		<div id="content"></div>
@@ -122,23 +135,68 @@
 			    <div class="row">
 
 			      <div class="col-12 pix-margin-top-10">
-			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Event impact</span></h2>
-			        <a href="#" id="reset_impact" class="btn btn-line green-bg pix-gray btn-sm">Reset</a>
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Event impact</span></h2>
 			      </div>
 			      <div class="col-12 pix-margin-top-10">
+					<a href="#" id="reset_impact" class="btn btn-line green-bg pix-gray btn-sm">Reset</a>
 			        <div id="chartDiv"></div>
+			      </div>
+					<!-- IMAGE-BASED EVENT CLUSTERS -->
+				  <div class="col-12 pix-margin-top-10">
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Image-based clusters</span></h2>
 			      </div>
 			      <div class="col-12 pix-margin-top-10">
 			        <div class="card-columns" id="eventsClusters"></div>
+				  </div>
+				  <!-- EVENT RELATED N-GRAMS -->
+					<div class="col-12 pix-margin-top-10">
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Event related n-grams</span></h2>
 			      </div>
+				  <div style="width:100%">
+					  <div class="col-12">
+							<div id="event-ngrams-tabs-area" class="gray-bg bg-lighten-4">
+								<div class="" style="border-bottom: 1px solid #dee2e6;">
+									<div class="container">
+										<ul id="event-ngrams-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
+											<li class="nav-item active"><a class="event-ngrams-tab nav-link active" tag="confirmed OR proposed OR negative" href="#all-event-ngrams" target="#all-event-results" data-toggle="tab">All the results</a></li>
+											<li class="nav-item"><a class="event-ngrams-tab nav-link" tag="proposed" href="#unlabeled-event-ngrams" target="#unlabeled-event-ngrams" data-toggle="tab">Unlabeled tweets</a></li>
+											<li class="nav-item"><a class="event-ngrams-tab nav-link" tag="confirmed" href="#confirmed-event-ngrams" target="#confirmed-event-ngrams" data-toggle="tab">Confirmed tweets</a></li>
+											<li class="nav-item"><a class="event-ngrams-tab nav-link" tag="negative" href="#rejected-event-ngrams" target="#rejected-event-ngrams" data-toggle="tab">Rejected tweets</a></li>
+										</ul>
+									</div>
+								</div>
+							</div>
+					  </div>
+					  <div class="col-12 event-ngrams" style="padding:25px">
+						  <div class="bigrams-graph-area"></div>
+					  </div>
+				  </div>
+				  <!-- INDIVIDUAL TWEETS -->
 			      <div class="col-12 pix-margin-top-10">
-			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Tweets</span></h2>
+			        <h2 class="pix-gray darken-4 font-black event-accordion-shrink"><span class="pix_edit_text">Individual Tweets</span></h2>
 			      </div>
-			      <div class="col-12 loading_text">
-			        <span class="badge badge-secondary">Loading...</span>
-			      </div>
-			      <div class="col-12 individual_tweets_result">
-			      </div>
+				  <div style="width:100%">
+					  <div class="col-12 loading_text">
+						<span class="badge badge-secondary">Loading...</span>
+					  </div>
+					  <div class="col-12">
+							<!-- EVENT DETECTION TABS -->
+							<div id="event-results-tabs-area" class="gray-bg bg-lighten-4">
+								<div class="" style="border-bottom: 1px solid #dee2e6;">
+									<div class="container">
+										<ul id="event-detection-results-tabs" class="nav nav-tabs nav-justified" style="width:100%; margin-bottom: -1px;">
+											<li class="nav-item active"><a class="event-tweets-tab nav-link active" tag="confirmed OR proposed OR negative" href="#all-event-results" target="#all-event-results" data-toggle="tab">All the results</a></li>
+											<li class="nav-item"><a class="event-tweets-tab nav-link" tag="proposed" href="#unlabeled-event-results" target="#unlabeled-event-results" data-toggle="tab">Unlabeled tweets</a></li>
+											<li class="nav-item"><a class="event-tweets-tab nav-link" tag="confirmed" href="#confirmed-event-results" target="#confirmed-event-results" data-toggle="tab">Confirmed tweets</a></li>
+											<li class="nav-item"><a class="event-tweets-tab nav-link" tag="negative" href="#rejected-event-results" target="#rejected-event-results" data-toggle="tab">Rejected tweets</a></li>
+										</ul>
+									</div>
+								</div>
+							</div>
+					  </div>
+					  <div class="mt-4 mb-2 col-12 tweets_results"><span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)</div>
+					  <div class="col-12 individual_tweets_result"></div>
+				  </div>
 			    </div>
 			  </div>
 			</div>
@@ -159,9 +217,6 @@
 			          <div class="form-group">
 			            <label for="session_name">Session Index</label>
 			              <select name="s_index" class="custom-select" id="session_index">
-			                  <option value="twitter2015">Twitter2015</option>
-			                  <option value="twitter2016">Twitter2016</option>
-			                  <option value="twitter2017" selected>Twitter2017</option>
 			            </select>
 			          </div>
 
@@ -170,27 +225,26 @@
 			          </div>
 			        </form>
 
-					  <div class="">
-						<button id="regenerate-ngrams" class="btn btn-primary btn-lg btn-flat"><b>(Re)generate ngrams</b></button>
-					  </div>
+				</div>
+				  <div class="col-12 pix-margin-v-30">
+			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">N-grams generation</span></h2>
 			      </div>
-
-			      <div class="col-12 pix-margin-v-30">
-			        <h2 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Switch Sessions</span></h2>
-			      </div>
-
-			      <div class="col-6 col-sm-12">
-			        <form id="session_form">
-			          <div class="input-group">
-			            <select name="id" class="custom-select" id="sessionsList">
-			            </select>
-			            <div class="input-group-append">
-			              <button class="btn btn-outline-success" type="submit">Switch Session</button>
-			            </div>
-			          </div>
-			        </form>
-			      </div>
-
+				<div class="col-6 col-sm-12">
+					  <form id="ngrams_generation_form">
+							<div class="form-group">
+								<label for="ngrams_length">Ngram length</label>
+								<input name="ngrams_length" type="number" class="form-control" id="ngrams_length" placeholder="E.g. 2" min="2" max="10" value="2">
+							</div>
+						  	<div class="form-group">
+								<label for="session_name">Index</label>
+								  <select class="custom-select" id="session_index_for_ngrams">
+								</select>
+							</div>
+							<div class="">
+								<button id="regenerate-ngrams" class="btn btn-primary btn-lg btn-flat"><b>(Re)generate ngrams</b></button>
+							</div>
+					  </form>
+				</div>
 
 			      <div class="col-12 pix-margin-v-30">
 			        <div class="pix-margin-v-50"><hr></div>
@@ -220,22 +274,22 @@
 			    <div class="row">
 
 			      <div class="col-12 pix-margin-bottom-30">
-			        <h3 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Classification assistants</span></h3>
+			        <h3 class="pix-gray darken-4 font-black"><span class="pix_edit_text">Active Learning</span></h3>
 			      </div>
 
 			      <div class="col-6 col-sm-12">
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" href="#1b" data-toggle="tab">Active Learning</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#2b" data-toggle="tab">Strategy 2</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
-			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>
+			                    <li class="nav-item active"><a class="nav-link active" href="#clusted-based-active-learning" data-toggle="tab">Uncertainty Sampling</a></li>
+			                    <li class="nav-item" disabled><a class="nav-link">Extended Uncertainty Sampling</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
+			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
+			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
 			                </ul>
 			              </div>
 			              <div class="row">
 			                <div class="tab-content container clearfix">
-			                    <div class="tab-pane active" id="1b">
+			                    <div class="tab-pane active" id="clusted-based-active-learning">
 
 			                        <div class="container" style="padding: 2em 0em;">
 
@@ -249,21 +303,23 @@
 			                                                <h3>About</h3>
 
 			                                                <div>
-			                                                    <p>Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
-			                                                    Our algorithm will try to learn from your choices and will suggest an automatic classification.</p>
+			                                                    <p>
+																		Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
+			                                                   			Then, our algorithm will try to learn from your choices and will suggest an automatic classification. If you agree with the classification, you can use it. Otherwise you can repeat the steps through different stages until you get an acceptable result.
+																</p>
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify?</label>
-			                                                            <input class="form-control" type="number" value="10" id="num-tweet-questions">
+			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
+			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
 			                                                        </div>
 
-			                                                        <div class="form-group">
+			                                                        <!--<div class="form-group">
 			                                                            <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
 			                                                            <div>
 			                                                                <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
 			                                                            </div>
-			                                                        </div>
+			                                                        </div>-->
 			                                                    </div>
 			                                                </div>
 			                                            </div>
@@ -314,10 +370,69 @@
 			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
 			                                            <div class="col-md-12 col-md-offset-12">
 			                                                <h3>Validation stage</h3>
-			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified. If you believe that the classification is accurate, the process ends. But, it continues to train the algorithm.</p>
+			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified.
+																If you believe that the classification is accurate, then proceed to finish the process. Otherwise, continue training the algorithm.</p>
 
 			                                                <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
-			                                                    <div id="classif-graph-area"></div>
+			                                                    <div id="classif-graph-area">
+
+																	<div style="padding:5px">
+
+																	  <div class="row">
+																		<!-- HEADERS -->
+																		<div class="row col">
+																		  <div id="cloud_header_q1" class="col-2 d-flex justify-content-center">
+																			<div class="align-self-center p-2">
+																			  Confidence
+																			</div>
+																		  </div>
+																		  <div id="cloud_header_q1" class="col-5 d-flex justify-content-center">
+																			<div class="align-self-center p-2">
+																			  Bigrams on positive documents
+																			</div>
+																		  </div>
+																		  <div id="cloud_header_q2" class="col-5 d-flex justify-content-center">
+																			<div class="align-self-center p-2">
+																			  Bigrams on negative documents
+																			</div>
+																		  </div>
+																		</div>
+																	  </div>
+
+																	  <div class="row">
+																		<!-- Q1 Q2 -->
+																		<div class="row col">
+																		  <div id="cloud_slider" class="col-2 d-flex justify-content-center">
+																			<div id="content" >
+																			  <div id="pips-range-vertical" class="slider-range"></div>
+																			</div>
+																		  </div>
+																		  <div id="cloud_q1" class="col-5 border tag-cloud"></div>
+																		  <div id="cloud_q2" class="col-5 border tag-cloud"></div>
+																		</div>
+																	  </div>
+
+																	  <div class="row">
+																		<div class="row col-12">
+																			<form class="static_box pix-padding-20 white-bg bigrams-controls">
+																			  <div class="form-row">
+																				<div class="col-3">
+																				  <label>Max bigrams to show</label>
+																				  <div class="input-group mb-3">
+																					<input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1">
+																					<div class="input-group-append">
+																					  <button class="btn btn-default" type="submit"><i class="fa fa-refresh"></i></button>
+																					</div>
+																				  </div>
+																				 </div>
+																			  </div>
+
+																			</form>
+																		  </div>
+																	  </div>
+																	</div>
+
+																</div> <!-- end of classif-graph-area -->
 			                                                </div>
 			                                                <!-- Carousel navigation -->
 			                                                <nav aria-label="..." style="padding-top: 3em;">
@@ -342,18 +457,17 @@
 			                            </div>
 			                        </div>
 			                    </div>
-			                    <div class="tab-pane" id="2b">
-			                        <h3>Strategy 2</h3>
+			                    <div class="tab-pane" id="density-weighted-al">
 			                        ...
 			                    </div>
-			                    <div class="tab-pane" id="3b">
+			                    <!--<div class="tab-pane" id="3b">
 			                        <h3>Strategy 3</h3>
 			                        ...
 			                    </div>
 			                    <div class="tab-pane" id="4b">
 			                        <h3>Strategy 4</h3>
 			                        ...
-			                    </div>
+			                    </div>-->
 			                </div>
 			          </div>
 			        </div>
@@ -376,7 +490,7 @@
 					<form id="tweets_form">
 					  <div class="container">
 						  <div class="row">
-							  <div class="col-md-7" style="padding: 5px 2px 0px 5px;">
+							  <div class="col-md-11" style="padding: 5px 2px 0px 5px;"> <!-- col-md-7 -->
 								  <div class="form-group">
 									  <label for="word">Enter the search string</label>
 									  <a href="#tweets" class="popover-dismiss" data-placement="bottom">
@@ -385,7 +499,7 @@
 									  <input name="word" type="text" class="form-control" placeholder="Search all tweets..." aria-label="" value="" style="">
 								  </div>
 							  </div>
-							  <div class="col-md-2" style="padding: 5px 2px 0px 5px;">
+							  <!--<div class="col-md-2" style="padding: 5px 2px 0px 5px;">
 								  <div class="form-group">
 									<label for="search-start-date">From:</label>
 									<input type="date" class="form-control" id="search-start-date">
@@ -396,7 +510,7 @@
 									<label for="search-end-date">To:</label>
 									<input type="date" class="form-control" id="search-end-date">
 								  </div>
-							  </div>
+							  </div>-->
 							  <div class="col-md-1" style="padding: 5px 2px 0px 5px;">
 								  <button id="search-tweets-trigger" class="btn btn-primary" type="submit" style="margin-top: 2em;">
 									  <i class="fa fa-search"></i>
@@ -475,6 +589,33 @@
 			  </div>
 			</div>
 		</script>
+		<script type="text/template" id="tpl-item-retweet">
+			<div class="pix-margin-top-10">
+			  <div class="media pix-padding-10 white-bg bs_box tweet_box <%= classes %>">
+			    <div class="media-body">
+			        <div class="tweet_options">
+			            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			            <b>Options</b>
+			          </button>
+			          <div class="dropdown-menu dropdown-menu-right">
+			              <a class="dropdown-item retweet_state" href="#" data-tid="<%= tid %>" data-val="proposed">Reset as Proposed</a>
+			          </div>
+
+			            <a href="#" class="btn btn-sm retweet_state btn-outline-success" data-tid="<%= tid %>" data-val="confirmed">
+			                <strong>Confirmed</strong>
+			            </a>
+			            <a href="#" class="btn btn-sm retweet_state btn-outline-danger" data-tid="<%= tid %>"  data-val="negative">
+			                <strong>Negative</strong>
+			            </a>
+			        </div>
+
+				  <div class="t_state mt-1 mb-1"><%= matching_tweets %></div>
+				  <p class="pix-black t_text"><%= text %></p>
+			      <p><%= images %></p>
+			    </div>
+			  </div>
+			</div>
+		</script>
 		<script type="text/template" id="tpl-page-mabed">
 			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
 			  <div class="container">
@@ -494,10 +635,10 @@
 			                    Total tweets <span id="total_tweets" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    Mentions <span class="badge badge-pill badge-info">...</span>
+			                    Tweets with mentions <span id="total_mentions" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    Hashtags <span id="total_hashtags" class="badge badge-pill badge-info">...</span>
+			                    Tweets with hashtags <span id="total_hashtags" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
 			                    Emojis <span class="badge badge-pill badge-info">...</span>
@@ -506,10 +647,10 @@
 			                    Emoticons <span class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    URLs <span id="total_urls" class="badge badge-pill badge-info">...</span>
+			                    Tweets with URLs <span id="total_urls" class="badge badge-pill badge-info">...</span>
 			                </li>
 			                <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
-			                    Images <span id="total_images" class="badge badge-pill badge-info">...</span>
+			                    Tweets with images <span id="total_images" class="badge badge-pill badge-info">...</span>
 			                </li>
 			              </div>
 			              <!-- Right column -->
@@ -964,7 +1105,7 @@
 		<script src="https://unpkg.com/popper.js/dist/umd/popper.min.js"></script>
 		<script src="static/js/vendor/jquery-1.10.2.min.js"></script>
 		<script src="static/js/vendor/bootstrap.min.js"></script>
-		<script src="http://underscorejs.org/underscore-min.js"></script>
+		<script src="https://underscorejs.org/underscore-min.js"></script>
 		<script src="static/js/vendor/backbone.js"></script>
 		<script src="static/js/vendor/jquery-confirm.min.js"></script>
 		<script src="static/plugins/canvasjs/canvasjs.min.js"></script>
@@ -991,6 +1132,7 @@
 		<script src="static/js/vendor/jarallax-video.min.js"></script>
 		<script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
 		<script src="static/js/vendor/plotly-latest.min.js"></script>
+		<script src="static/plugins/nouislider/nouislider.js"></script>
 		<script>
 			window.onload = function() {
 			  app.init();

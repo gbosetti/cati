@@ -1,0 +1,22 @@
+.individual_tweets_result {
+    padding-bottom: 7em;
+}
+.event-accordion-shrink:after {
+    font-family:'FontAwesome';
+    content:"\f146";
+    float: right;
+    color: gray;
+    font-size: smaller;
+    cursor: pointer;
+}
+.event-accordion-expand:after {
+    font-family:'FontAwesome';
+    content:"\f0fe";
+    float: right;
+    color: gray;
+    font-size: smaller;
+    cursor: pointer;
+}
+/*.panel-heading.collapsed .accordion-toggle:after {
+    content:"\f0fe";
+}*/

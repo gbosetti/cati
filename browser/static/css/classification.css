@@ -1,0 +1,21 @@
+.slider-range{
+  padding-top:5px;
+  height:500px;
+}
+
+.bigrams-controls {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.54);
+    padding: 20px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.tag-cloud svg {
+  display: block;
+}
+
+.tag-cloud{
+  border-color: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.54);
+}

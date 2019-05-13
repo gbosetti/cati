@@ -9,6 +9,7 @@ import matplotlib
 # matplotlib.use('Agg')
 import json
 import shutil
+from mabed.functions import Functions
 
 import os
 import string
@@ -31,6 +32,7 @@ from sklearn.model_selection import cross_validate  #by Gabi
 import itertools
 import shutil
 from sklearn.feature_extraction import text
+from classification.ngram_based_classifier import NgramBasedClasifier
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -40,31 +42,96 @@ from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import Counter
 from elasticsearch import Elasticsearch
+from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
 
-DATA_FOLDER = os.path.join(os.getcwd(), "classification")  # E.g. C:\Users\gbosetti\Desktop\MABED-master\classification "C:\\Users\\gbosetti\\PycharmProjects\\auto-learning\\data"
-TRAIN_FOLDER = os.path.join(DATA_FOLDER, "train")
-TEST_FOLDER = os.path.join(DATA_FOLDER, "test")
-UNLABELED_FOLDER = os.path.join(DATA_FOLDER, "unlabeled")
-ENCODING = 'latin1'  #latin1
-
 class ActiveLearning:
 
+    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled"):
+
+        self.DATA_FOLDER = os.path.join(os.getcwd(), "classification", "tmp_data")
+        self.ORIGINAL_DATA_FOLDER = os.path.join(os.getcwd(), "classification", "original_tmp_data")
+
+        self.ORIGINAL_TRAIN_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, train_folder)
+        self.ORIGINAL_TEST_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, test_folder)
+        self.ORIGINAL_UNLABELED_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, unlabeled_folder)
+
+        self.TRAIN_FOLDER = os.path.join(self.DATA_FOLDER, train_folder)
+        self.TEST_FOLDER = os.path.join(self.DATA_FOLDER, test_folder)
+        self.UNLABELED_FOLDER = os.path.join(self.DATA_FOLDER, unlabeled_folder)
+
+        self.POS_CLASS_FOLDER = "confirmed"
+        self.NEG_CLASS_FOLDER = "negative"
+        self.NO_CLASS_FOLDER = "proposed"
+
+        self.ENCODING = 'latin1'  # latin1
+
+    def clone_original_files(self):
+        #try:
+        self.delete_folder_contents(self.DATA_FOLDER)
+
+        shutil.copytree(self.ORIGINAL_DATA_FOLDER, self.DATA_FOLDER)
+        # # Directories are the same
+        # except shutil.Error as e:
+        #     print('Directory not copied. Error: %s' % e)
+        # # Any error saying that the directory doesn't exist
+        # except OSError as e:
+        #     print('Directory not copied. Error: %s' % e)
+
     def read_raw_tweets_from_elastic(self, **kwargs):
+
         elastic = Elasticsearch([{'host': kwargs["host"], 'port': kwargs["port"]}])
 
         raw_tweets = elastic.search(
             index=kwargs["index"],
             doc_type="tweet",
-            size=kwargs["size"],
             body=kwargs["query"],
             _source=kwargs["_source"],
             request_timeout=kwargs["request_timeout"]
         )
 
         return raw_tweets['hits']['hits']
+
+    def download_tweets_from_elastic(self, **kwargs):
+
+        debug_limit = kwargs.get("debug_limit", False)
+        log_enabled = kwargs.get("log_enabled", True)
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
+        res = my_connector.init_paginatedSearch(kwargs["query"])
+
+        sid = res["sid"]
+        scroll_size = res["scroll_size"]
+        total = int(res["total"])
+        processed=len(res["results"])
+
+        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+
+        while scroll_size > 0:
+            res = my_connector.loop_paginatedSearch(sid, scroll_size)
+            scroll_size = res["scroll_size"]
+            processed += len(res["results"])
+
+            # Writing the retrieved files into the folders
+            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+            if log_enabled:
+                print("Downloading: ", round(processed * 100 / total, 2), "%")
+
+            if debug_limit:
+                print("\nDEBUG LIMIT\n")
+                scroll_size = 0
+
+        # print("\n-----total: ", total, " processed: ", processed, "\n")
+        return total
+
+        # my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
+        # res = my_connector.bigSearch(kwargs["query"])
+        #
+        # self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res)
+        #
+        # return len(res)
+
 
     def get_langs_from_unlabeled_tweets(self, **kwargs):
 
@@ -112,17 +179,18 @@ class ActiveLearning:
 
     def delete_folder_contents(self, folder):
 
-        if not os.path.exists(folder):
-            os.makedirs(folder)
+        if os.path.exists(folder):
+            # os.remove(folder)
+            shutil.rmtree(folder)
 
-        for the_file in os.listdir(folder):
-            file_path = os.path.join(folder, the_file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-                # elif os.path.isdir(file_path): shutil.rmtree(file_path)
-            except Exception as e:
-                print(e)
+            # for the_file in os.listdir(folder):
+            #     file_path = os.path.join(folder, the_file)
+            #     try:
+            #         if os.path.isfile(file_path):
+            #             os.unlink(file_path)
+            #         # elif os.path.isdir(file_path): shutil.shutil.rmtree(file_path)(file_path)
+            #     except Exception as e:
+            #         print(e)
 
 
     def writeFile(self, fullpath, content):
@@ -130,170 +198,206 @@ class ActiveLearning:
         file.write(content)
         file.close()
 
-    ###############################################################################
-    # Benchmark classifiers
-    def benchmark(self, clf, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
+    def get_samples_closer_to_hyperplane_bigrams_rt(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, **kwargs):
 
-        print("Training. Classifier: ", clf)
-        num_questions = int(num_questions)
-        t0 = time()
-        clf.fit(X_train, y_train) # matches the matrix with the array of matching cases. Case 1-> label a ... ( [[1],[2],[3]], ["a","b","a"] )
+        # Getting
+        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
+        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
 
-        # t0 = time()
-        pred = clf.predict(X_test)
-        score = metrics.f1_score(y_test, pred)
-        accscore = metrics.accuracy_score(y_test, pred)
-        print("------------------------------------------")
-        print("pred count is %d" % len(pred))
-        print('accuracy score:     %0.3f' % accscore)
-        print("f1-score:   %0.3f" % score)
-        print("------------------------------------------")
-
-        # if hasattr(clf, 'coef_'):
-        #     print("dimensionality: %d" % clf.coef_.shape[1])
-        #     print("density: %f" % density(clf.coef_))
-        #
-        # print("classification report:")
-        # print(metrics.classification_report(y_test, pred, target_names=categories))
-        #
-        # print("confusion matrix:")
-        # print(metrics.confusion_matrix(y_test, pred))
-
-        print("confidence for unlabeled data:")
         # compute absolute confidence for each unlabeled sample in each class
-        decision = clf.decision_function(X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        decision = model.decision_function(
+            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = clf.predict(X_unlabeled)
+        predictions = model.predict(X_unlabeled)
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
         if (len(categories) > 2):
             confidences = np.average(confidences, axix=1)
             print("when categories are more than 2")
 
-        sorted_confidences = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
 
-        question_samples = []
-        num_questions = int(num_questions / 2)
-        # select top k low confidence unlabeled samples
-        low_confidence_samples = sorted_confidences[0:num_questions]
-        # select top k high confidence unlabeled samples
-        high_confidence_samples = sorted_confidences[-num_questions:]
-        question_samples.extend(low_confidence_samples.tolist())
-        question_samples.extend(high_confidence_samples.tolist())
+        self.last_samples = sorted_samples_by_conf
+        self.last_confidences = confidences
+        self.last_predictions = predictions
 
-        clf_descr = str(clf).split('(')[0]
+        question_samples = self.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.data_unlabeled, kwargs["max_samples_to_sort"]) # returns just unique (removes duplicated files)
+        # question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
 
-        return clf_descr, question_samples, confidences, predictions  # sorted_confidences added by Gabi
+        formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
 
-    # def get_tweets_with_high_confidence(self):
+        selected_samples =sorted(formatted_samples, key=lambda k: (kwargs["cnf_weight"] * k.get('cnf_pos', 0) + kwargs["ret_weight"] * k.get('ret_pos', 0) + kwargs["bgr_weight"] * k.get('bgr_pos', 0)), reverse=False)
+
+        selected_samples = selected_samples[0:num_questions]
+
+        return selected_samples
+
+    def get_unique_sorted_samples_by_conf(self, sorted_samples_by_conf, data_unlabeled, max_docs):
+
+        top_samples_indexes = []
+        top_samples_text = []
+
+        for index in sorted_samples_by_conf.tolist(): # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            file_textual_content = self.data_unlabeled.data[index]
+            if file_textual_content not in top_samples_text:  # text
+                top_samples_text.append(file_textual_content)
+                top_samples_indexes.append(index)
+
+            if len(top_samples_indexes) == max_docs:
+                break
+
+        return top_samples_indexes
+
+    def get_top_retweets(self, **kwargs):
+
+        functions = Functions()  # config_relative_path='../')
+        retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
+                                                     label='proposed', retweets_number=kwargs['results_size'])
+
+        try:
+            return retweets["aggregations"]["top_text"]["buckets"]
+        except KeyError as e:
+            return []
+
+    def get_top_bigrams(self, **kwargs):
+
+        ngram_classifier = NgramBasedClasifier() #  config_relative_path='../')
+        matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
+                                                      label='proposed', results_size=kwargs['results_size'],
+                                                      n_size="2", full_search=True)
+
+        try:
+            return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
+
+    def get_samples_closer_to_hyperplane(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
+
+        # compute absolute confidence for each unlabeled sample in each class
+        #decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
+        decision = model.decision_function(
+            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        confidences = np.abs(decision)  # Calculates the absolute value element-wise
+        predictions = model.predict(X_unlabeled)
+        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
+        if (len(categories) > 2):
+            confidences = np.average(confidences, axix=1)
+            print("when categories are more than 2")
+
+        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        question_samples = sorted_samples[0:num_questions].tolist()
+
+        selected_samples = self.fill_questions(question_samples, predictions, confidences, categories)
+
+        self.last_samples = sorted_samples
+        self.last_confidences = confidences
+        self.last_predictions = predictions
+
+        return selected_samples
+
+    # def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
     #
-    #     top_confidence_tweets = self.sorted_confidences[0][:20]
+    #
+    #     return
+    #
+    # def get_quartiles(self, sorted_samples):
+    #
+    #     min_high_conf = round(sorted_samples.size * 0.75)
+    #     high_conf_samples = sorted_samples[-min_high_conf:]
 
     def clean_directories(self):
         print("Cleaning directories")
-        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, "pos"))
-        self.delete_folder_contents(os.path.join(TRAIN_FOLDER, "neg"))
-        self.delete_folder_contents(os.path.join(TEST_FOLDER, "pos"))
-        self.delete_folder_contents(os.path.join(TEST_FOLDER, "neg"))
-        self.delete_folder_contents(os.path.join(UNLABELED_FOLDER, "unlabeled"))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER))
+        self.delete_folder_contents(os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
 
-    def read_data_from_dataset(self):
+    def read_data_from_dataset(self, **kwargs):
 
-        target_source = ["id_str", "text", "imagesCluster", "session_twitterfdl2017"]
+        target_source = ["id_str", kwargs["field"], "imagesCluster", kwargs["session"]]
 
         # Getting a sample from elasticsearch to classify
         confirmed_data = self.read_raw_tweets_from_elastic(
-            index="twitterfdl2017",
+            index= kwargs["index"],
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=2000,
-            query={"query": {
-                "match": {
-                    "session_twitterfdl2017": "confirmed"
+            query={
+            "query": {
+                    "match": {
+                        kwargs["session"]: "confirmed"
+                    }
                 }
-            }},
+            },
             _source=target_source,
             request_timeout=30
         )
         negative_data = self.read_raw_tweets_from_elastic(
-            index="twitterfdl2017",
+            index=kwargs["index"],
             doc_type="tweet",
             host="localhost",
             port="9200",
-            size=2000,
             query={"query": {
                 "match": {
-                    "session_twitterfdl2017": "negative"
-                }
-            }},
-            _source=target_source,
-            request_timeout=30
-        )
-        proposed_data = self.read_raw_tweets_from_elastic(
-            index="twitterfdl2017",
-            doc_type="tweet",
-            host="localhost",
-            port="9200",
-            size=1000,
-            query={"query": {
-                "match": {
-                    "session_twitterfdl2017": "proposed"
+                    kwargs["session"]: "negative"
                 }
             }},
             _source=target_source,
             request_timeout=30
         )
 
-        return confirmed_data, negative_data, proposed_data
+        return confirmed_data, negative_data
 
-    def write_data_in_folders(self, negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data):
+    def stringuify(self, field, is_field_array):
 
-        for tweet in negative_data_test:
-            self.writeFile(os.path.join(TEST_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+        if is_field_array:
+            return " ".join(field)
+        else: return field
 
-        for tweet in confirmed_data_test:
-            self.writeFile(os.path.join(TEST_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+    def write_data_in_folders(self, field, is_field_array, path, dataset):
 
-        for tweet in negative_data_train:
-            self.writeFile(os.path.join(TRAIN_FOLDER, "neg", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+        if not os.path.exists(path):
+             os.makedirs(path)
 
-        for tweet in confirmed_data_train:
-            self.writeFile(os.path.join(TRAIN_FOLDER, "pos", tweet['_source']['id_str'] + ".txt"), tweet['_source']['text'])
+        for tweet in dataset:
+            self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
 
-        for tweet in proposed_data:
-            self.writeFile(os.path.join(UNLABELED_FOLDER, "unlabeled", tweet['_source']['id_str'] + ".txt"),
-                      tweet['_source']['text'])
+    def size_mb(self, docs):
+        return sum(len(s.encode('utf-8')) for s in docs) / 1e6
 
     def loading_tweets_from_files(self):
 
         # Loading the datasets
-        data_train = load_files(TRAIN_FOLDER, encoding=ENCODING)
-        data_test = load_files(TEST_FOLDER, encoding=ENCODING)
-        unlabeled = load_files(UNLABELED_FOLDER, encoding=ENCODING)
+        print("Loading training data")
+        data_train = load_files(self.TRAIN_FOLDER, encoding=self.ENCODING)  # data_train
+        print("Loading testing data")
+        data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+        print("Loading target data")
+        unlabeled = load_files(self.UNLABELED_FOLDER, encoding=self.ENCODING)
+
+        print("Loading categories")
         categories = data_train.target_names
 
-        def size_mb(docs):
-            return sum(len(s.encode('utf-8')) for s in docs) / 1e6
-
-        data_train_size_mb = size_mb(data_train.data)
-        data_test_size_mb = size_mb(data_test.data)
-        unlabeled_size_mb = size_mb(unlabeled.data)
-
-        print("%d documents - %0.3fMB (training set)" % (
-            len(data_train.data), data_train_size_mb))
-        print("%d documents - %0.3fMB (test set)" % (
-            len(data_test.data), data_test_size_mb))
-        print("%d documents - %0.3fMB (unlabeled set)" % (
-            len(unlabeled.data), unlabeled_size_mb))
-        print("%d categories" % len(categories))
+        # data_train_size_mb = self.size_mb(data_train.data)
+        # data_test_size_mb = self.size_mb(data_test.data)
+        # unlabeled_size_mb = self.size_mb(unlabeled.data)
+        #
+        # print("%d documents - %0.3fMB (training set)" % (
+        #     len(data_train.data), data_train_size_mb))
+        # print("%d documents - %0.3fMB (test set)" % (
+        #     len(data_test.data), data_test_size_mb))
+        # print("%d documents - %0.3fMB (unlabeled set)" % (
+        #     len(unlabeled.data), unlabeled_size_mb))
+        # print("%d categories" % len(categories), categories)
 
         return data_train, data_test, unlabeled, categories
 
-    def get_langs_from_unlabeled_data(self):
+    def get_langs_from_unlabeled_data(self, **kwargs):
 
         try:
             langs = self.get_langs_from_unlabeled_tweets(
-                index="twitterfdl2017",
+                index=kwargs["index"],
                 doc_type="tweet",
                 host="localhost",
                 port="9200"
@@ -344,119 +448,354 @@ class ActiveLearning:
 
         return swords
 
-    def start_learning(self, num_questions, remove_stopwords):
+    def download_data(self, **kwargs):
 
-        print("Starting...")
         self.clean_directories()
-        # Getting a sample from elasticsearch to classify
-        print("Getting data from elastic")
-        confirmed_data, negative_data, proposed_data = self.read_data_from_dataset()
+        self.download_training_data(index=kwargs["index"], session=kwargs["session"],
+                                               field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                               debug_limit=kwargs["debug_limit"])
+        self.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
+                                                   field=kwargs["text_field"],
+                                                   is_field_array=kwargs["is_field_array"],
+                                                   debug_limit=kwargs["debug_limit"])
+        self.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
+                                              field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                              debug_limit=kwargs["debug_limit"])
 
-        # Slice the classified data to fill the test and train datasts
-        index = int(len(negative_data) / 2)
-        negative_data_test = negative_data[index:]
-        negative_data_train = negative_data[:index]
-        index = int(len(confirmed_data) / 2)
-        confirmed_data_test = confirmed_data[index:]
-        confirmed_data_train = confirmed_data[:index]
+    def download_testing_data(self, **kwargs):
 
-        # Writing the retrieved files into the folders
-        print("Writting data from elastic into folders")
-        self.write_data_in_folders(negative_data_test, confirmed_data_test, negative_data_train, confirmed_data_train, proposed_data)
+        unlabeled_dir = os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER)
+        # Traversing all unlabeled files to download the testing set accordingly
+        accum_ids = []
+        processed = 0
+        total = len(os.listdir(unlabeled_dir)) # dir is your directory path
 
-        print("Updating model")
-        clf_names, question_samples, confidences, predictions = self.updating_model(num_questions, remove_stopwords)
+        print("Getting (+) TEsting data from the elastic index: ", kwargs["index"])
+        for file in os.listdir(unlabeled_dir):
+            if file.endswith(".txt"):
+                accum_ids.append({
+                    "_source": {
+                        "id_str": os.path.splitext(file)[0]
+                    }
+                })
+                if len(accum_ids)==500:
+                    self.download_paginated_testing_data(log_enabled=False, target_tweets=accum_ids, **kwargs)
+                    processed = processed + len(accum_ids)
+                    accum_ids = []
+                    print("Downloading: ", round(processed * 100 / total, 2), "%")
 
-        print("Generating questions")
-        return self.generating_questions(question_samples, predictions, confidences)
+        if len(accum_ids)>0:
+            self.download_paginated_testing_data(log_enabled=False, target_tweets=accum_ids, **kwargs)
+            processed = processed + len(accum_ids)
+            print("Downloading: ", round(processed * 100 / total, 2), "%")
+
+        # if confirmed_data == 0 or negative_data == 0:
+        #     raise Exception('You need to have some already classified data in your testing/groundtruth dataset')
+        #
+
+    def download_paginated_testing_data(self, ** kwargs):
+
+        matching_queries = []
+        for tweet in kwargs["target_tweets"]:
+            matching_queries.append({"match": {"id_str": tweet["_source"]["id_str"]}})
+
+        confirmed_data = self.download_tweets_from_elastic(
+            log=False,
+            folder=os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER),
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must":[{
+                            "match":{ kwargs["session"] :"confirmed" }
+                        }]
+                    }
+                }
+            },
+            **kwargs
+        )
+
+        negative_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER),
+            query={
+                "query": {
+                    "bool": {
+                        "should": matching_queries,
+                        "minimum_should_match": 1,
+                        "must": [{
+                            "match": {kwargs["session"]: "negative"}
+                        }]
+                    }
+                }
+            },
+            **kwargs
+        )
+
+    def download_training_data(self, **kwargs):
+
+        print("Getting (+) TRaining data from the elastic index: ", kwargs["index"])
+        confirmed_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER),
+            query={"query": {
+                "match": {
+                    kwargs["session"]: "confirmed"
+                }
+            }},
+            **kwargs
+        )
+
+        print("Getting (-) TRaining data from the elastic index: ", kwargs["index"])
+        negative_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER),
+            query={"query": {
+                "match": {
+                    kwargs["session"]: "negative"
+                }
+            }},
+            **kwargs
+        )
+
+        if confirmed_data == 0 or negative_data == 0:
+            raise Exception('You need to have some already classified data in your dataset')
 
 
-    def updating_model(self, num_questions, remove_stopwords):
+    def download_unclassified_data(self, **kwargs):
+
+        print("Getting UNclassified data from the elastic index: ", kwargs["index"])
+
+        total_proposed_data = self.download_tweets_from_elastic(
+            folder=os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER),
+            query={"query": {
+                "match": {
+                    kwargs["session"]: "proposed"
+                }
+            }},
+            **kwargs
+        )
+
+        if total_proposed_data == 0:
+            raise Exception('You need to have some data to classify in your dataset')
+
+    def build_model(self, **kwargs):
 
         # Keep track of the last used params
-        self.num_questions = num_questions
-        self.remove_stopwords = remove_stopwords
+        self.num_questions = kwargs["num_questions"]
+        self.remove_stopwords = kwargs["remove_stopwords"]
 
         # Starting the process
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
 
-        # split a training set and a test set
+        # Get the sparse matrix of each dataset
         y_train = data_train.target
-        y_test = data_test.target  # 'target': array([1, 1, 1, ..., 1, 1, 1]) according to the labels (pos, neg)
+        y_test = data_test.target
 
-        # Extracting features from the training dataset using a sparse vectorizer
-        print("Extracting features")
-        self.langs = self.get_langs_from_unlabeled_data()  # We need to keep track so we can use it later
+        vectorizer = TfidfVectorizer(encoding=self.ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
+                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
 
-        # Getting the list of available stopwords, if the user asked for it
-        if remove_stopwords.lower() in ("yes", "true", "t", "1"):
-            print("Generating stopwords for %s", self.langs)
-            multilang_stopwords = self.get_stopwords_for_langs(self.langs)
-        else:
-            print("Ignoring stopwords")
-            multilang_stopwords = None
-
-        # TOPRINT vectorizer.get_feature_names(), vectorizer.idf_
-
-        vectorizer = TfidfVectorizer(encoding=ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word', stop_words=multilang_stopwords)
-
-        # Getting a sparse csc matrix.
+        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
         X_train = vectorizer.fit_transform(data_train.data)
 
-        # Extracting features from the test dataset using the same vectorizer
+        if(len(data_test.data)==0):
+            raise Exception('The test set is empty.')
+            return
+
+        if(len(self.data_unlabeled)==0):
+            raise Exception('The target (unlabeled) set is empty.')
+            return
+
+        # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
+        print("Vectorizing the test set")
         X_test = vectorizer.transform(data_test.data)
 
-        print("n_samples: %d, n_features: %d" % X_test.shape)
+        print("X_test n_samples: %d, n_features: %d" % X_test.shape)
 
         # Extracting features from the unlabled dataset using the same vectorizer
+        print("Vectorizing the target set")
         X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
-        print("n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
+        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
-        # Benchmarking
-        print("Benchmarking")
-        results = []
-        results.append(self.benchmark(
-            LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3, class_weight='balanced'),
-            X_train, X_test, y_train, y_test, X_unlabeled, self.categories, num_questions
-        ))  # auto > balanced   .  loss='12' > loss='squared_hinge'
-        return [[x[i] for x in results] for i in range(4)]
+        self.num_questions = kwargs["num_questions"]
+        t0 = time()
+
+        clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+        # fits the model according to the training set (passing its data and the vectorized feature)
+        clf.fit(X_train, y_train)
+        pred = clf.predict(X_test)
+
+        #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
+        #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
+
+        score = metrics.f1_score(y_test, pred)
+        accscore = metrics.accuracy_score(y_test, pred)
+        recall_score = metrics.recall_score(y_test, pred)
+        precision_score = metrics.precision_score(y_test, pred)
+
+        pos_category = [ idx for [idx, cat] in enumerate(self.categories) if cat == "confirmed"][0]  # Returns 0 or 1. categories[int(pos_pred[index])]
+
+        # Number of correct predictions on positives
+        true_positives = 0
+        for index, x in np.ndenumerate(pred):
+            if(x == pos_category and y_test[index[0]] == pred[index[0]]):
+                true_positives +=1
+
+        # Total expected positives from the ground truth
+        total_expected_positives = 0
+        for index, x in np.ndenumerate(y_test):
+            if(x == pos_category):
+                total_expected_positives += 1
+
+        pos_precision_score = true_positives/total_expected_positives
+
+        # pos_y_test = np.array(y_test[pos_indexes])
+        # pos_pred = np.array(pred[pos_indexes])
+
+        # test_condition = np.where(idx in pos_indexes)
+        # pos_y_test = np.extract(condition, pos_indexes)
+        #
+        # pred_condition = np.where(idx in pos_indexes)
+        # pos_pred = np.extract(condition, pred)
+
+        # pos_precision_score = metrics.precision_score(np.array(pos_y_test), np.array(pos_pred))
 
 
-    def generating_questions(self, question_samples, predictions, confidences):
+        scores = {
+            "f1": score,
+            "accuracy": accscore,
+            "recall": recall_score,
+            "precision": precision_score,
+            "positive_precision": pos_precision_score
+        }
+
+        return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
+
+
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
+
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
-        for index in question_samples[0]:
-            complete_question_samples.append({
+        i=0
+        for index in conf_sorted_question_samples: # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            question ={
                 "filename": self.data_unlabeled.filenames[index],
                 "text": self.data_unlabeled.data[index],
-                "pred_label":  int(predictions[0][index]),
+                "str_id": self.extract_filename_no_ext(self.data_unlabeled.filenames[index]),
+                "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
-                "confidence": confidences[0][index],
-            })
-        self.confidences = confidences
+                "confidence": confidences[index],
+                "cnf_pos": i,
+                "ret_pos": max_samples_to_sort,
+                "bgr_pos": max_samples_to_sort,
+            }
+            i+=1
+
+            #Adding the score according to teh retweets
+            j=0
+            for retweet in top_retweets:  # Sorted from most to lower retweets
+                bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"]["2grams"])  # TODO: this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
+                if bigram == question["text"]:
+                    question["ret_pos"] = j
+                    break
+                j+=1
+
+            #Adding the score according to the bigrams
+            j = 0
+            for bigram in top_bigrams:  # Sorted from most to lower retweets
+
+                if bigram["key"] in question["text"]:
+                    question["bgr_pos"] = j
+                    break
+
+                j += 1
+
+            complete_question_samples.append(question)
 
         return complete_question_samples
 
 
-    def suggest_classification(self, labeled_questions):
+    def move_answers_to_training_set(self, labeled_questions):
 
-        print("Moving the user labeled questions into the proper folders")
+        # print("Moving the user labeled questions into the proper folders")
         for question in labeled_questions:
-            dstDir = os.path.join(TRAIN_FOLDER, question["label"])
-            print("Moving", question["filename"], " to ", dstDir)
+            basename = os.path.basename(question["filename"])
+            dstDir = os.path.join(self.TRAIN_FOLDER, question["label"], basename)
+            # print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 
-        # Updating the model
-        clf_names, question_samples, confidences, predictions = self.updating_model(self.num_questions, self.remove_stopwords)
+    def remove_matching_answers_from_test_set(self, labeled_questions):
+
+        # print("Moving the user labeled questions into the proper folders")
+        for question in labeled_questions:
+            basename = os.path.basename(question["filename"])
+            file_path = os.path.join(self.TEST_FOLDER, question["label"], basename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+    def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
+
+        full_queries = classifier.get_full_queries()
+
+        return
+
+    def get_tweets_for_validation(self):
+
+        full_queries = self.get_full_queries()
+        return
+
+    def get_classified_queries_ids(self):
+        positives = []
+        negatives = []
+
+        for index in self.last_samples:
+
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
+            pred_label = self.categories[int(self.last_predictions[index])]
+
+            if (pred_label == "confirmed"):
+                positives.append(id_str)
+            else:
+                negatives.append(id_str)
+
+        return positives, negatives
+
+    def get_full_queries_ids(self):
+
+        middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
+        high_pos_ids = []
+        high_neg_ids = []
+        low_pos_ids = []
+        low_neg_ids = []
+
+        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
+            pred_label = self.categories[int(self.last_predictions[index])]
+
+            if(self.last_confidences[index] > middle_conf):
+                if (pred_label == "confirmed"):
+                    high_pos_ids.append(id_str)
+                else: high_neg_ids.append(id_str)
+
+            else:
+                if (pred_label == "confirmed"):
+                    low_pos_ids.append(id_str)
+                else:
+                    low_neg_ids.append(id_str)
+
+        return high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids
+
+    def suggest_classification(self, predictions, confidences, **kwargs):
 
         positiveTweets = {}
         positiveTweets["confidences"] = []
+        positiveTweets["filenames"] = []
         positiveTweets["predictions"] = []
         positiveTweets["texts"] = []
 
         negativeTweets = {}
         negativeTweets["confidences"] = []
+        negativeTweets["filenames"] = []
         negativeTweets["predictions"] = []
         negativeTweets["texts"] = []
 
@@ -464,22 +803,21 @@ class ActiveLearning:
         for idx, val in enumerate(predictions[0]):
             if predictions[0][idx] == 1:
                 positiveTweets["confidences"].append(str(confidences[0][idx]))
+                positiveTweets["filenames"].append(self.extract_filename_no_ext(self.data_unlabeled.filenames[idx]))
                 positiveTweets["predictions"].append(str(predictions[0][idx]))
-                positiveTweets["texts"].append(self.data_unlabeled.data[idx]) # self.data_unlabeled is updated when updating the model > self.updating_model
-                # positiveTweets.append({
-                #     "confidence": str(confidences[0][idx]),
-                #     "prediction": "positive"
-                # })
+                positiveTweets["texts"].append(self.data_unlabeled.data[idx]) # self.data_unlabeled is updated when updating the model > self.build_model
+
             elif predictions[0][idx] == 0:
                 negativeTweets["confidences"].append(str(confidences[0][idx]))
+                negativeTweets["filenames"].append(self.extract_filename_no_ext(self.data_unlabeled.filenames[idx]))
                 negativeTweets["predictions"].append(str(predictions[0][idx]))
                 negativeTweets["texts"].append(self.data_unlabeled.data[idx])
-                # negativeTweets.append({
-                #     "confidence": str(confidences[0][idx]),
-                #     "prediction": "negative"
-                # })
 
         return {"positiveTweets": positiveTweets, "negativeTweets": negativeTweets}
+
+    def extract_filename_no_ext(self, fullpath):
+        base = os.path.basename(fullpath)
+        return os.path.splitext(base)[0]
 
     def n_grams(self, text, length=2):
         return zip(*[text[i:] for i in range(length)])

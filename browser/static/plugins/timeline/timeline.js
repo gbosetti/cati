@@ -7955,6 +7955,8 @@ TL.Media.Image = TL.Media.extend({
         var self = this,
             image_class = "tl-media-item tl-media-image tl-media-shadow";
 
+        console.log("URL", this.data.url);
+
 		if (this.data.url.match(/.png(\?.*)?$/) || this.data.url.match(/.svg(\?.*)?$/)) {
 			image_class = "tl-media-item tl-media-image"
 		}
@@ -7987,6 +7989,7 @@ TL.Media.Image = TL.Media.extend({
 		});
 
 		this._el.content_item.src			= this.getImageURL();
+		console.log("this.getImageURL()", this.getImageURL());
     },
 
     getImageURL: function(w, h) {

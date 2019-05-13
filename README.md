@@ -28,23 +28,88 @@ Provided a set of tweets, CATI can (i) perform event detection and (ii) generate
 
 ### Import tweets into Elasticsearch
 
-Edit the logstash_tweets_importer.conf file with the path to the json file containing the tweets in your device. Then, run the following command:
+Edit the logstash_tweets_importer.conf file with A) the path to the json file containing the tweets in your device, and B) the name of the index you want to create (E.g. lyon2017).
+Then, run the following command:
     
     logstash -f logstash_tweets_importer.conf
 
 
+### Generate the image clusters
+
+Generate the duplicate-image clusters by using the DuplicateFinder.exe application. Make sure that the images to be analized are in a folder placed at:
+
+    mabed/browser/static/images
+
+E.g. mabed/browser/static/images/lyon2017-images
+
+Once you analyzed and generated the clusters, export the json file and keep track of such filename. Let's say we name it and save it as:
+mabed/browser/static/images/image-clusters-lyon2017.json
+
+You can also place the images in another folder and create a symlink in this location:
+
+```
+ln -s <nom du fichier ou répertoire de destination > <nom du lien symbolique>
+```
+
+So, e.g.
+
+```
+ cd browser/static/images/
+ ln -s ../../../../IMAGES/lyon2017-images lyon2017-images
+```
+
+### Set the source in the config.json file
+
+Before running the application, it is important to properly configure the available list of indexes you want to use from the application.
+To do so, you can edit the config.json file at the root of the project's folder.
+To add a new index, please add a new entry into the elastic_search_sources:
+
+```
+{
+    "elastic_search_sources":[
+        {
+          "host": ,
+          "port": ,
+          "user": ,
+          "password": ,
+          "timeout": ,
+          "index": [the name of index, it was used in the logstash_tweets_importer. E.g. lyon2017],
+          "doc_type": "tweet",
+          "images_folder": [ name of the folder containing the images related to the dataset. E.g. "lyon2017-images"],
+          "image_duplicates": [full path to duplicates file. E.g. home/user/mabed/browser/static/images/image-clusters-lyon2017.json or C:\\Users\\...\\image-clusters-lyon2017.json]
+        }
+    ],
+    "default": {
+        "index": [ this can be the first index],
+        "session" : "",
+        "sessions_index" : {
+          "host": ,
+          "port": ,
+          "user": ,
+          "password": ,
+          "timeout": ,
+          "index": "mabed_sessions",
+          "doc_type": "session"
+        }
+    }
+}
+```
+
+The default values are the default index and session you want the application to load. The sessions_index entry is for the mabed_sessions index, that will contain the list of created sessions with the system. It is automtically created the first time you run the system.
+
 ### Import images clusters into Elasticsearch
 
-    python images.py -f twitter2017.json -i twitterfdl2017
+Make sure you didn't forget to set the image_duplicates entry in the config.json file. Then, run:
+
+    python images.py -i lyon2016
     
--f The json file which contains images clusers  
--i Elasticsearch Index
+Where -i is the parameter for the Elasticsearch index you want to associate the image clusters to.
 
 This process adds a new field to the tweets in elasticsearch, called "imagesCluster", which is used by es_corpus.py to retrieve the tweet corpus with an extra feature integrated to the textual value:
 
     tweet_text = tweet_text + cluster_str
 
-If you execute the images.py script more than one, the values are updated, not duplicated. You can delete the field from Kibana by executing:
+If you execute the images.py script more than one, the values are updated, not duplicated. You can delete the generated field from Kibana by executing:
 
     POST twitterfdl2017/_update_by_query?conflicts=proceed
     {
@@ -56,26 +121,71 @@ If you execute the images.py script more than one, the values are updated, not d
 
 ### Start the web application
 
-Start the elasticsearchserver. If you are running the application for the first time, please create a “mabed_sessions” index using kibana. For the version 6.5.4 simply execute the following line in the Dev tools console:
+First, configure the URL that the client should use to communicate with the server.
+To do so, set the environment varialbe SERVER_NAME E.g.
 
-    PUT mabed_sessions
+In Debian-based systems:
+```
+export SERVER_NAME=[your adress, it defaults to localhost otherwise]
+```
+In Windows:
+```
+set SERVER_NAME=[your adress, it defaults to localhost otherwise]
+```
 
-Then:
+Or some url like: https://your_sub_domain.your_domain.fr/
+
+Then, start the elasticsearchserver:
 
     python3 server.py
 
-Visit localhost:5000.
+And visit localhost:5000 by using, preferably, Google Chrome. The first time the system is running, a new “mabed_sessions” index will be automatically created. Just in case a read-only error arises, please run the following using Kibana:
+    
+    PUT mabed_sessions/_settings { "index": { "blocks": { "read_only_allow_delete": "false" } } } 
 
-PS: right now, the indexes listed and used by the application are fixed. Please, add an alias if the name of your index is different. You can do it by running a query like the following one:
+Once the application isrunning, go to Settings > Create Session. choose a name and an existing index in Elasticsearch, and click Save. The process may take a while.
 
-    POST /_aliases
-    {
-        "actions" : [
-            { "add" : { "index" : "twitterfdl2017", "alias" : "twitter2017" } }
-        ]
-    }
+Once the new session is created, please select it from the Switch Sessions combo and click on the "Swithc session" button. The information presentes in the "Current Session" section should be updated.
 
-When running MABED, the detect_events method is called. Look at the functions.py file
+Once you are working with the right session, you can generate as many ngrams as you want, to be further used in the "Tweets Search" tab. E.g. choose "2" and press the "(Re) generate" button. If you execute the process with the same parameters more than once, the ngrams are updated, not duplicated.
+
+
+### Serving with HTTPS
+
+First, please install openssl.
+In Debian-based systems you can do it with:
+```
+sudo apt-get install openssl
+```
+
+In WIndows, you can download a [zip file](https://freefr.dl.sourceforge.net/project/openssl/openssl-1.0.2j-fips-x86_64/openssl-1.0.2j-fips-x86_64.zip)
+and then set the environment variable OPENSSL_CONF. From the commandline you should type:
+```
+set OPENSSL_CONF=C:\Users\...\OpenSSL\bin\openssl.cnf
+```
+
+To create a [self signed certificate:](https://www.openssl.org/docs/manmaster/man1/req.html):
+```
+openssl genrsa -out key.pem 4096
+openssl req -x509 -new -key key.pem -out cert.pem
+```
+
+Then, you should set the environment variable.
+In Debian-based systems:
+```
+export FLASK_APP=server.py
+```
+In Windows:
+```
+set FLASK_APP=server.py
+```
+
+Finally, serve the application using HTTPS:
+```
+flask run --cert [certificate_file] --key [key_file]
+```
+And access the application using HTTPS:
+[https://localhost:5000](https://localhost:5000)
 
 
 ### Updating the dependencies
@@ -84,6 +194,32 @@ If you edit the code and install new dependencies, you can update the list by ex
     python -m pip freeze --local > requirements.txt
 
 
+### Running the experiments.py file
+
+If you want to run the experiments, please execute it with at least the following 3 arguments:
+```
+python experiment.py -i your_index -s your_target_session -gts your_groundtruth_session
+```
+You can access the full list of optional arguments by executing:
+```
+python experiment.py -h
+```
+
+## Managing sessions
+Elasticsearch provides tools to manage our sessions, but some repetitive actions can be automated using the scripts 
+available.
+### Exporting a session
+In order to export parts of a dataset we can use the export.py script.
+
+```
+python3 export.py -s session_to_export -i index_of_the_session -p path_to_the_folder_containing_the_images
+```
+Running it is as is this script will create a folder containing the images of the labeled tweets in the session
+
+```
+python3 export.py -s session -i index -p /path/to/images -c true
+```
+If the c argument is set we will get only the confirmed tweets.
 # MABED
 
 ## About

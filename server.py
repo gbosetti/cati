@@ -1,9 +1,12 @@
 # coding: utf-8
 from preprocessing_and_stats.PreProcessor import PreProcessor
 from preprocessing_and_stats.StopWords import EnglishStopWords, FrenchStopWords
+from BackendLogger import BackendLogger
 
 import argparse
 import json
+import base64
+import os
 # std
 from datetime import datetime
 
@@ -16,6 +19,7 @@ from flask import Response
 from flask_htpasswd import HtPasswdAuth
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
+from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.ngram_based_classifier import NgramBasedClasifier
 
 
@@ -25,7 +29,13 @@ import datetime
 app = Flask(__name__, static_folder='browser/static', template_folder='browser/templates')
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
+app.backend_logger = BackendLogger()
 
+functions = Functions()
+SELF = "'self'"
+DownSELF = "'self'"
+# here we define the content security policy,
+# this CSP allows for inline script, and using a nonce will improve security
 with open('config.json', 'r') as f:
     config = json.load(f)
 default_source = config['default']['index']
@@ -42,6 +52,7 @@ for source in config['elastic_search_sources']:
 
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
+classifier = ActiveLearning()
 
 # ==================================================================
 # 1. Tests and Debug
@@ -128,7 +139,8 @@ def produce_dataset_stats():
         "total_urls": functions.get_total_urls(index=data['index']),
         "total_images": functions.get_total_images(index=data['index']),
         "lang_stats":stats['aggregations']['distinct_lang']['buckets'],
-        "total_lang": stats['aggregations']['count']['value']
+        "total_lang": stats['aggregations']['count']['value'],
+        "total_mentions": functions.get_total_mentions(index=data['index'])
 
     })
 
@@ -141,10 +153,28 @@ def produce_classification_stats():
         "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
     })
 
+@app.route('/get_elastic_logs', methods=['POST', 'GET'])
+# @cross_origin()
+def get_elastic_logs():
+    data = request.form
+
+    return jsonify(functions.get_elastic_logs(data['index']))
+    # logs = jsonify(app.backend_logger.get_logs())
+    # app.backend_logger.clear_logs()
+    #return logs
+
+@app.route('/get_backend_logs', methods=['POST', 'GET'])
+# @cross_origin()
+def get_backend_logs():
+    logs = jsonify(app.backend_logger.get_logs())
+    app.backend_logger.clear_logs()
+    return logs
+
 # Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])
 # @cross_origin()
 def detect_events():
+
     data = request.form
     index = data['index']
     k = int(data['top_events'])
@@ -160,12 +190,12 @@ def detect_events():
     events=""
     res = False
     if filter=="all":
-        events = functions.event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, cluster)
+        events = functions.event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=app.backend_logger)
     elif filter == "proposedconfirmed":
         filter = ["proposed","confirmed"]
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster)
+        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=app.backend_logger)
     else:
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster)
+        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster, logger=app.backend_logger)
     if not events:
         events = "No Result!"
     else:
@@ -177,19 +207,28 @@ def detect_events():
 # 3. Images
 # ==================================================================
 # TODO replace hard coded options
-# this function is not working
-# we must find out what is the expected content
-# have tested twitter2017.json, and it renders a page with broken images
+# we are rendering the images of the default index
 @app.route('/images')
 def images():
-    with open('twitter2015.json') as f:
-        data = json.load(f)
+    # with open('twitter2015.json') as f:
+    #     data = json.load(f)
+    # TODO make this page compatible with multiple sources
+    # instead of using default_source
+    for es_sources in config['elastic_search_sources']:
+        if es_sources['index'] == default_source:
+            images_folder = es_sources['images_folder']
+            with open(es_sources['image_duplicates']) as file:
+                data = json.load(file)
     clusters_num = len(data['duplicates'])
     clusters = data['duplicates']
+    clusters_url = []
+    for image_url in clusters:
+        clusters_url.append(images_folder + "/" + image_url[0])
     return render_template('images.html',
                            clusters_num=clusters_num,
-                           clusters=clusters
+                           clusters=clusters_url
                            )
+
 
 # ==================================================================
 # 4. Tweets
@@ -202,7 +241,30 @@ def search_for_tweets():
     data = request.form
     last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
-    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "keywords": data['word'] })
+    clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
+    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
+
+
+# Get Just image clusters
+@app.route('/search_for_image_clusters', methods=['POST'])
+# @cross_origin()
+def search_for_image_clusters():
+    data = request.form
+    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label'], limit=data['image_clusters_limit'])
+    clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
+    return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
+
+
+# Get Tweets
+@app.route('/get_image_folder', methods=['POST'])
+# @cross_origin()
+def get_image_folder():
+    data = request.form
+    folder_name = functions.get_image_folder(data["index"])
+    print("folder: ", folder_name)
+    return folder_name
+
+
 
 # Get Tweets
 @app.route('/get_dataset_date_range', methods=['POST'])
@@ -228,6 +290,9 @@ def search_bigrams_related_tweets():
     return jsonify({"tweets": matching_tweets})
 
 
+
+
+
 # Get Tweets
 @app.route('/ngrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
@@ -248,6 +313,69 @@ def ngrams_with_higher_ocurrence():
                                                                     label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search)
     })
 
+# Get Tweets
+@app.route('/event_ngrams_with_higher_ocurrence', methods=['POST'])
+# @cross_origin()
+def event_ngrams_with_higher_ocurrence():
+    data = request.form
+    source_index = data['index']
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+    target_terms = functions.get_retated_terms(main_term, related_terms)
+    results_size = request.form.get('top-bubbles-to-display', 20)
+    n_size = request.form.get('n-grams-to-generate', '2')
+
+    print("-SESSION:", data['session'])
+
+    matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
+                                                            label=data['search_by_label'], results_size=results_size,
+                                                            n_size=n_size, target_terms=target_terms)
+
+    if(matching_ngrams and matching_ngrams['hits']):
+        total_hits = matching_ngrams['hits']['total']
+    else: total_hits = 0
+
+    if (matching_ngrams and matching_ngrams['aggregations']):
+        aggs = matching_ngrams['aggregations']['ngrams_count']['buckets']
+    else:
+        aggs = []
+
+    return jsonify({
+        "total_matching_tweets": total_hits,
+        "ngrams": aggs
+    })
+
+
+# Get Tweets
+@app.route('/search_event_bigrams_related_tweets', methods=['POST'])
+# @cross_origin()
+def search_event_bigrams_related_tweets():
+    data = request.form
+
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+    target_terms = functions.get_retated_terms(main_term, related_terms)
+
+    propName = data["n-grams-to-generate"] + "grams"
+    matching_tweets = ngram_classifier.search_event_bigrams_related_tweets(index=data['index'], target_terms=target_terms, session=data['session'],
+                                                                     label=data['search_by_label'], ngram=data['ngram'],
+                                                                     ngramsPropName=propName)
+    return jsonify({"tweets": matching_tweets})
+
+
+@app.route('/top_retweets', methods=['POST'])
+# @cross_origin()
+def top_retweets():
+    data = request.form
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
+
+    retweets = functions.top_retweets(index=data['index'], word=data['word'], session=data['session'],
+                                      label=data['search_by_label'], full_search=full_search, retweets_number=data['retweets_number'])
+
+    return jsonify(retweets)
 
 # Get Tweets
 @app.route('/generate_ngrams_for_index', methods=['POST'])
@@ -262,7 +390,23 @@ def generate_ngrams_for_index():
     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
     res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
-    return res
+    return jsonify(res)
+
+
+# @app.route('/generate_ngrams_for_unlabeled_tweets_on_index', methods=['POST'])
+# # @cross_origin()
+# def generate_ngrams_for_unlabeled_tweets_on_index():
+#     data = request.form
+#     preproc = PreProcessor()
+#     print(data)
+#     propName = data['to_property']
+#
+#     start_time = datetime.datetime.now()
+#     preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+#     res = ngram_classifier.generate_ngrams_for_unlabeled_tweets_on_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+#     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
+#     return jsonify(res)
+
 
 # Get Tweets
 @app.route('/get_current_backend_logs', methods=['GET'])
@@ -279,7 +423,8 @@ def tweets_filter():
     data = request.form
     tweets= functions.get_tweets_query_state(index=data['index'], word=data['word'], state=data['state'], session=data['session'])
     clusters= functions.get_clusters(index=data['index'], word=data['word'])
-    return jsonify({"tweets": tweets, "clusters": clusters})
+    clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
+    return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
 
 
 @app.route('/tweets_scroll', methods=['POST'])
@@ -292,21 +437,111 @@ def tweets_scroll():
     return jsonify({"tweets": tweets})
 
 
-classifier = ActiveLearning()
 
+
+def to_boolean(str_param):
+    if isinstance(str_param, bool):
+        return str_param
+    elif str_param.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    else:
+        return False
 
 @app.route('/start_learning', methods=['POST'])
 # @cross_origin()
 def start_learning():
     data = request.form
-    return jsonify(classifier.start_learning(data["num_questions"], data["remove_stopwords"]))
+    num_questions = int(data["num_questions"])
+    max_samples_to_sort = int(data["max_samples_to_sort"])
+    sampling_strategy = "closer_to_hyperplane"
+    download_data = to_boolean(data["download_data"])
+    debug_limit = to_boolean(data["debug_limit"])
+
+    # download
+    if(True==download_data): #This just downloads, then add code to copy to tmp_data
+       classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
+                             gt_session=data["gt_session"], text_field=data["text_field"],
+                             is_field_array=data["is_field_array"], debug_limit=debug_limit)
+
+    # Building the model and getting the questions
+    model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
+        num_questions=num_questions, remove_stopwords=False)
+
+    # if (sampling_strategy == "closer_to_hyperplane"):
+    #     questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
+    #                                                                  X_unlabeled, categories, num_questions)
+    #if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
+    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
+                                                                        X_unlabeled, categories,
+                                                                        num_questions,
+                                                                        max_samples_to_sort=max_samples_to_sort,
+                                                                        index=data["index"],
+                                                                        session=data["session"],
+                                                                        text_field=False,
+                                                                        cnf_weight=1,
+                                                                        ret_weight=0,
+                                                                        bgr_weight=0)
+
+    # # Asking the user (gt_dataset) to answer the questions
+    # answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions,
+    #                                                gt_session=kwargs["gt_session"], classifier=self.classifier)
+    #
+    # # Injecting the answers in the training set, and re-training the model
+    # self.classifier.move_answers_to_training_set(answers)
+    # self.classifier.remove_matching_answers_from_test_set(answers)
+    #
+    # # Present visualization to the user, so he can explore the proposed classification
+    # # ...
+    #
+    # return scores, wrong_pred_answers
+    # return {questions: jsonify(questions), scores: scores}
+    return jsonify({"questions": questions, "scores": scores})
+
+
 
 
 @app.route('/suggest_classification', methods=['POST'])
 def suggest_classification():
     data = request.form
     questions = json.loads(data['questions'])
-    return jsonify(classifier.suggest_classification(questions))
+    scores = json.loads(data['scores'])
+    # classifier.move_answers_to_training_set(answers)
+    # classifier.remove_matching_answers_from_test_set(answers)
+    # RE-TRAIN THE MODEL
+    # model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
+    #    num_questions=num_questions, remove_stopwords=False)
+
+    #high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids = classifier.get_full_queries_ids()
+    positives, negatives = classifier.get_classified_queries_ids()
+    return jsonify({
+       "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
+                                                  ids=positives,
+                                                  n_size="2", results_size=data["results_size"]),
+       "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
+                                                  ids=negatives,
+                                                  n_size="2", results_size=data["results_size"])
+    })
+    # return jsonify({
+    #     "high": {
+    #         "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_pos_ids,
+    #                                                    n_size="2", results_size=data["results_size"]),
+    #         "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_neg_ids,
+    #                                                    n_size="2", results_size=data["results_size"])
+    #     },
+    #     "low": {
+    #         "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_pos_ids,
+    #                                                    n_size="2", results_size=data["results_size"]),
+    #         "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_neg_ids,
+    #                                                    n_size="2", results_size=data["results_size"])
+    #     }
+    # })
+
+    #return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
+
+@app.route('/get_tweets_by_str_ids', methods=['POST'])
+def get_tweets_by_str_ids():
+    data = request.form
+    return jsonify(functions.get_tweets_by_str_ids(index=data['index'], id_strs=data["id_strs"]))
 
 
 @app.route('/most_frequent_n_grams', methods=['POST'])
@@ -321,7 +556,32 @@ def most_frequent_n_grams():
     stemming = data['stemming'].lower() in ("yes", "true", "t", "1")
     remove_stopwords = data['remove_stopwords'].lower() in ("yes", "true", "t", "1")
 
-    n_grams = classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
+    n_grams = ngram_classifier.most_frequent_n_grams(data['tweet_texts'], int(data['length']), top_ngrams_to_retrieve, remove_stopwords, stemming)
+    return jsonify(n_grams)
+
+
+@app.route('/most_frequent_ngrams_in_quadrant', methods=['POST'])
+def most_frequent_ngrams_in_quadrant():
+
+    data = request.form
+    quadrant = data["quadrant"]  # low-pos high-pos low-neg high-neg
+    n_grams = []
+    ids = ["674200892065845249", "673977216393416704", "674163320639913984", "674023070017933312", "674139694154842112", "673996047534841856"]
+
+    matching_ngrams = ngram_classifier.get_ngrams(index=data['index'], word=data['word'], session=data['session'],
+                                                  label=data['search_by_label'],
+                                                  results_size=data['top-bubbles-to-display'],
+                                                  n_size=data['n-grams-to-generate'])
+
+    return jsonify({
+        "total_matching_tweets": matching_ngrams['hits']['total'],
+        "ngrams": matching_ngrams['aggregations']['ngrams_count']['buckets'],
+        "classiffication": ngram_classifier.get_classification_data(index=data['index'], word=data['word'],
+                                                                    session=data['session'],
+                                                                    label=data['search_by_label'],
+                                                                    matching_ngrams=matching_ngrams)
+    })
+
     return jsonify(n_grams)
 
 @app.route('/n_grams_classification', methods=['POST'])
@@ -347,28 +607,59 @@ def n_grams_classification():
 # @cross_origin()
 def event_tweets():
     data = request.form
-    index = data['index']
+    source_index = data['index']
+    session = data['session']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    tweets = functions.get_event_tweets(index, main_term, related_terms)
-    clusters = functions.get_event_clusters(index, main_term, related_terms)
-    return jsonify({"tweets": tweets, "clusters": clusters})
+    tweets = functions.get_event_tweets(source_index, main_term, related_terms)
+    clusters = functions.get_event_clusters(source_index, main_term, related_terms)
+    clusters_stats = functions.get_event_image_clusters_stats(source_index, main_term, related_terms, session)
+    return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
+
+
+# Get Event related tweets
+@app.route('/event_image_cluster_stats', methods=['POST'])
+# @cross_origin()
+def event_image_cluster_stats():
+    data = request.form
+    source_index = data['index']
+    session = data['session']
+    cluster_id = data['cid']
+
+    clusters_stats = functions.get_single_event_image_cluster_stats(source_index, session, cluster_id)
+
+    return jsonify(clusters_stats)
+
+
+# Get Event related tweets
+@app.route('/massive_tag_event_tweets', methods=['POST'])
+# @cross_origin()
+def massive_tag_event_tweets():
+    data = request.form
+
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+
+    res = functions.massive_tag_event_tweets(index=data['index'], session=data['session'], labeling_class=data['labeling_class'], main_term=main_term, related_terms=related_terms)
+    return jsonify(res)
 
 
 # Get Event related tweets
 @app.route('/event_filter_tweets', methods=['POST'])
 def event_filter_tweets():
     data = request.form
-    index = data['index']
+    source_index = data['index']
     state = data['state']
     session = data['session']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    tweets = functions.get_event_filter_tweets(index, main_term, related_terms, state, session)
-    clusters = functions.get_event_clusters(index, main_term, related_terms)
-    return jsonify({"tweets": tweets, "clusters": clusters})
+    tweets = functions.get_event_filter_tweets(source_index, main_term, related_terms, state, session)
+    clusters = functions.get_event_clusters(source_index, main_term, related_terms)
+    clusters_stats = functions.get_event_image_clusters_stats(source_index, main_term, related_terms, session)
+    return jsonify({"tweets": tweets, "clusters": clusters, "clusters_stats": clusters_stats})
 
 
 @app.route('/tweets_state', methods=['POST'])
@@ -415,15 +706,40 @@ def cluster_search_tweets():
 def event_image():
     data = request.form
     index = data['index']
+    s_name = data['s_name']
     event = json.loads(data['obj'])
     main_term = event['main_term'].replace(",", " ")
     related_terms = event['related_terms']
-    image = functions.get_event_image(index, main_term, related_terms)
+    image = functions.get_event_image(index, main_term, related_terms, s_name)
     res = False
     if image:
         image = image['hits']['hits'][0]['_source']
         res = True
     return jsonify({"result":res, "image": image})
+
+@app.route('/all_events_images', methods=['POST'])
+# @cross_origin()
+def all_events_images():
+    data = request.form
+    index = data['index']
+    s_name = data['s_name']
+    events = json.loads(data['events'])
+    images_by_event = []
+
+    for event in events:
+        main_term = event['main_term'].replace(",", " ")
+        related_terms = event['related_terms']
+        image = functions.get_event_image(index, main_term, related_terms, s_name)
+        if image:
+            image_src = image['hits']['hits'][0]['_source']['extended_entities']['media'][0]["media_url"]
+            image_id = image['hits']['hits'][0]['_source']['id_str']
+        else:
+            image_src = "static/images/img.jpg"
+
+        images_by_event.append({"cid": event["cid"], "image_id": image_id, "image_src": image_src})
+
+    return jsonify(images_by_event)
+
 
 # TODO replace hard coded options
 # Test & Debug
@@ -460,14 +776,22 @@ def mark_cluster():
 @app.route('/mark_tweet', methods=['POST', 'GET'])
 # @cross_origin()
 def mark_tweet():
-    print("MARK TWEET")
     data = request.form
     index = data['index']
     session = data['session']
     tid = data['tid']
     val = data['val']
+    print(request.form)
     functions.set_tweet_state(index, session, tid, val)
     return jsonify(data)
+
+
+@app.route('/mark_retweets', methods=['POST', 'GET'])
+# @cross_origin()
+def mark_retweets():
+    data = request.form
+    res = functions.set_retweets_state(index=data['index'], session=data['session'], tag=data['tag'], text=data['text'])
+    return jsonify(res)
 
 
 @app.route('/mark_bigram_tweets', methods=['POST', 'GET'])
@@ -477,12 +801,27 @@ def mark_bigram_tweets():
     propName=data["n-grams-to-generate"] + "grams"
     word = (request.form.get('word', '')).strip()
     full_search = len(word) == 0
-
-    print("PARAMS: ", data)
-
     res = ngram_classifier.update_tweets_state_by_ngram(index=data['index'], word=word, session=data['session'],
                                                query_label=data['query_label'], new_label=data['new_label'],
                                                ngram=data['ngram'], ngramsPropName=propName, full_search=full_search)
+
+    return jsonify(res)
+
+
+@app.route('/mark_event_ngram_tweets', methods=['POST', 'GET'])
+# @cross_origin()
+def mark_event_ngram_tweets():
+    data = request.form
+    event = json.loads(data['event'])
+    main_term = event['main_term'].replace(",", " ")
+    related_terms = event['related_terms']
+    target_terms = functions.get_retated_terms(main_term, related_terms)
+    prop_name = request.form.get('n-grams-to-generate', '2') + "grams"
+
+    res = ngram_classifier.update_tweets_state_by_event_ngram(index=data['index'], session=data['session'],
+                                                              query_label=data['search_by_label'],
+                                                              new_label=data['new_label'], target_terms=target_terms,
+                                                              ngram=data['ngram'], ngramsPropName=prop_name)
 
     return jsonify(res)
 
@@ -656,7 +995,6 @@ def get_word2vec():
 
     res = {"words":words, "count":count, "newKeywords":newKeywords}
     # res = {"words":words, "count":count}
-    print(res)
     return jsonify(res)
 
 @app.route('/get_sse', methods=['POST', 'GET'])
@@ -873,8 +1211,6 @@ def get_results():
     elbow = kn.knee
     if not elbow:
         elbow = KneeLocator(x, y2,direction="decreasing", curve='concave').knee
-        # print("kn.knee2")
-        # print(elbow)
 
     sse_points2 = []
     count = 0
@@ -896,10 +1232,7 @@ def get_results():
     testValues = [1, 5, 10, 20, 30, 40 , 50, 60, 70]
     testValues = testValues  + [elbow_value]
     testValues = sorted(testValues)
-    print(testValues)
-    print("total = ")
     total = functions.get_event_state_tweets_count(index, session, finalwords, "confirmed")
-    print(total)
     finalcount = functions.get_words_tweets_count(index, session, finalwords)
 
     eventCount = functions.get_words_tweets_count(index, session, query_words)
@@ -936,10 +1269,6 @@ def get_results():
         testList.append({'val': val, 'words': testWords, 'testValCount': testValCount, 'testValConfirmedCount': testValConfirmedCount, 'testValNegativeCount':testValNegativeCount, 'newtweets': newtweets, 'newConfirmedtweets': newConfirmedtweets, 'newConfirmedPersent': newConfirmedPersent, 'reviewedTweetsCount': reviewedTweetsCount})
 
     step5= {'eventCount': eventCount, 'eventConfirmedCount':eventConfirmedCount, 'testList': testList}
-    print("finalcount = ")
-    print(finalcount)
-    print(finalwords)
-
 
     # all_count = functions.get_all_count(index)
     # percentage = 100 * (count / all_count)
@@ -954,8 +1283,22 @@ def get_results():
 # Get available indexes
 @app.route('/available_indexes', methods=['GET'])
 def available_indexes():
-    res = config["default"]['available_indexes']
+    res = []
+    for source in config['elastic_search_sources']:
+        res.append(source['index'])
     return jsonify(res);
+
+# @app.route('/get_app_url', methods=['GET'])
+# def get_app_url():
+#
+#     with open('config.json', 'r') as f:
+#         config = json.load(f)
+#
+#     app_url = 'http://localhost:5000/'
+#     print("APP URL: ", app_url)
+#
+#     return app_url
+#     # return config['default']['app_url']
 
 # ==================================================================
 # 7. Sessions
@@ -978,7 +1321,8 @@ def add_session():
     data = request.form
     name = data['s_name']
     s_index = data['s_index']
-    res = functions.add_session(name, s_index)
+    app.backend_logger.clear_logs()
+    res = functions.add_session(name, s_index, logger=app.backend_logger)
     status = False
     if res:
         status = True
@@ -1003,9 +1347,21 @@ def get_session():
     id = data['id']
     res = functions.get_session(id)
     status = False
+    session = {}
     if res:
         status = True
-    return jsonify({"result": status, "body": res})
+        for es_sources in config['elastic_search_sources']:
+            if es_sources['index'] == res['_source']['s_index']:
+                try:
+                    session["images_folder"] = es_sources['images_folder']
+                except KeyError:
+                    # raise KeyError("Check config.json images_folder not set for index ", es_sources['index'])
+                    print("Warning: the currnt session doesn't have an images_folder defined, and this might leat to some execution errors.")
+
+    session["result"] = status
+    session["body"] = res
+
+    return jsonify(session)
 
 
 # Get Session
@@ -1054,6 +1410,7 @@ def index(user):
 
 
 if __name__ == '__main__':
-    functions = Functions()
-    app.run(debug=True, host='localhost', port=5000, threaded=True)
+    #
+    # app.run(debug=True, host='localhost', port=5000, threaded=True, ssl_context=())
+    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
     # app.run(debug=False, host='mediamining.univ-lyon2.fr', port=5000, threaded=True)

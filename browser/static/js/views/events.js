@@ -7,20 +7,45 @@ app.views.events = Backbone.View.extend({
 		'click .btn_review': 'review_tweets'
 	},
 	initialize: function() {
+	    this.updateEventImages();
 		this.render();
 		var handler = _.bind(this.render, this);
+	},
+	updateEventImages: function(){
+
+
+	    /*app.eventsCollection = new app.collections.events();
+			this.imagesURL = 'http://localhost:5000/static/images/';
+			if (localStorage.getItem('session_id') !== null) {
+				var sessionString = localStorage.getItem('session');
+				this.session = JSON.parse(sessionString);
+				this.session_id = localStorage.getItem('session_id');
+				if(this.session.events){
+					var collection = JSON.parse(this.session.events);
+					// console.log(collection);
+					this.eventsCollection.add_json_events(collection);
+				}
+			}
+			if (localStorage.getItem('image_path') !== null) {
+				this.imagesPath = localStorage.getItem('image_path');
+			}*/
 	},
 	render: function(){
 		var html = this.template({});
 		this.$el.html(html);
 		this.delegateEvents();
         app.views.mabed.prototype.getClassificationStats();
+        //app.views.mabed.prototype.setSessionTopBar();
 
 		return this;
 	},
 	export_tweets: function(e){
-		e.preventDefault();
-		var win = window.open(app.appURL+'export_confirmed_tweets?session='+app.session_id, '_blank');
+	    try{
+            e.preventDefault();
+            var win = window.open(app.appURL+'export_confirmed_tweets?session='+app.session_id, '_blank');
+        }catch(err){
+            console.log("Error:", err)
+        }
 		return false;
 	},
 	review_tweets: function(e){
@@ -30,7 +55,7 @@ app.views.events = Backbone.View.extend({
 		return false;
 	},
 	load_tweets: function(state){
-		$('#.').fadeOut('slow');
+		$('#tweets_results').fadeOut('slow');
 		  $('.loading_text').fadeIn('slow');
 		  var t0 = performance.now();
 		  var data = [];
@@ -87,7 +112,8 @@ app.views.events = Backbone.View.extend({
                         ext = "png";
                     }
                         // imgs += '<a href="http://localhost/TwitterImages/'+app.session.s_index+'/'+tweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="http://localhost/TwitterImages/'+app.session.s_index+'/'+tweet._source.id_str+"_"+i+'.'+ext+'"></a>'
-                        imgs += '<a href="'+app.imagesURL+app.session.s_index+'/'+tweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="'+app.imagesURL+app.session.s_index+'/'+tweet._source.id_str+"_"+i+'.'+ext+'"></a>'
+                          //todo change image sources
+                        imgs += '<a href="'+app.imagesURL+app.imagesPath+'/'+tweet._source.id_str+"_"+i+'.'+ext+'" target="_blank"><img style="margin:2px;max-height:150px;width:auto;" src="'+app.imagesURL+app.imagesPath+'/'+tweet._source.id_str+"_"+i+'.'+ext+'"></a>'
               });
             }
             var state = tweet._source['session_'+app.session.s_name];
@@ -116,6 +142,7 @@ app.views.events = Backbone.View.extend({
         return html;
     },
     display_tweets: function(response, t0, word){
+
         var html = this.get_tweets_html(response, '');
         $('.individual_tweets_result:visible:last').html(html);
         $('.loading_text:visible:last').fadeOut('slow');

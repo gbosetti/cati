@@ -3,6 +3,8 @@ app.views.classification = Backbone.View.extend({
     initialize: function() {
         var handler = _.bind(this.render, this);
 
+        app.views.mabed.prototype.setSessionTopBar();
+
         String.prototype.chunk = function(size) {
             return [].concat.apply([],
                 this.split('').map(function(x,i){ return i%size ? [] : this.slice(i,i+size) }, this)
@@ -36,8 +38,9 @@ app.views.classification = Backbone.View.extend({
             this.suggestClassification();
         });
 
-        $("#remove-stopwords-al").bootstrapToggle();
+        //$("#remove-stopwords-al").bootstrapToggle();
         app.views.mabed.prototype.getClassificationStats();
+        //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
     },
@@ -60,51 +63,97 @@ app.views.classification = Backbone.View.extend({
     },
     loadTweetsForLearningStage: function(questions){
 
+        console.log(questions);
         this.spinner.remove();
         var tweetsHtml = '', ids;
-        questions.forEach(question => {
-            // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
-            tweetsHtml = tweetsHtml + ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
-                                            '<div class="card-body"> ' +
-                                                '<p class="card-text">' + question.text + '</p> ' +
-                                                '<p class="card-text"> ' +
-                                                    '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
-                                                    '<i>Predicted</i>: ' + question.pred_label +
-                                                '</p> ' +
-                                                '<div class=""> ' +
-                                                    '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger">' +
+
+        this.getRelatedTweetsToQueries(questions).then(question_rel_tweets => {
+
+            questions.forEach(question => {
+
+                question.bigrams = question.text;
+                question.text = question_rel_tweets.filter(tweet => tweet._source.id_str == question.str_id)[0]["_source"]["text"];
+                question.imageSrc = app.imagesURL + app.imagesPath +'/'+ question.str_id + "_0.jpg";
+
+                // var filename = question.filename.replace(/^.*[\\\/]/, ''); // question.filename is a full path also with the file extension
+                tweetsHtml += ' <div class="card p-3 " id="' + question.data_unlabeled_index + '" data-fullpath="' + question.filename + '"> ' +
+                                                '<img class="card-img-top" src="' + question.imageSrc + '" alt=""> ' +
+                                                '<div class="card-body"> ' +
+                                                    '<p class="card-text">' + question.text + '</p> ' +
+                                                    '<p class="card-text"> ' +
+                                                        '<i>Confidence</i>: ' + (question.confidence).toFixed(2) + '<br> ' +
+                                                        '<i>Predicted</i>: ' + question.pred_label +
+                                                    '</p> ' +
+                                                    '<div class=""> ' +
+                                                        '<input type="checkbox" data-toggle="toggle" data-on="Confirmed" data-off="Negative" data-onstyle="success" data-offstyle="danger" ';
+
+                                                        if(question.pred_label == "confirmed"){
+                                                            tweetsHtml += 'checked';
+                                                        }
+
+                                                        tweetsHtml += '>' +
+                                                    '</div> ' +
                                                 '</div> ' +
-                                            '</div> ' +
-                                        '</div>';
-        })
+                                            '</div>';
+            })
 
-        $("#tweet-questions").html(tweetsHtml);
+            $("#tweet-questions").html(tweetsHtml);
 
-        $(".card .card-body input").each(function() {
-            $(this).bootstrapToggle();
-            this.style.padding = "right";
+            $(".card .card-body input").each(function() {
+                $(this).bootstrapToggle();
+                this.style.padding = "right";
+            });
+        });
+    },
+    getRelatedTweetsToQueries: function(questions){
+
+        return new Promise(function(resolve, reject) {
+            questions_ids = "";
+            questions.forEach(question => {
+                questions_ids += question.str_id + " or ";
+            });
+            questions_ids = questions_ids.substring(0, questions_ids.length-3);
+
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "id_strs", value: questions_ids}
+            ];
+
+            $.post(app.appURL+'get_tweets_by_str_ids', data, response => {
+                resolve(response)
+            }, 'json');
         });
     },
     requestTweetsForLearningStage: function(numQuestions){
 
         $(".card-columns").html('');
         document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-        var removeStopwords = document.querySelector("#remove-stopwords-al").checked;
+        var removeStopwords = false; //document.querySelector("#remove-stopwords-al").checked;
 
         data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
             {name: "num_questions", value: numQuestions },
-            {name: "remove_stopwords", value: removeStopwords }
+            {name: "remove_stopwords", value: removeStopwords },
+            {name: "max_samples_to_sort", value:500}, //TODO
+            {name: "text_field", value:"2grams"}, //TODO
+            {name: "is_field_array", value:false}, //TODO
+            {name: "debug_limit", value:true}, //TODO
+            {name: "download_data", value:false}
         ];
 
         $.post(app.appURL+'start_learning', data, response => {
-            this.loadTweetsForLearningStage(response);
+            console.log(response);
+            this.last_al_scores = response.scores;
+            this.loadTweetsForLearningStage(response.questions);
         }, 'json');
     },
     getQuestionsFromUI: function(){
 
         var questions = [];
         document.querySelectorAll(".card").forEach(question => {
-            var label = (question.querySelector("input").checked)? "pos" : "neg"; //The labels in the folders used by the active_learning.py algorythm
+            var label = (question.querySelector("input").checked)? "confirmed" : "negative"; //The labels in the folders used by the active_learning.py algorythm
             var labeled_question = {};
                 labeled_question["id"] = question.id;
                 labeled_question["label"] = label;
@@ -116,16 +165,65 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         var questions = this.getQuestionsFromUI();
-        data = [{name: "questions", value: JSON.stringify(questions) }]
+        data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "questions", value: JSON.stringify(questions) },
+            {name: "scores", value: JSON.stringify(this.last_al_scores)},
+            {name: "results_size", value:"20"}
+        ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
-
-            this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
+            console.log("RESPONSE", response);
+            this.drawQuadrants( this.formatQuadrantResults(response.pos),
+                                this.formatQuadrantResults(response.neg),
+                                400, 500);
+            this.drawQuadrantsSlider('pips-range-vertical');
+            //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
+    },
+    drawQuadrantsSlider: function(selector){
+         noUiSlider.create(document.getElementById(selector), {
+          start: [0.2, 0.5],
+          connect: true,
+          direction: 'rtl',  // ltr or rtl
+          orientation: 'vertical',
+          tooltips: true,
+          range: {
+            'min': 0,
+            'max': 1
+          },
+          pips: { // Show a scale with the slider
+            mode: 'steps',
+            stepped: false,
+            density: 4
+          }
+       })
+    },
+    fit_to_max: function(collection, max){
+
+        var sizes = collection.map(elem => { return elem.size });
+        var max_in_coll = Math.max(...sizes);
+        var min_in_coll = Math.min(...sizes);
+
+        collection.forEach(elem => {
+
+            elem.size = ((elem.size - min_in_coll) / (max_in_coll - min_in_coll)) * max;
+        });
+
+        return collection;
+    },
+    formatQuadrantResults: function(res){
+
+        //return res.map(res => { return {"text": (res.key.length>10)? res.key.substring(0,10) : res.key , "size": res.doc_count }})
+
+        var mapped = res.map(res => { return {"text": res.key , "size": res.doc_count }});
+        return this.fit_to_max(mapped, 35);
     },
     generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
 
         $("#classif-graph-area").html("");
+        this.drawQuadrants(positiveTweets, negativeTweets);
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
         var divHeight = 350;
@@ -136,6 +234,69 @@ app.views.classification = Backbone.View.extend({
         this.positiveTweets = positiveTweets;
         this.negativeTweets = negativeTweets;
     },
+    drawQuadrants: function(highPos, highNeg, width, height){
+
+        this.drawD3TagCloud(highPos, "#cloud_q1", width, height);
+        this.drawD3TagCloud(highNeg, "#cloud_q2", width, height);
+    },
+    drawD3TagCloud: function(data, selector, width, height){
+
+        $(selector).html("");
+        $(selector).css("width", width);
+        $(selector).css("height", height);
+
+		var fill = d3.scale.category20();
+        d3.layout.cloud()
+            .size([width, height])
+            .words(data)
+            .rotate(0)
+            //.padding(3)
+            .font("Impact")
+            .fontSize(function(d) {
+                return d.size;
+            })
+            .on("end", drawCloud)
+            .start();
+
+        // apply D3.js drawing API
+        function drawCloud(words) {
+            d3.select(selector).append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(" + ~~(width / 2) + "," + ~~(height / 2) + ")")
+                .selectAll("text")
+                .data(words)
+                .enter().append("text")
+                .style("font-size", function(d) {
+                    return d.size + "px";
+                })
+                .style("-webkit-touch-callout", "none")
+                .style("-webkit-user-select", "none")
+                .style("-khtml-user-select", "none")
+                .style("-moz-user-select", "none")
+                .style("-ms-user-select", "none")
+                .style("user-select", "none")
+                .style("cursor", "default")
+                .style("font-family", "Impact")
+                .style("fill", function(d, i) {
+                    return fill(i);
+                })
+                .attr("text-anchor", "middle")
+                .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")";
+                    //return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                })
+                .text(function(d) {
+                    return d.text;
+                });
+        };
+
+        var svg = document.querySelector(selector).getElementsByTagName("svg")[0];
+        var bbox = svg.getBBox();
+        var viewBox = [bbox.x, bbox.y, bbox.width, bbox.height].join(" ");
+        svg.setAttribute("viewBox", viewBox);
+    },
     drawTagCloud: function(title, tweetsTexts, divId, divHeight, tweetsTextsVarName){
 
         $("#classif-graph-area").append(
@@ -143,7 +304,7 @@ app.views.classification = Backbone.View.extend({
             '<div id="' + divId + '-container" class="classif-visualization"> ' +
                 '<div id="' + divId + '" style="width: 100%; height: ' + divHeight + 'px; background: white;"></div>' +
             '</div>'
-         );
+        );
 
         // Default values
         nGramsToGenerate = 2;
@@ -154,7 +315,7 @@ app.views.classification = Backbone.View.extend({
         console.log("Retrieving for ", tweetsTextsVarName);
         this.retrieveNGrams(tweetsTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords).then(ngrams => {
 
-            console.log("ngrams for ", tweetsTextsVarName);
+            console.log("ngrams for ", tweetsTextsVarName, ngrams);
 
             this.renderTagCloud(ngrams, divId, divHeight, tweetsTextsVarName, {
                 "nGramsToGenerate": nGramsToGenerate,
@@ -293,7 +454,7 @@ app.views.classification = Backbone.View.extend({
         var targetFormId = $(btn).parent().parent().attr("id");
         var nGramsToGenerate = $("#" + targetFormId + " #n-grams-to-generate").val();
         var topNgramsToRetrieve = $("#" + targetFormId + " #top-n-grams-to-display").val();
-        var removeStopwords = $("#" + targetFormId + " #remove-stopwords").prop("checked");
+        var removeStopwords = false; //$("#" + targetFormId + " #remove-stopwords").prop("checked");
         var stemWords = $("#" + targetFormId + " #stem-words").prop("checked");
         var graphArea = $("#" + targetFormId).parent().parent();
         var graphHeight = graphArea.children().eq(0).height();
