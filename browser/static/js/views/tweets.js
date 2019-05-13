@@ -511,8 +511,7 @@ app.views.tweets = Backbone.View.extend({
             onContentReady: function () {
 
                 try{
-                    if(client.delegateEvents)
-                        client.delegateEvents();
+                    client.delegateEvents();
 
                     var jc = this;
                     //var data = self.getIndexAndSession().concat(self.getTabSearchDataFor(searchClass)).concat(self.getBigramsFormData()).concat([
@@ -520,7 +519,6 @@ app.views.tweets = Backbone.View.extend({
                         {name: "ngram", value: ngram} //,
                         //{name: "search_by_label", value: clientData.lastQueryParams.filter(item => {return item.name == "search_by_label"})[0].value }
                     ]);
-                    console.log(data);
 
                     $.post(app.appURL+endpoint, data, function(response){
                         self.loadResponseTweetsForNgram(data, response, jc, ngramsToGenerate, ngramLabel, client);
