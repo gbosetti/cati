@@ -8,7 +8,7 @@ class MultiPieChart{
     this.width = width;
     this.height = height;
     this.radius = Math.min(width, height) / 2;
-    //this.zoomAndMoveEnabled = true;
+    this.zoomAndMoveEnabled = true;
   }
 
   createLayout(data){
@@ -31,9 +31,9 @@ class MultiPieChart{
       .attr("width", width)
       .attr("height", height)
       .attr("class", "bubble")
-      //.call(d3.behavior.zoom().on("zoom", (evt) => {
-      //	svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
-      //}))
+      .call(d3.behavior.zoom().on("zoom", (evt) => {
+      	svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+      }))
       .append("g").attr("id", "draggable-area");
 
       return svg;

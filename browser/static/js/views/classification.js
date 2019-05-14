@@ -174,10 +174,9 @@ app.views.classification = Backbone.View.extend({
         ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
-            console.log("RESPONSE", response);
-            this.drawQuadrants( this.formatQuadrantResults(response.pos),
-                                this.formatQuadrantResults(response.neg),
-                                400, 500);
+            //console.log("RESPONSE", response);
+            this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+            this.drawNgrams("#cloud_q2", response.neg, "negative");
             this.drawQuadrantsSlider('pips-range-vertical');
             //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
         }, 'json');
@@ -227,19 +226,71 @@ app.views.classification = Backbone.View.extend({
         this.drawBoxplot(positiveTweets, negativeTweets);
         this.drawPiechart(positiveTweets, negativeTweets);
         var divHeight = 350;
-        this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
-        this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
+        //this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
+        //this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
 
         // Store them for user manipulation
         this.positiveTweets = positiveTweets;
         this.negativeTweets = negativeTweets;
     },
-    drawQuadrants: function(highPos, highNeg, width, height){
+    drawNgrams: function(containerSelector, ngrams, category){
 
-        this.drawD3TagCloud(highPos, "#cloud_q1", width, height);
-        this.drawD3TagCloud(highNeg, "#cloud_q2", width, height);
+        //console.log("drawNgrams",containerSelector, app.session.s_index, app.session.s_name);
+        //var event = app.eventsCollection.get({cid: this.lastNgramsEventId}).toJSON();
+
+        var widget = new BubbleWidget(containerSelector, app.session.s_index, 'session_'+app.session.s_name, 500, "proposed"); //Proposed since the data being classified is the unlabeled, and it doesn't change in Elasticsearch until the end of the process
+        var formatted_ngrams;
+
+        if(category == "confirmed"){
+
+            formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+                return [
+                    ngram.key.split(/-+/).join(" "), [
+                        this.filterElemByKey("proposed", ngram.status.buckets), [], []
+                    ]
+                ]
+            });
+        } else{
+
+            formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+                return [
+                    ngram.key.split(/-+/).join(" "), [
+                        [], this.filterElemByKey("proposed", ngram.status.buckets), []
+                    ]
+                ]
+            });
+        }
+
+
+
+        widget.render(formatted_ngrams);
+
+//        console.log("000");
+//        $(containerSelector).html("");
+//        app.views.tweets.prototype.renderBigramsGrid(containerSelector, 300, false, "col-12");
+//        console.log("001");
+//        app.views.tweets.prototype.updateBigramsControls(ngrams, this.ngrams);
+//        console.log("002");
+//
+//        var onBubbleClick = (label, evt) => {
+//
+//            var ngram = label.split(" ").join("-");
+//            var ngramsToGenerate = this.ngrams.formData.filter(item => {
+//                return item.name == "n-grams-to-generate"
+//            })[0];
+//            ngramsToGenerate = ngramsToGenerate != undefined ? ngramsToGenerate.value : 2;
+//            app.views.tweets.prototype.showNgramTweets(this.ngrams, this, ngramsToGenerate, label, ngram, "#event-ngrams-tabs li.active a", 'search_event_bigrams_related_tweets');
+//        };
+//
+//        app.views.tweets.prototype.renderBigramsChart(onBubbleClick, this.ngrams, ".bigrams-graph-area", ngrams, 600);
+
     },
-    drawD3TagCloud: function(data, selector, width, height){
+    filterElemByKey: function(key, collection){
+        var res = collection.filter(item => {return item.key == key});
+        return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
+    },
+   /*
+   drawD3TagCloud: function(data, selector, width, height){
 
         $(selector).html("");
         $(selector).css("width", width);
@@ -324,6 +375,7 @@ app.views.classification = Backbone.View.extend({
                 "stemWords": stemWords });
         });
     },
+    */
     retrieveNGrams: function(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords){
 
         return new Promise(function(resolve, reject) {
