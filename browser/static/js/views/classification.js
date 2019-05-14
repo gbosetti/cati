@@ -19,9 +19,16 @@ app.views.classification = Backbone.View.extend({
         this.delegateEvents();
         this.initializeSpinner();
 
-        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', function () {
+        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', (elem) => {
             $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
-            $( this ).parent( 'li' ).addClass( 'active' );
+            $( elem ).parent( 'li' ).addClass( 'active' );
+            $('.popover-dismiss').popover({ html: true});
+
+            setTimeout(()=>{
+                var loadingMethod = $('.nav-link.show').attr("on-pane-load");
+                if(loadingMethod)
+                    this[loadingMethod]();
+            }, 1000);
         });
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
@@ -43,6 +50,19 @@ app.views.classification = Backbone.View.extend({
         //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
+    },
+    initializeExtendedUncertaintySampling: function(){
+
+        $("#configs").html("");
+        var configs = [[0.0, 0.0, 1.0], [0.0, 0.2, 0.8], [0.0, 0.4, 0.6], [0.0, 0.6, 0.4], [0.0, 0.8, 0.2], [0.0, 1.0, 0.0], [0.2, 0.0, 0.8], [0.2, 0.2, 0.6], [0.2, 0.4, 0.4], [0.2, 0.6, 0.2], [0.2, 0.8, 0.0], [0.4, 0.0, 0.6], [0.4, 0.2, 0.4], [0.4, 0.4, 0.2], [0.4, 0.6, 0.0], [0.6, 0.0, 0.4], [0.6, 0.2, 0.2], [0.6, 0.4, 0.0], [0.8, 0.0, 0.2], [0.8, 0.2, 0.0], [1.0, 0.0, 0.0]];
+        configs.forEach(cfg => {
+            var hyp = parseFloat(cfg[0]) * 100;
+            var dup = parseFloat(cfg[1]) * 100;
+            var bgr = parseFloat(cfg[2]) * 100;
+
+            console.log(cfg);
+            $("#configs").append("<option value='"+ cfg.toString() +"'>hyp(" + hyp + ") dup(" + dup + ") bgr(" + bgr + ")</option>");
+        });
     },
     initializeSpinner: function(){
 
@@ -162,24 +182,89 @@ app.views.classification = Backbone.View.extend({
         });
         return questions;
     },
+    renderALClassificationArea: function(){
+
+        $("#classif-graph-area").html(`<div style="padding:5px">
+          <div class="row">
+            <!-- HEADERS -->
+            <div class="row col">
+              <div id="cloud_header_q1" class="col-2 d-flex justify-content-center">
+                <div class="align-self-center p-2">
+                  Confidence
+                </div>
+              </div>
+              <div id="cloud_header_q1" class="col-5 d-flex justify-content-center">
+                <div class="align-self-center p-2">
+                  Bigrams on positive documents
+                </div>
+              </div>
+              <div id="cloud_header_q2" class="col-5 d-flex justify-content-center">
+                <div class="align-self-center p-2">
+                  Bigrams on negative documents
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <!-- Q1 Q2 -->
+            <div class="row col">
+              <div id="cloud_slider" class="col-2 d-flex justify-content-center">
+                <div id="content" >
+                  <div id="pips-range-vertical" class="slider-range"></div>
+                </div>
+              </div>
+              <div id="cloud_q1" class="col-5 border tag-cloud"></div>
+              <div id="cloud_q2" class="col-5 border tag-cloud"></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="row col-12">
+                <form class="static_box pix-padding-20 white-bg bigrams-controls">
+                  <div class="form-row">
+                    <div class="col-3">
+                      <label>Max bigrams to show</label>
+                      <div class="input-group mb-3">
+                        <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1">
+                        <div class="input-group-append">
+                          <button class="btn btn-default" type="submit"><i class="fa fa-refresh"></i></button>
+                        </div>
+                      </div>
+                     </div>
+                  </div>
+
+                </form>
+              </div>
+          </div>
+        </div>`);
+    },
     suggestClassification: function(){
 
-        var questions = this.getQuestionsFromUI();
-        data = [
-            {name: "index", value: app.session.s_index},
-            {name: "session", value: "session_" + app.session.s_name},
-            {name: "questions", value: JSON.stringify(questions) },
-            {name: "scores", value: JSON.stringify(this.last_al_scores)},
-            {name: "results_size", value:"20"}
-        ];
+        //this.initializeSpinner();
+        $("#classif-graph-area").append(this.spinner);
+        setTimeout(()=>{
 
-        $.post(app.appURL+'suggest_classification', data, response => {
-            //console.log("RESPONSE", response);
-            this.drawNgrams("#cloud_q1", response.pos, "confirmed");
-            this.drawNgrams("#cloud_q2", response.neg, "negative");
-            this.drawQuadrantsSlider('pips-range-vertical');
-            //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
-        }, 'json');
+            this.renderALClassificationArea();
+
+            var questions = this.getQuestionsFromUI();
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "session", value: "session_" + app.session.s_name},
+                {name: "questions", value: JSON.stringify(questions) },
+                {name: "scores", value: JSON.stringify(this.last_al_scores)},
+                {name: "results_size", value:"20"}
+            ];
+
+            $.post(app.appURL+'suggest_classification', data, response => {
+                //console.log("RESPONSE", response);
+                this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+                this.drawNgrams("#cloud_q2", response.neg, "negative");
+                this.drawQuadrantsSlider('pips-range-vertical');
+                //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
+            }, 'json');
+
+        }, 5000);
     },
     drawQuadrantsSlider: function(selector){
          noUiSlider.create(document.getElementById(selector), {

@@ -281,8 +281,8 @@
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" href="#clusted-based-active-learning" data-toggle="tab">Uncertainty Sampling</a></li>
-			                    <li class="nav-item" disabled><a class="nav-link">Extended Uncertainty Sampling</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
+			                    <li class="nav-item active"><a class="nav-link active" 	href="#clusted-based-active-learning" data-toggle="tab">Uncertainty Sampling</a></li>
+			                    <li class="nav-item"><a class="nav-link" 				href="#extended-uncertainty-sampling" data-toggle="tab" on-pane-load="initializeExtendedUncertaintySampling">Extended Uncertainty Sampling</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
 			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
 			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
 			                </ul>
@@ -374,65 +374,7 @@
 																If you believe that the classification is accurate, then proceed to finish the process. Otherwise, continue training the algorithm.</p>
 
 			                                                <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
-			                                                    <div id="classif-graph-area">
-
-																	<div style="padding:5px">
-
-																	  <div class="row">
-																		<!-- HEADERS -->
-																		<div class="row col">
-																		  <div id="cloud_header_q1" class="col-2 d-flex justify-content-center">
-																			<div class="align-self-center p-2">
-																			  Confidence
-																			</div>
-																		  </div>
-																		  <div id="cloud_header_q1" class="col-5 d-flex justify-content-center">
-																			<div class="align-self-center p-2">
-																			  Bigrams on positive documents
-																			</div>
-																		  </div>
-																		  <div id="cloud_header_q2" class="col-5 d-flex justify-content-center">
-																			<div class="align-self-center p-2">
-																			  Bigrams on negative documents
-																			</div>
-																		  </div>
-																		</div>
-																	  </div>
-
-																	  <div class="row">
-																		<!-- Q1 Q2 -->
-																		<div class="row col">
-																		  <div id="cloud_slider" class="col-2 d-flex justify-content-center">
-																			<div id="content" >
-																			  <div id="pips-range-vertical" class="slider-range"></div>
-																			</div>
-																		  </div>
-																		  <div id="cloud_q1" class="col-5 border tag-cloud"></div>
-																		  <div id="cloud_q2" class="col-5 border tag-cloud"></div>
-																		</div>
-																	  </div>
-
-																	  <div class="row">
-																		<div class="row col-12">
-																			<form class="static_box pix-padding-20 white-bg bigrams-controls">
-																			  <div class="form-row">
-																				<div class="col-3">
-																				  <label>Max bigrams to show</label>
-																				  <div class="input-group mb-3">
-																					<input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1">
-																					<div class="input-group-append">
-																					  <button class="btn btn-default" type="submit"><i class="fa fa-refresh"></i></button>
-																					</div>
-																				  </div>
-																				 </div>
-																			  </div>
-
-																			</form>
-																		  </div>
-																	  </div>
-																	</div>
-
-																</div> <!-- end of classif-graph-area -->
+			                                                    <div id="classif-graph-area"></div> <!-- end of classif-graph-area -->
 			                                                </div>
 			                                                <!-- Carousel navigation -->
 			                                                <nav aria-label="..." style="padding-top: 3em;">
@@ -457,14 +399,139 @@
 			                            </div>
 			                        </div>
 			                    </div>
-			                    <div class="tab-pane" id="density-weighted-al">
-			                        ...
+			                    <div class="tab-pane" id="extended-uncertainty-sampling">
+			                        <div class="container" style="padding: 2em 0em;">
+
+			                            <!-- Active learning carousel -->
+			                            <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
+
+			                                <div class="carousel-inner">
+			                                    <div class="carousel-item active">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>About</h3>
+
+			                                                <div>
+			                                                    <p>
+																		Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
+			                                                   			Then, our algorithm will try to learn from your choices and will suggest an automatic classification. If you agree with the classification, you can use it. Otherwise you can repeat the steps through different stages until you get an acceptable result.
+																</p>
+
+			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
+			                                                        <div class="form-group">
+			                                                            <label for="num-docs-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
+			                                                            <input class="form-control" type="number" value="20" id="num-docs-questions">
+			                                                        </div>
+
+																	<div class="form-group">
+			                                                            <label for="num-top-documents" class="col-form-label">Top elements to rank</label>
+																		<a class="popover-dismiss" data-toggle="popover" data-placement="right" data-content="This is the number of top bigrams and top duplicated-documents to retrieve and use to score the sample queries.">
+																			<i class="pixicon-question-circle info-hint-icon"></i>
+																		</a>
+			                                                            <input class="form-control" type="number" value="500" id="num-top-documents">
+			                                                        </div>
+
+																	<div class="form-group">
+			                                                            <label for="num-top-documents" class="col-form-label">Weights
+																			<a class="popover-dismiss" data-toggle="popover" data-placement="right"
+																			   data-content="This field indicated the weights on three different scores to sort the sample queries:<ul>
+																								<li> <b>hyp</b> means distance to hyperplane </li>
+																								<li> <b>dup</b> means duplicated content </li>
+																								<li> <b>bgr</b> means bigrams </li>
+																							</ul>">
+																				<i class="pixicon-question-circle info-hint-icon"></i>
+																			</a>
+																		</label>
+
+																		<select id="configs" class="browser-default custom-select"></select>
+			                                                        </div>
+
+			                                                        <!--<div class="form-group">
+			                                                            <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
+			                                                            <div>
+			                                                                <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
+			                                                            </div>
+			                                                        </div>-->
+			                                                    </div>
+			                                                </div>
+			                                            </div>
+			                                        </div>
+
+			                                        <!-- Carousel navigation -->
+			                                        <nav aria-label="..." style="padding-top: 3em;">
+			                                            <ul class="pagination justify-content-center"> <!-- justify-content-center -->
+			                                                <li class="btn">
+			                                                    <a id="start-automatic-learning" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Start</a>
+			                                                </li>
+			                                                <!--<li class="btn disabled">
+			                                                    <a id="to-learning-stage" class="page-link disabled" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                </li>-->
+			                                            </ul>
+			                                        </nav>
+			                                    </div>
+			                                    <div class="carousel-item">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>Learning stage</h3>
+			                                                <p>Please, mark the tweets below as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>, according to your classification criteria:</p>
+
+			                                                <div class="col-12 pix-margin-top-10">
+			                                                    <div class="card-columns" id="tweet-questions">
+			                                                        <!-- This is filled in the classification.js file -->
+			                                                    </div>
+			                                                </div>
+
+			                                                <!-- Carousel navigation -->
+			                                                <nav aria-label="..." style="padding-top: 3em;">
+			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+			                                                        <li class="disabled">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                        </li>
+			                                                    </ul>
+			                                                </nav>
+			                                            </div>
+			                                        </div>
+			                                    </div>
+			                                    <div class="carousel-item">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>Validation stage</h3>
+			                                                <p>Analyze the values that the algorithm predicts for tweets that have yet to be classified.
+																If you believe that the classification is accurate, then proceed to finish the process. Otherwise, continue training the algorithm.</p>
+
+			                                                <div style="justify-content-center align-items-center" style="border: 1px solid rgba(0,0,0,.125); border-radius: .25rem;">
+			                                                    <div id="classif-graph-area"></div> <!-- end of classif-graph-area -->
+			                                                </div>
+			                                                <!-- Carousel navigation -->
+			                                                <nav aria-label="..." style="padding-top: 3em;">
+			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                        </li>
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
+			                                                        </li>
+			                                                    </ul>
+			                                                </nav>
+			                                            </div>
+			                                        </div>
+			                                    </div>
+			                                </div>
+
+
+			                            </div>
+			                        </div>
 			                    </div>
-			                    <!--<div class="tab-pane" id="3b">
-			                        <h3>Strategy 3</h3>
-			                        ...
-			                    </div>
-			                    <div class="tab-pane" id="4b">
+			                    <!--<div class="tab-pane" id="4b">
 			                        <h3>Strategy 4</h3>
 			                        ...
 			                    </div>-->
