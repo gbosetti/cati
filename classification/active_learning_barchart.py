@@ -22,19 +22,32 @@ def draw_barchart(**kwargs):
         for config_log in all_configs_at_loop:
             res.append(config_log[kwargs["prop_name"]])
 
-        trace = go.Bar(
-            x=kwargs["configs"],  # ['giraffes', 'orangutans', 'monkeys']
-            y=res,  # [0.9, 0.3, 0.7],
-            name= "at " + loop_index # at loop 10
-        )
+        text = res
+        if kwargs["round_values"]:
+            text = ["<b>" + str(round(val, 4)) + "<b>" for val in text]
+
+        if kwargs["show_labels"]:
+            trace = go.Bar(
+                x=kwargs["configs"],  # ['giraffes', 'orangutans', 'monkeys']
+                y=res,  # [0.9, 0.3, 0.7],
+                text=text,
+                textfont=dict(
+                    family='Arial'
+                ),
+                textposition='auto',
+                name= "at " + loop_index # at loop 10
+            )
+        else:
+            trace = go.Bar(
+                x=kwargs["configs"],  # ['giraffes', 'orangutans', 'monkeys']
+                y=res,  # [0.9, 0.3, 0.7],
+                textposition='auto',
+                name="at " + loop_index  # at loop 10
+            )
         data.append(trace)
 
     layout = go.Layout(
-        title=go.layout.Title(
-            text=kwargs["title"],
-            xref='paper',
-            x=0
-        ),
+        # title=go.layout.Title( text=kwargs["title"], xref='paper', x=0 ),
         xaxis=dict(
             title=kwargs["x_axis_title"],
             tickmode='linear',
@@ -62,7 +75,7 @@ def draw_barchart(**kwargs):
         barmode='group',
         autosize=False,
         width=1200,
-        height=600
+        height=350
     )
     fig = go.Figure(data=data, layout=layout)
     pio.write_image(fig, kwargs["full_path"])
@@ -166,11 +179,11 @@ for path in logs_folders:
 # print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
 
 draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy",
+              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
               full_path=os.path.join(output_path, 'OUR_accuracies' + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.93)
+              target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.87)
 
-draw_barchart(title="Evolution of the precision on positives across loops and configurations", values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision on positives",
-              full_path=os.path.join(output_path, 'OUR_positive_precision' + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="positive_precision", min_y_axis_value=0.83)
+draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
+              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
+              full_path=os.path.join(output_path, 'OUR_precision' + '.png'), configs=configs,
+              target_loops=target_loops, prop_name="precision", min_y_axis_value=0.92)
