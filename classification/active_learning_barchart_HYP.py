@@ -6,25 +6,6 @@ import plotly.io as pio
 import os
 import re
 
-# PARAMS
-# this expects that Experiments_for_plotting contains folders called experiment_n
-# these folders contain logs_0n, and the latter contains the actual logs for the case
-scenario_number = "4"
-logs_path = "/home/stage/experiment/Experiments_for_plotting/experiment_" + scenario_number
-output_path = "/home/stage/experiment/figures_" + scenario_number
-initial = {"1": "2 events",
-           "2": "Full events",
-           "3": "All image clusters of 2 events",
-           "4": "All image clusters of all events"}
-
-initial_f = {"1": "_2_events",
-             "2": "_full_events",
-             "3": "_all_image_clusters_of_2_events",
-             "4": "_all_image_clusters_of_all_events"}
-initial_str = initial[scenario_number]
-initial_file = initial_f[scenario_number]
-
-
 # Functions
 def draw_barchart(**kwargs):
     data = []
@@ -39,11 +20,28 @@ def draw_barchart(**kwargs):
 
         # sort the values so all the charts have the same disposition of the configurations
         [x_values, y_values] = [list(x) for x in zip(*sorted(zip(kwargs["configs"], res), key=lambda pair: pair[0], reverse=True))]
-        trace = go.Bar(
-            x= x_values, #kwargs["configs"],  # ['giraffes', 'orangutans', 'monkeys']
-            y=y_values, #res,  # [0.9, 0.3, 0.7],
-            name="at " + loop_index  # at loop 10
-        )
+
+        text = y_values
+        if kwargs["round_values"]:
+            text = ["<b>"+str(round(val,4))+"<b>" for val in text]
+
+        if kwargs["show_labels"]:
+
+            trace = go.Bar(
+                x= x_values, #kwargs["configs"],  # ['giraffes', 'orangutans', 'monkeys']
+                y=y_values, #res,  # [0.9, 0.3, 0.7],
+                text = text,
+                textfont= dict(family='Arial'),
+                textposition='auto',
+                name="at " + loop_index  # at loop 10
+            )
+        else:
+            trace = go.Bar(
+                x= x_values, #kwargs["configs"],  # ['giraffes', 'orangutans', 'monkeys']
+                y=y_values, #res,  # [0.9, 0.3, 0.7],
+                textposition='auto',
+                name="at " + loop_index  # at loop 10
+            )
         data.append(trace)
 
 
@@ -80,7 +78,7 @@ def draw_barchart(**kwargs):
         barmode='group',
         autosize=False,
         width=1200,
-        height=600
+        height=800
     )
     fig = go.Figure(data=data, layout=layout)
     pio.write_image(fig, kwargs["full_path"])
@@ -125,16 +123,6 @@ def print_in_file(content, path):
     file.close()
 
 
-# Initialization
-logs_folders = [f.path for f in os.scandir(logs_path) if f.is_dir()]
-target_loops = [1, 10, 20, 50, 100]
-configs = []
-values_by_loop = {}
-loop_prefix = "loop "
-for loop in target_loops:
-    values_by_loop[loop_prefix + str(loop)] = []
-
-
 def get_config_value(prop_name, full_text):
     start_index = full_text.index(prop_name) + 4
     end_index = start_index + 3
@@ -160,68 +148,95 @@ def get_value_at_loop(prop_name, loop_index, logs):
 
     return target_loop[0]
 
+for scenario_number in ["1","2","3","4"]:
+    # PARAMS
+    # this expects that Experiments_for_plotting contains folders called experiment_n
+    # these folders contain logs_0n, and the latter contains the actual logs for the case
+    logs_path = "/home/stage/experiment/2015_experiment/best_logs/experiment_" + scenario_number
+    output_path = "/home/stage/experiment/2015_experiment/newfigures/figures_" + scenario_number
+    initial = {"1": "2 events",
+               "2": "Full events",
+               "3": "All image clusters of 2 events",
+               "4": "All image clusters of all events"}
 
-# Looping each session to get the HYP results
-hyp_results = []
-for path in logs_folders:
+    initial_f = {"1": "_2_events",
+                 "2": "_full_events",
+                 "3": "_all_image_clusters_of_2_events",
+                 "4": "_all_image_clusters_of_all_events"}
+    initial_str = initial[scenario_number]
+    initial_file = initial_f[scenario_number]
 
-    # Get all the OUR files for the session
-    # session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
-    session_files = [f for f in os.scandir(path) if not f.is_dir()]
+    # Initialization
+    logs_folders = [f.path for f in os.scandir(logs_path) if f.is_dir()]
+    target_loops = [1, 10, 20, 50, 100]
+    configs = []
+    values_by_loop = {}
+    loop_prefix = "loop "
+    for loop in target_loops:
+        values_by_loop[loop_prefix + str(loop)] = []
 
-    for file in session_files:
-        # Get the logs of the only file for HYP
-        file_content = read_file(file.path)
-        logs = [line for line in file_content if 'loop' in line]
 
-        configs.append(get_config_name(file.name))
+    # Looping each session to get the HYP results
+    hyp_results = []
+    for path in logs_folders:
 
-        for loop in target_loops:
-            values_by_loop[loop_prefix + str(loop)].append(get_value_at_loop("accuracy", loop, logs))
+        # Get all the OUR files for the session
+        # session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
+        session_files = [f for f in os.scandir(path) if not f.is_dir()]
 
-    # Get the values from such file
-    # loops_values, accuracies, wrong_answers = process_results(logs)
-    # hyp_results.append({ "loops": loops_values, "_total_loops": len(loops_values),
-    #                      "accuracies": accuracies,
-    #                      "wrong_answers": wrong_answers, "_total_wrong_answers": sum(wrong_answers),
-    #                      "scenario_name": "Secnario " + path[-1:], "_max_accuracy": round(max(accuracies), 2)})
+        for file in session_files:
+            # Get the logs of the only file for HYP
+            file_content = read_file(file.path)
+            logs = [line for line in file_content if 'loop' in line]
 
-# print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
+            configs.append(get_config_name(file.name))
 
-draw_barchart(title="Evolution of accuracy across loops and configurations " + initial_str,
-              values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy",
-              full_path=os.path.join(output_path, 'OUR_accuracies' + initial_file + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="accuracy", max_y_axis_value=1, min_y_axis_value=0.65, y_dtick=0.01)
+            for loop in target_loops:
+                values_by_loop[loop_prefix + str(loop)].append(get_value_at_loop("accuracy", loop, logs))
 
-draw_barchart(title="Evolution of the precision on positives across loops and configurations " + initial_str,
-              values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision on positives",
-              full_path=os.path.join(output_path, 'OUR_positive_precision' + initial_file + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="positive_precision", max_y_axis_value=1, min_y_axis_value=0.00,
-              y_dtick=0.05)
+        # Get the values from such file
+        # loops_values, accuracies, wrong_answers = process_results(logs)
+        # hyp_results.append({ "loops": loops_values, "_total_loops": len(loops_values),
+        #                      "accuracies": accuracies,
+        #                      "wrong_answers": wrong_answers, "_total_wrong_answers": sum(wrong_answers),
+        #                      "scenario_name": "Secnario " + path[-1:], "_max_accuracy": round(max(accuracies), 2)})
 
-draw_barchart(title="Evolution of the precision across loops and configurations " + initial_str,
-              values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision",
-              full_path=os.path.join(output_path, 'OUR_precision' + initial_file + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="precision", max_y_axis_value=1, min_y_axis_value=0.9, y_dtick=0.01)
+    # print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
 
-draw_barchart(title="Evolution of the score across loops and configurations " + initial_str,
-              values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="F1 Score",
-              full_path=os.path.join(output_path, 'OUR_f1_score' + initial_file + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="f1", max_y_axis_value=1, min_y_axis_value=0.75, y_dtick=0.01)
+    draw_barchart(title="Evolution of accuracy across loops and configurations " + initial_str,
+                  values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy",
+                  full_path=os.path.join(output_path, 'OUR_accuracies' + initial_file + '.png'), configs=configs, round_values=True, show_labels=True,
+                  target_loops=target_loops, prop_name="accuracy", max_y_axis_value=1, min_y_axis_value=0.0, y_dtick=0.05)
 
-draw_barchart(title="Evolution of the recall across loops and configurations " + initial_str,
-              values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Recall",
-              full_path=os.path.join(output_path, 'OUR_recall' + initial_file + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="recall", max_y_axis_value=1, min_y_axis_value=0.6, y_dtick=0.01)
+    draw_barchart(title="Evolution of the precision on positives across loops and configurations " + initial_str,
+                  values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision on positives",
+                  full_path=os.path.join(output_path, 'OUR_positive_precision' + initial_file + '.png'), configs=configs, round_values=True, show_labels=True,
+                  target_loops=target_loops, prop_name="positive_precision", max_y_axis_value=1, min_y_axis_value=0.00,
+                  y_dtick=0.05)
 
-draw_barchart(title="Evolution of the wrong predictions across loops and configurations " + initial_str,
-              values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Number of wrong predicitons",
-              full_path=os.path.join(output_path, 'OUR_wrong' + initial_file + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="wrong_pred_answers", max_y_axis_value=20, min_y_axis_value=0.00,
-              y_dtick=5)
+    draw_barchart(title="Evolution of the precision across loops and configurations " + initial_str,
+                  values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision",
+                  full_path=os.path.join(output_path, 'OUR_precision' + initial_file + '.png'), configs=configs, round_values=True, show_labels=True,
+                  target_loops=target_loops, prop_name="precision", max_y_axis_value=1, min_y_axis_value=0.98, y_dtick=0.005)
+
+    draw_barchart(title="Evolution of the score across loops and configurations " + initial_str,
+                  values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="F1 Score",
+                  full_path=os.path.join(output_path, 'OUR_f1_score' + initial_file + '.png'), configs=configs, round_values=True, show_labels=True,
+                  target_loops=target_loops, prop_name="f1", max_y_axis_value=1, min_y_axis_value=0.85, y_dtick=0.01)
+
+    draw_barchart(title="Evolution of the recall across loops and configurations " + initial_str,
+                  values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Recall",
+                  full_path=os.path.join(output_path, 'OUR_recall' + initial_file + '.png'), configs=configs, round_values=True, show_labels=True,
+                  target_loops=target_loops, prop_name="recall", max_y_axis_value=1, min_y_axis_value=0.6, y_dtick=0.01)
+
+    draw_barchart(title="Evolution of the wrong predictions across loops and configurations " + initial_str,
+                  values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Number of wrong predicitons",
+                  full_path=os.path.join(output_path, 'OUR_wrong' + initial_file + '.png'), configs=configs, round_values=True, show_labels=True,
+                  target_loops=target_loops, prop_name="wrong_pred_answers", max_y_axis_value=20, min_y_axis_value=0.00,
+                  y_dtick=5)
