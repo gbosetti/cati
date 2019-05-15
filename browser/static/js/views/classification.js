@@ -1,5 +1,6 @@
 app.views.classification = Backbone.View.extend({
     template: _.template($("#tpl-classify-tweets").html()),
+    //lsampleQueriesTemplate: _.template($("#tpl-classify-tweets").html()), //This way we have the template without any post change
     initialize: function() {
         var handler = _.bind(this.render, this);
 
@@ -19,17 +20,20 @@ app.views.classification = Backbone.View.extend({
         this.delegateEvents();
         this.initializeSpinner();
 
-        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', (elem) => {
-            $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
-            $( elem ).parent( 'li' ).addClass( 'active' );
-            $('.popover-dismiss').popover({ html: true});
+        console.log($(".sampling-stage"));
+        console.log($(".sampling-stage").html());
+        var tplSamplingStage = $(".sampling-stage").html();
+        /*this._tplSamplingStage: $(".sampling-stage").html();
+        this._tplValidationStage: $(".validation-stage").html();*/
 
-            setTimeout(()=>{
-                var loadingMethod = $('.nav-link.show').attr("on-pane-load");
-                if(loadingMethod)
-                    this[loadingMethod]();
-            }, 1000);
+        $( "#carouselExampleIndicators" ).on( "click", ".keep-training-btn", function() {
+            console.log( "KEEP TRAINING!" );
+            $('.carousel-item').removeClass('active');
+            console.log("TPL: ", tplSamplingStage);
+            $('.carousel-inner').append(tplSamplingStage);
         });
+
+        this.initializeSamplingStrategyTab();
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
 
@@ -50,6 +54,20 @@ app.views.classification = Backbone.View.extend({
         //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
+    },
+    initializeSamplingStrategyTab: function(){
+
+        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', (elem) => {
+            $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
+            $( elem ).parent( 'li' ).addClass( 'active' );
+            $('.popover-dismiss').popover({ html: true});
+
+            setTimeout(()=>{
+                var loadingMethod = $('.nav-link.show').attr("on-pane-load");
+                if(loadingMethod)
+                    this[loadingMethod]();
+            }, 1000);
+        });
     },
     initializeExtendedUncertaintySampling: function(){
 

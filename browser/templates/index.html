@@ -294,7 +294,7 @@
 			                        <div class="container" style="padding: 2em 0em;">
 
 			                            <!-- Active learning carousel -->
-			                            <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
+			                            <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false" data-wrap="false">
 
 			                                <div class="carousel-inner">
 			                                    <div class="carousel-item active">
@@ -310,7 +310,7 @@
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
+			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
 			                                                        </div>
 
@@ -337,7 +337,7 @@
 			                                            </ul>
 			                                        </nav>
 			                                    </div>
-			                                    <div class="carousel-item">
+			                                    <div class="carousel-item sampling-stage">
 			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
 			                                            <div class="col-md-12 col-md-offset-12">
 			                                                <h3>Learning stage</h3>
@@ -356,9 +356,6 @@
 			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
 			                                                        </li>
 			                                                        <li class="">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
-			                                                        </li>
-			                                                        <li class="">
 			                                                            <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
 			                                                        </li>
 			                                                    </ul>
@@ -366,7 +363,7 @@
 			                                            </div>
 			                                        </div>
 			                                    </div>
-			                                    <div class="carousel-item">
+			                                    <div class="carousel-item validation-stage">
 			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
 			                                            <div class="col-md-12 col-md-offset-12">
 			                                                <h3>Validation stage</h3>
@@ -383,7 +380,7 @@
 			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
 			                                                        </li>
 			                                                        <li class="">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                            <a class="page-link keep-training-btn" href="#carouselExampleIndicators" role="button" data-slide="">Keep training</a>
 			                                                        </li>
 			                                                        <li class="">
 			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
@@ -403,7 +400,7 @@
 			                        <div class="container" style="padding: 2em 0em;">
 
 			                            <!-- Active learning carousel -->
-			                            <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
+			                            <div id="carouselExtendedSampling" class="carousel slide" data-ride="carousel" data-interval="false">
 
 			                                <div class="carousel-inner">
 			                                    <div class="carousel-item active">
@@ -419,7 +416,7 @@
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
-			                                                            <label for="num-docs-questions" class="col-form-label">How many tweets areyou willing to classify by default for each stage?</label>
+			                                                            <label for="num-docs-questions" class="col-form-label">How many tweets are you willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="20" id="num-docs-questions">
 			                                                        </div>
 
@@ -461,10 +458,10 @@
 			                                        <nav aria-label="..." style="padding-top: 3em;">
 			                                            <ul class="pagination justify-content-center"> <!-- justify-content-center -->
 			                                                <li class="btn">
-			                                                    <a id="start-automatic-learning" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Start</a>
+			                                                    <a id="start-automatic-learning" class="page-link" href="#carouselExtendedSampling" role="button" data-slide="next">Start</a>
 			                                                </li>
 			                                                <!--<li class="btn disabled">
-			                                                    <a id="to-learning-stage" class="page-link disabled" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                    <a id="to-learning-stage" class="page-link disabled" href="#carouselExtendedSampling" role="button" data-slide="next">Next</a>
 			                                                </li>-->
 			                                            </ul>
 			                                        </nav>
@@ -485,13 +482,13 @@
 			                                                <nav aria-label="..." style="padding-top: 3em;">
 			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
 			                                                        <li class="disabled">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+			                                                            <a class="page-link" href="#carouselExtendedSampling" tabindex="-1" role="button" data-slide="prev">Previous</a>
 			                                                        </li>
 			                                                        <li class="">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                            <a class="page-link" href="#carouselExtendedSampling" role="button" data-slide="">Restart the process</a>
 			                                                        </li>
 			                                                        <li class="">
-			                                                            <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                            <a id="to-al-validation-stage" class="page-link" href="#carouselExtendedSampling" role="button" data-slide="next">Next</a>
 			                                                        </li>
 			                                                    </ul>
 			                                                </nav>
@@ -512,13 +509,13 @@
 			                                                <nav aria-label="..." style="padding-top: 3em;">
 			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
 			                                                        <li class="">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
+			                                                            <a class="page-link" href="#carouselExtendedSampling" tabindex="-1" role="button" data-slide="prev">Previous</a>
 			                                                        </li>
 			                                                        <li class="">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="">Restart the process</a>
+			                                                            <a class="page-link" href="#carouselExtendedSampling" role="button" data-slide="">Restart the process</a>
 			                                                        </li>
 			                                                        <li class="">
-			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
+			                                                            <a class="page-link" href="#carouselExtendedSampling" role="button" data-slide="next">Finish</a>
 			                                                        </li>
 			                                                    </ul>
 			                                                </nav>
