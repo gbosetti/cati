@@ -190,8 +190,6 @@ class BubbleWidget{
             return;
         }
 
-        console.log("FILTERED!!!", ngrams);
-
         var chart = new MultiPieChart(this.containerSelector, $(this.containerSelector).width(), this.graphHeight);
         chart.onBubbleClick = this.onBubbleClick;
         chart.draw(ngrams);

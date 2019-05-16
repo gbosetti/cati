@@ -19,11 +19,11 @@ app.views.classification = Backbone.View.extend({
         this.$el.html(html);
         this.delegateEvents();
         this.initializeSpinner();
+        this.isProcessStarted=false;
 
         //var tplSamplingStage = '<div class="carousel-item validation-stage">' + $(".sampling-stage").html() + "</div>";
         /*this._tplSamplingStage: $(".sampling-stage").html();
         this._tplValidationStage: $(".validation-stage").html();*/
-
         $( "#carouselExampleIndicators" ).on( "click", ".keep-training-btn", function() {
             //console.log("\n\nnew template", tplSamplingStage);
             //$('.carousel-item').removeClass('active');
@@ -71,7 +71,34 @@ app.views.classification = Backbone.View.extend({
     loadSamplingStage: function(){
 
         $(".tweet-questions")[0].parentElement.appendChild(this.spinner);
-        return this.requestTweetsForLearningStage(this.numSampleQueries);
+
+        var data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
+            {name: "num_questions", value: this.numSampleQueries },  // do the TODOs like in this way
+            {name: "max_samples_to_sort", value:500}, //TODO
+            {name: "text_field", value:"2grams"}, //TODO
+            {name: "is_field_array", value:false}, //TODO
+            {name: "debug_limit", value:true}, //TODO
+            {name: "download_data", value:false}
+        ];
+
+        if(this.isProcessStarted){
+            console.log("Re-training");
+            return this.trainModel(data);
+        }
+        else{
+            console.log("First training");
+            return new Promise((resolve, reject)=>{
+                this.initLearningProcess(data).then(()=>{
+                    this.isProcessStarted = true;
+                    this.trainModel(data).then(()=>{
+                        resolve();
+                    });
+                });
+            });
+        }
     },
     loadValidationStage: function(){
 
@@ -84,6 +111,8 @@ app.views.classification = Backbone.View.extend({
             $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
             $( elem ).parent( 'li' ).addClass( 'active' );
             $('.popover-dismiss').popover({ html: true});
+            this.isProcessStarted=false; //Restart the process
+            $(".carousel").carousel(0); //Restart the carousel
 
             setTimeout(()=>{
                 var loadingMethod = $('.nav-link.show').attr("on-pane-load");
@@ -184,26 +213,20 @@ app.views.classification = Backbone.View.extend({
             }, 'json');
         });
     },
-    requestTweetsForLearningStage: function(numQuestions){
-
-        var removeStopwords = false; //document.querySelector("#remove-stopwords-al").checked;
-
-        data = [
-            {name: "index", value: app.session.s_index},
-            {name: "session", value: "session_" + app.session.s_name},
-            {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
-            {name: "num_questions", value: numQuestions },
-            {name: "remove_stopwords", value: removeStopwords },
-            {name: "max_samples_to_sort", value:500}, //TODO
-            {name: "text_field", value:"2grams"}, //TODO
-            {name: "is_field_array", value:false}, //TODO
-            {name: "debug_limit", value:true}, //TODO
-            {name: "download_data", value:false}
-        ];
+    initLearningProcess: function(data){
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'download_al_init_data', data, response => {
+                this.last_al_scores = response.scores;
+                this.loadTweetsForLearningStage(response.questions);
+                resolve();
+            }, 'json');
+        });
+    },
+    trainModel: function(data){
 
         return new Promise((resolve, reject) => {
 
-            $.post(app.appURL+'start_learning', data, response => {
+            $.post(app.appURL+'train_model', data, response => {
                 this.last_al_scores = response.scores;
                 this.loadTweetsForLearningStage(response.questions);
                 resolve();

@@ -447,13 +447,10 @@ def to_boolean(str_param):
     else:
         return False
 
-@app.route('/start_learning', methods=['POST'])
+@app.route('/download_al_init_data', methods=['POST'])
 # @cross_origin()
-def start_learning():
+def download_al_init_data():
     data = request.form
-    num_questions = int(data["num_questions"])
-    max_samples_to_sort = int(data["max_samples_to_sort"])
-    sampling_strategy = "closer_to_hyperplane"
     download_data = to_boolean(data["download_data"])
     debug_limit = to_boolean(data["debug_limit"])
 
@@ -463,26 +460,7 @@ def start_learning():
                              gt_session=data["gt_session"], text_field=data["text_field"],
                              is_field_array=data["is_field_array"], debug_limit=debug_limit)
 
-    # Building the model and getting the questions
-    model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
-        num_questions=num_questions, remove_stopwords=False)
-
-    # if (sampling_strategy == "closer_to_hyperplane"):
-    #     questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
-    #                                                                  X_unlabeled, categories, num_questions)
-    #if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
-    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
-                                                                        X_unlabeled, categories,
-                                                                        num_questions,
-                                                                        max_samples_to_sort=max_samples_to_sort,
-                                                                        index=data["index"],
-                                                                        session=data["session"],
-                                                                        text_field=False,
-                                                                        cnf_weight=1,
-                                                                        ret_weight=0,
-                                                                        bgr_weight=0)
-
-    return jsonify({"questions": questions, "scores": scores})
+    return jsonify(True)
 
 
 @app.route('/train_model', methods=['POST'])
