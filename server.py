@@ -482,19 +482,36 @@ def start_learning():
                                                                         ret_weight=0,
                                                                         bgr_weight=0)
 
-    # # Asking the user (gt_dataset) to answer the questions
-    # answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions,
-    #                                                gt_session=kwargs["gt_session"], classifier=self.classifier)
-    #
-    # # Injecting the answers in the training set, and re-training the model
-    # self.classifier.move_answers_to_training_set(answers)
-    # self.classifier.remove_matching_answers_from_test_set(answers)
-    #
-    # # Present visualization to the user, so he can explore the proposed classification
-    # # ...
-    #
-    # return scores, wrong_pred_answers
-    # return {questions: jsonify(questions), scores: scores}
+    return jsonify({"questions": questions, "scores": scores})
+
+
+@app.route('/train_model', methods=['POST'])
+# @cross_origin()
+def train_model():
+    data = request.form
+    num_questions = int(data["num_questions"])
+    max_samples_to_sort = int(data["max_samples_to_sort"])
+    sampling_strategy = "closer_to_hyperplane"
+
+    # Building the model and getting the questions
+    model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
+        num_questions=num_questions, remove_stopwords=False)
+
+    # if (sampling_strategy == "closer_to_hyperplane"):
+    #     questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
+    #                                                                  X_unlabeled, categories, num_questions)
+    #if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
+    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
+                                                                        X_unlabeled, categories,
+                                                                        num_questions,
+                                                                        max_samples_to_sort=max_samples_to_sort,
+                                                                        index=data["index"],
+                                                                        session=data["session"],
+                                                                        text_field=False,
+                                                                        cnf_weight=1,
+                                                                        ret_weight=0,
+                                                                        bgr_weight=0)
+
     return jsonify({"questions": questions, "scores": scores})
 
 

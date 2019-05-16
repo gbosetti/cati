@@ -20,33 +20,46 @@ app.views.classification = Backbone.View.extend({
         this.delegateEvents();
         this.initializeSpinner();
 
-        console.log($(".sampling-stage"));
-        console.log($(".sampling-stage").html());
-        var tplSamplingStage = $(".sampling-stage").html();
+        //var tplSamplingStage = '<div class="carousel-item validation-stage">' + $(".sampling-stage").html() + "</div>";
         /*this._tplSamplingStage: $(".sampling-stage").html();
         this._tplValidationStage: $(".validation-stage").html();*/
 
         $( "#carouselExampleIndicators" ).on( "click", ".keep-training-btn", function() {
-            console.log( "KEEP TRAINING!" );
-            $('.carousel-item').removeClass('active');
-            console.log("TPL: ", tplSamplingStage);
-            $('.carousel-inner').append(tplSamplingStage);
+            //console.log("\n\nnew template", tplSamplingStage);
+            //$('.carousel-item').removeClass('active');
+            //$('.carousel-inner').append(tplSamplingStage);
+            //$('.sampling-stage').addClass('active');
+            $('.carousel').carousel(1);
         });
 
         this.initializeSamplingStrategyTab();
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
-
-            var numQuestions = document.querySelector("#num-tweet-questions").value;
-            this.requestTweetsForLearningStage(numQuestions);
+            this.numSampleQueries = document.querySelector("#num-tweet-questions").value;
         });
 
-        /*document.querySelector("#to-learning-stage").addEventListener("click", () => {
-            document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-        });*/
+        document.querySelector(".to-al-validation-stage").addEventListener("click", () => {
+            this.lastLoadedQuestions = this.getQuestionsFromUI();
+        });
 
-        document.querySelector("#to-al-validation-stage").addEventListener("click", () => {
-            this.suggestClassification();
+        $('#carouselExampleIndicators').on('slide.bs.carousel', (evt) => {
+
+            $(".tweet-questions").html("");
+            $("#classif-graph-area").html("");
+        });
+
+        $('#carouselExampleIndicators').on('slid.bs.carousel', (evt) => {
+
+            if (evt.to == 1){
+                this.loadSamplingStage().then(()=>{
+                    this.spinner.remove();
+                });
+            }
+            else if (evt.to == 2){
+                this.loadValidationStage().then(()=>{
+                    this.spinner.remove();
+                });
+            }
         });
 
         //$("#remove-stopwords-al").bootstrapToggle();
@@ -54,6 +67,16 @@ app.views.classification = Backbone.View.extend({
         //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
+    },
+    loadSamplingStage: function(){
+
+        $(".tweet-questions")[0].parentElement.appendChild(this.spinner);
+        return this.requestTweetsForLearningStage(this.numSampleQueries);
+    },
+    loadValidationStage: function(){
+
+        $("#classif-graph-area").append(this.spinner);
+        return this.suggestClassification();
     },
     initializeSamplingStrategyTab: function(){
 
@@ -101,12 +124,11 @@ app.views.classification = Backbone.View.extend({
     },
     loadTweetsForLearningStage: function(questions){
 
-        console.log(questions);
-        this.spinner.remove();
         var tweetsHtml = '', ids;
 
         this.getRelatedTweetsToQueries(questions).then(question_rel_tweets => {
 
+            $(".tweet-questions").html(""); //Make sure everything is clear before loading the new questions
             questions.forEach(question => {
 
                 question.bigrams = question.text;
@@ -135,7 +157,7 @@ app.views.classification = Backbone.View.extend({
                                             '</div>';
             })
 
-            $("#tweet-questions").html(tweetsHtml);
+            $(".tweet-questions").html(tweetsHtml);
 
             $(".card .card-body input").each(function() {
                 $(this).bootstrapToggle();
@@ -164,8 +186,6 @@ app.views.classification = Backbone.View.extend({
     },
     requestTweetsForLearningStage: function(numQuestions){
 
-        $(".card-columns").html('');
-        document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
         var removeStopwords = false; //document.querySelector("#remove-stopwords-al").checked;
 
         data = [
@@ -181,11 +201,14 @@ app.views.classification = Backbone.View.extend({
             {name: "download_data", value:false}
         ];
 
-        $.post(app.appURL+'start_learning', data, response => {
-            console.log(response);
-            this.last_al_scores = response.scores;
-            this.loadTweetsForLearningStage(response.questions);
-        }, 'json');
+        return new Promise((resolve, reject) => {
+
+            $.post(app.appURL+'start_learning', data, response => {
+                this.last_al_scores = response.scores;
+                this.loadTweetsForLearningStage(response.questions);
+                resolve();
+            }, 'json');
+        });
     },
     getQuestionsFromUI: function(){
 
@@ -202,6 +225,7 @@ app.views.classification = Backbone.View.extend({
     },
     renderALClassificationArea: function(){
 
+        $("#classif-graph-area").html("");
         $("#classif-graph-area").html(`<div style="padding:5px">
           <div class="row">
             <!-- HEADERS -->
@@ -259,30 +283,27 @@ app.views.classification = Backbone.View.extend({
     },
     suggestClassification: function(){
 
-        //this.initializeSpinner();
-        $("#classif-graph-area").append(this.spinner);
-        setTimeout(()=>{
+        return new Promise((resolve, reject)=>{
+            setTimeout(()=>{ //Temporary to check the UI behaviour
 
-            this.renderALClassificationArea();
+                this.renderALClassificationArea();
+                data = [
+                    {name: "index", value: app.session.s_index},
+                    {name: "session", value: "session_" + app.session.s_name},
+                    {name: "questions", value: JSON.stringify(this.lastLoadedQuestions) },
+                    {name: "scores", value: JSON.stringify(this.last_al_scores)},
+                    {name: "results_size", value:"20"}
+                ];
 
-            var questions = this.getQuestionsFromUI();
-            data = [
-                {name: "index", value: app.session.s_index},
-                {name: "session", value: "session_" + app.session.s_name},
-                {name: "questions", value: JSON.stringify(questions) },
-                {name: "scores", value: JSON.stringify(this.last_al_scores)},
-                {name: "results_size", value:"20"}
-            ];
+                $.post(app.appURL+'suggest_classification', data, response => {
+                    this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+                    this.drawNgrams("#cloud_q2", response.neg, "negative");
+                    this.drawQuadrantsSlider('pips-range-vertical');
+                    resolve();
+                }, 'json');
 
-            $.post(app.appURL+'suggest_classification', data, response => {
-                //console.log("RESPONSE", response);
-                this.drawNgrams("#cloud_q1", response.pos, "confirmed");
-                this.drawNgrams("#cloud_q2", response.neg, "negative");
-                this.drawQuadrantsSlider('pips-range-vertical');
-                //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
-            }, 'json');
-
-        }, 5000);
+            }, 5000);
+        });
     },
     drawQuadrantsSlider: function(selector){
          noUiSlider.create(document.getElementById(selector), {

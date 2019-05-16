@@ -311,7 +311,7 @@
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
 			                                                        <div class="form-group">
 			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify by default for each stage?</label>
-			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
+			                                                            <input class="form-control" type="number" value="5" id="num-tweet-questions">
 			                                                        </div>
 
 			                                                        <!--<div class="form-group">
@@ -344,7 +344,7 @@
 			                                                <p>Please, mark the tweets below as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>, according to your classification criteria:</p>
 
 			                                                <div class="col-12 pix-margin-top-10">
-			                                                    <div class="card-columns" id="tweet-questions">
+			                                                    <div class="card-columns tweet-questions">
 			                                                        <!-- This is filled in the classification.js file -->
 			                                                    </div>
 			                                                </div>
@@ -352,11 +352,11 @@
 			                                                <!-- Carousel navigation -->
 			                                                <nav aria-label="..." style="padding-top: 3em;">
 			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
-			                                                        <li class="disabled">
+			                                                        <!--<li class="disabled">
 			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
-			                                                        </li>
+			                                                        </li>-->
 			                                                        <li class="">
-			                                                            <a id="to-al-validation-stage" class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
+			                                                            <a class="page-link to-al-validation-stage" href="#carouselExampleIndicators" role="button" data-slide="next">Next</a>
 			                                                        </li>
 			                                                    </ul>
 			                                                </nav>
@@ -376,14 +376,31 @@
 			                                                <!-- Carousel navigation -->
 			                                                <nav aria-label="..." style="padding-top: 3em;">
 			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
-			                                                        <li class="">
+			                                                        <!--<li class="">
 			                                                            <a class="page-link" href="#carouselExampleIndicators" tabindex="-1" role="button" data-slide="prev">Previous</a>
-			                                                        </li>
+			                                                        </li>-->
 			                                                        <li class="">
 			                                                            <a class="page-link keep-training-btn" href="#carouselExampleIndicators" role="button" data-slide="">Keep training</a>
 			                                                        </li>
 			                                                        <li class="">
 			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button" data-slide="next">Finish</a>
+			                                                        </li>
+			                                                    </ul>
+			                                                </nav>
+			                                            </div>
+			                                        </div>
+			                                    </div>
+												<div class="carousel-item ending-stage">
+			                                        <div class="mt-4 d-flex justify-content-center align-items-center container">
+			                                            <div class="col-md-12 col-md-offset-12">
+			                                                <h3>Applying changes</h3>
+			                                                <p>The results of the classification you carried our will be recorded once you click on "Save changes". Proceed carefully, this step can not be undone.</p>
+
+			                                                <!-- Carousel navigation -->
+			                                                <nav aria-label="..." style="padding-top: 3em;">
+			                                                    <ul class="pagination justify-content-end"> <!-- justify-content-center -->
+			                                                        <li class="">
+			                                                            <a class="page-link" href="#carouselExampleIndicators" role="button">Save changes</a>
 			                                                        </li>
 			                                                    </ul>
 			                                                </nav>
