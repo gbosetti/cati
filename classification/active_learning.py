@@ -720,7 +720,7 @@ class ActiveLearning:
         for question in labeled_questions:
             basename = os.path.basename(question["filename"])
             dstDir = os.path.join(self.TRAIN_FOLDER, question["label"], basename)
-            # print("Moving", question["filename"], " to ", dstDir)
+            print("Moving", question["filename"], " to ", dstDir)
             shutil.move(question["filename"], dstDir)
 
     def remove_matching_answers_from_test_set(self, labeled_questions):
@@ -731,12 +731,6 @@ class ActiveLearning:
             file_path = os.path.join(self.TEST_FOLDER, question["label"], basename)
             if os.path.exists(file_path):
                 os.remove(file_path)
-
-    def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
-
-        full_queries = classifier.get_full_queries()
-
-        return
 
     def get_tweets_for_validation(self):
 

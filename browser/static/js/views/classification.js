@@ -68,11 +68,9 @@ app.views.classification = Backbone.View.extend({
 
         return this;
     },
-    loadSamplingStage: function(){
+    getTrainingConfig: function(){
 
-        $(".tweet-questions")[0].parentElement.appendChild(this.spinner);
-
-        var data = [
+        return [
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
             {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
@@ -83,6 +81,12 @@ app.views.classification = Backbone.View.extend({
             {name: "debug_limit", value:true}, //TODO
             {name: "download_data", value:false}
         ];
+    },
+    loadSamplingStage: function(){
+
+        $(".tweet-questions")[0].parentElement.appendChild(this.spinner);
+
+        var data = this.getTrainingConfig();
 
         if(this.isProcessStarted){
             console.log("Re-training");
@@ -103,7 +107,23 @@ app.views.classification = Backbone.View.extend({
     loadValidationStage: function(){
 
         $("#classif-graph-area").append(this.spinner);
-        return this.suggestClassification();
+        return new Promise((resolve, reject)=>{
+            this.saveUserAnswers().then(()=>{
+                this.trainModel(this.getTrainingConfig()).then(()=>{
+                    this.suggestClassification().then(()=>{
+                        resolve();
+                    });
+                });
+            });
+        });
+    },
+    saveUserAnswers: function(){
+
+        return new Promise((resolve, reject)=>{
+
+            var data = [{name: "answers", value: JSON.stringify(this.lastLoadedQuestions)}];
+            $.post(app.appURL+'save_user_answers', data, response => { resolve() }, 'json');
+        });
     },
     initializeSamplingStrategyTab: function(){
 
@@ -129,8 +149,6 @@ app.views.classification = Backbone.View.extend({
             var hyp = parseFloat(cfg[0]) * 100;
             var dup = parseFloat(cfg[1]) * 100;
             var bgr = parseFloat(cfg[2]) * 100;
-
-            console.log(cfg);
             $("#configs").append("<option value='"+ cfg.toString() +"'>hyp(" + hyp + ") dup(" + dup + ") bgr(" + bgr + ")</option>");
         });
     },
@@ -276,7 +294,7 @@ app.views.classification = Backbone.View.extend({
             <div class="row col">
               <div id="cloud_slider" class="col-2 d-flex justify-content-center">
                 <div id="content" >
-                  <div id="pips-range-vertical" class="slider-range"></div>
+                  <div class="slider-range pips-range-vertical"></div>
                 </div>
               </div>
               <div id="cloud_q1" class="col-5 border tag-cloud"></div>
@@ -307,30 +325,25 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         return new Promise((resolve, reject)=>{
-            setTimeout(()=>{ //Temporary to check the UI behaviour
+            this.renderALClassificationArea();
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "session", value: "session_" + app.session.s_name},
+                {name: "scores", value: JSON.stringify(this.last_al_scores)},
+                {name: "results_size", value:"20"}
+            ];
 
-                this.renderALClassificationArea();
-                data = [
-                    {name: "index", value: app.session.s_index},
-                    {name: "session", value: "session_" + app.session.s_name},
-                    {name: "questions", value: JSON.stringify(this.lastLoadedQuestions) },
-                    {name: "scores", value: JSON.stringify(this.last_al_scores)},
-                    {name: "results_size", value:"20"}
-                ];
-
-                $.post(app.appURL+'suggest_classification', data, response => {
-                    this.drawNgrams("#cloud_q1", response.pos, "confirmed");
-                    this.drawNgrams("#cloud_q2", response.neg, "negative");
-                    this.drawQuadrantsSlider('pips-range-vertical');
-                    resolve();
-                }, 'json');
-
-            }, 5000);
+            $.post(app.appURL+'suggest_classification', data, response => {
+                this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+                this.drawNgrams("#cloud_q2", response.neg, "negative");
+                this.drawQuadrantsSlider('.pips-range-vertical');
+                resolve();
+            }, 'json');
         });
     },
     drawQuadrantsSlider: function(selector){
-         noUiSlider.create(document.getElementById(selector), {
-          start: [0.2, 0.5],
+         noUiSlider.create(document.querySelector(selector), {
+          start: [0.0, 1],
           connect: true,
           direction: 'rtl',  // ltr or rtl
           orientation: 'vertical',
