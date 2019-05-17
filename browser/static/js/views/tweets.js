@@ -1032,24 +1032,39 @@ app.views.tweets = Backbone.View.extend({
     },
     updateImageClusterStatus: function(e, data){
 
-        setTimeout(function(){
-            $.post(app.appURL + 'event_image_cluster_stats', data, function (response) {  // image-based cluster
 
-                proposed = response.filter(status => status.key == "proposed")[0].doc_count;
-                confirmed = response.filter(status => status.key == "confirmed")[0].doc_count;
-                negative = response.filter(status => status.key == "negative")[0].doc_count;
+        function updateCluster(e,data) {
+            setTimeout(function(){
+                $.post(app.appURL + 'event_image_cluster_stats', data, function (response) {  // image-based cluster
 
-                total = proposed + confirmed + negative;
-                proposed_width = proposed * 100 / total;
-                confirmed_width = confirmed * 100 /total;
-                negative_width =negative * 100 /total;
-                console.log(proposed_width, confirmed_width, negative_width);
+                    proposed = response.filter(status => status.key == "proposed")[0].doc_count;
+                    confirmed = response.filter(status => status.key == "confirmed")[0].doc_count;
+                    negative = response.filter(status => status.key == "negative")[0].doc_count;
 
-                e.currentTarget.parentElement.parentElement.querySelector(".progress-bar.bg-success").style.width = confirmed_width + "%";
-                e.currentTarget.parentElement.parentElement.querySelector(".progress-bar.bg-danger").style.width = negative_width + "%";
-                e.currentTarget.parentElement.parentElement.querySelector(".progress-bar.bg-grey").style.width = proposed_width + "%";
-            });
-        }, 3000);
+                    total = proposed + confirmed + negative;
+                    proposed_width = proposed * 100 / total;
+                    confirmed_width = confirmed * 100 /total;
+                    negative_width =negative * 100 /total;
+                    console.log(proposed_width, confirmed_width, negative_width);
+
+                    e.querySelector(".progress-bar.bg-success").style.width = confirmed_width + "%";
+                    e.querySelector(".progress-bar.bg-danger").style.width = negative_width + "%";
+                    e.querySelector(".progress-bar.bg-grey").style.width = proposed_width + "%";
+                });
+            }, 3000);
+        }
+
+        allImages = e.currentTarget.parentElement.parentElement.parentElement.children
+        for(n = 0 ; n< allImages.length; n++)
+        {
+            imageCluster = allImages.item(n);
+            console.log("Get the stats for image cluster", imageCluster.querySelector("div .cluster_state_btns").querySelector(".btn-outline-success").getAttribute("data-cid"));
+            clusterId= imageCluster.querySelector("div .cluster_state_btns").querySelector(".btn-outline-success").getAttribute("data-cid");
+            data.pop();
+            data.push({name: "cid", value: clusterId});
+            updateCluster(imageCluster, data);
+        };
+        //end of new code
     },
 	cluster_state: function(e){
     	e.preventDefault();
@@ -1065,6 +1080,8 @@ app.views.tweets = Backbone.View.extend({
 		$.post(app.appURL+'mark_cluster', data, function(response){
 			jc.close();
             app.views.mabed.prototype.getClassificationStats();
+            // TODO update all the image clusters
+
             self.updateImageClusterStatus(e, data);
 		}).fail(function() {
             jc.close();
