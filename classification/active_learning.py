@@ -448,6 +448,69 @@ class ActiveLearning:
 
         return swords
 
+    def save_classification(self, **kwargs):
+
+        # Update the status of the training folder (since we moved some unlabeled files there)
+        self.save_training_classification(**kwargs)
+
+        #
+        # this.get_classified_document_ids();
+
+    def save_training_classification(self, **kwargs):
+
+        # Update the status of the training folder (since we moved some unlabeled files there)
+
+        confirmed_ids = []
+        for file in os.listdir(os.path.join(self.TRAIN_FOLDER, self.POS_CLASS_FOLDER)):
+            if file.endswith(".txt"):
+                confirmed_ids.append(os.path.splitext(file)[0])
+
+        self.update_documents_status_by_id(docs_ids=confirmed_ids, tag="confirmed", **kwargs)
+
+        negative_ids = []
+        for file in os.listdir(os.path.join(self.TRAIN_FOLDER, self.NEG_CLASS_FOLDER)):
+            if file.endswith(".txt"):
+                negative_ids.append(os.path.splitext(file)[0])
+
+        self.update_documents_status_by_id(docs_ids=negative_ids, tag="negative", **kwargs)
+
+    def update_documents_status_by_id(self, **kwargs):
+
+        if len(kwargs["docs_ids"]) == 0:
+            return
+
+        # print("Recording...", kwargs["tag"], kwargs["docs_ids"])
+        matching_queries = []
+        for doc_id in kwargs["docs_ids"]:
+            matching_queries.append({"match": {"id_str": doc_id }})
+
+            if len(matching_queries) == 500:
+                self.update_documents_status_by_match(matching_queries=matching_queries, **kwargs)
+                matching_queries = []
+
+        if len(matching_queries) > 0:
+            self.update_documents_status_by_match(matching_queries=matching_queries, **kwargs)
+
+
+    def update_documents_status_by_match(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+
+        query = {
+            "query": {
+                "bool": {
+                    "should": kwargs["matching_queries"],
+                    "minimum_should_match": 1,
+                    "must": [{
+                        "match": {kwargs["session"]: "proposed"}
+                    }]
+                }
+            }
+        }
+
+        print(query)
+        return my_connector.update_by_query(query, "ctx._source." + kwargs["session"] + " = '" + kwargs["tag"] + "'")
+
     def download_data(self, **kwargs):
 
         self.clean_directories()
@@ -779,7 +842,7 @@ class ActiveLearning:
 
         return high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids
 
-    def suggest_classification(self, predictions, confidences, **kwargs):
+    def get_classified_document_ids(self, predictions, confidences, **kwargs):
 
         positiveTweets = {}
         positiveTweets["confidences"] = []

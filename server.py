@@ -463,6 +463,13 @@ def download_al_init_data():
     return jsonify(True)
 
 
+@app.route('/save_classification', methods=['POST'])
+def save_classification():
+    data = request.form
+    classifier.save_classification(index=data["index"], session=data["session"]);
+    return jsonify(True)
+
+
 @app.route('/train_model', methods=['POST'])
 # @cross_origin()
 def train_model():

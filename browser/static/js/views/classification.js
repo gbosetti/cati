@@ -42,6 +42,14 @@ app.views.classification = Backbone.View.extend({
             this.lastLoadedQuestions = this.getQuestionsFromUI();
         });
 
+        document.querySelector(".save-al-changes").addEventListener("click", ()=>{
+
+            var jc = this.createLoadingPopup();
+            this.saveClassification().then(()=>{
+                jc.close();
+            });
+        });
+
         $('#carouselExampleIndicators').on('slide.bs.carousel', (evt) => {
 
             $(".tweet-questions").html("");
@@ -67,6 +75,35 @@ app.views.classification = Backbone.View.extend({
         //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
+    },
+    createLoadingPopup: function(){
+
+        barHtml = 'The duration of this process will depend on <br>the number of documents you classified.' +
+			'<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>';
+
+        var jc = $.confirm({
+            title:"Saving the classification state",
+            columnClass: 'extra-large',
+            content: barHtml,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+        return jc;
+    },
+    saveClassification: function(){
+        return new Promise((resolve, reject)=>{
+
+            var data = this.getTrainingConfig();
+            $.post(app.appURL+'save_classification', data, response => {
+
+                app.views.mabed.prototype.getClassificationStats();
+                resolve();
+            }, 'json');
+        });
     },
     getTrainingConfig: function(){
 
