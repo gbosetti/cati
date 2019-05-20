@@ -1054,15 +1054,20 @@ app.views.tweets = Backbone.View.extend({
             }, 3000);
         }
 
-        allImages = e.currentTarget.parentElement.parentElement.parentElement.children
+        allImages = e.currentTarget.parentElement.parentElement.parentElement.children;
         for(n = 0 ; n< allImages.length; n++)
         {
             imageCluster = allImages.item(n);
             console.log("Get the stats for image cluster", imageCluster.querySelector("div .cluster_state_btns").querySelector(".btn-outline-success").getAttribute("data-cid"));
             clusterId= imageCluster.querySelector("div .cluster_state_btns").querySelector(".btn-outline-success").getAttribute("data-cid");
-            data.pop();
-            data.push({name: "cid", value: clusterId});
-            updateCluster(imageCluster, data);
+            clusterData= [];
+            clusterData.push(data[0]);
+            clusterData.push(data[1]);
+            clusterData.push(data[2]);
+            console.log(clusterId);
+            clusterData.push({name: "cid", value: clusterId});
+            console.log(clusterData);
+            updateCluster(imageCluster, clusterData);
         };
         //end of new code
     },
