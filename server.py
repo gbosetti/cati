@@ -484,11 +484,12 @@ def train_model():
     model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
         num_questions=num_questions, remove_stopwords=False)
 
-    # if (sampling_strategy == "closer_to_hyperplane"):
-    #     questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
-    #                                                                  X_unlabeled, categories, num_questions)
-    # if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
-    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
+    print("Strategy: ", sampling_strategy)
+    if (sampling_strategy == "closer_to_hyperplane"):
+         questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
+                                                                      X_unlabeled, categories, num_questions)
+    if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
+        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
                                                                        X_unlabeled, categories,
                                                                        num_questions,
                                                                        max_samples_to_sort=max_samples_to_sort,

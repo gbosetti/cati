@@ -34,7 +34,7 @@ class MultiPieChart{
       .call(d3.behavior.zoom().on("zoom", (evt) => {
       	svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
       }))
-      .append("g").attr("id", "draggable-area");
+      .append("g"); //.attr("id", "draggable-area");
 
       return svg;
   }
@@ -71,6 +71,8 @@ while (word = words.pop()) {
 
 	draw(data){
 
+	    console.log("DATA", data);
+
 	    $(this.domSelector).html="";
         var layout = this.createLayout(data);
         var svg = this.createSvg(this.width, this.height);
@@ -91,6 +93,7 @@ while (word = words.pop()) {
 
         var x_axis = isNaN(d.x)? 0 : d.x;
         var y_axis = isNaN(d.y)? 0 : d.y;
+        //console.log("INFO:", x_axis + "," + y_axis);
 
     	return "translate(" + x_axis + "," + y_axis + ")";
     });

@@ -108,6 +108,8 @@ app.views.classification = Backbone.View.extend({
     },
     getTrainingConfig: function(){
 
+        var sampling_strategy = $('.nav-link.active').attr("href")=="#clusted-based-active-learning"? "closer_to_hyperplane" : "closer_to_hyperplane_bigrams_rt";
+
         return [
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
@@ -117,7 +119,8 @@ app.views.classification = Backbone.View.extend({
             {name: "text_field", value:"2grams"}, //TODO
             {name: "is_field_array", value:false}, //TODO
             {name: "debug_limit", value:true}, //TODO
-            {name: "download_data", value:false}
+            {name: "download_data", value:false},
+            {name: "sampling_strategy", value:sampling_strategy}
         ];
     },
     loadSamplingStage: function(){
@@ -133,7 +136,7 @@ app.views.classification = Backbone.View.extend({
         else{
             console.log("First training");
             return new Promise((resolve, reject)=>{
-                this.initLearningProcess(data).then(()=>{
+                this.download_al_init_data(data).then(()=>{
                     this.isProcessStarted = true;
                     this.trainModel(data).then(()=>{
                         resolve();
@@ -248,6 +251,8 @@ app.views.classification = Backbone.View.extend({
                 $(this).bootstrapToggle();
                 this.style.padding = "right";
             });
+        }, (err)=>{
+            console.log("Catch:", err);
         });
     },
     getRelatedTweetsToQueries: function(questions){
@@ -275,7 +280,7 @@ app.views.classification = Backbone.View.extend({
             }, 'json');
         });
     },
-    initLearningProcess: function(data){
+    download_al_init_data: function(data){
         return new Promise((resolve, reject) => {
             $.post(app.appURL+'download_al_init_data', data, response => {
                 this.last_al_scores = response.scores;
@@ -439,9 +444,10 @@ app.views.classification = Backbone.View.extend({
         if(category == "confirmed"){
 
             formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+
                 return [
                     ngram.key.split(/-+/).join(" "), [
-                        this.filterElemByKey("proposed", ngram.status.buckets), [], []
+                        this.filterElemByKey("proposed", ngram.status.buckets), 0, 0
                     ]
                 ]
             });
@@ -450,13 +456,15 @@ app.views.classification = Backbone.View.extend({
             formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
                 return [
                     ngram.key.split(/-+/).join(" "), [
-                        [], this.filterElemByKey("proposed", ngram.status.buckets), []
+                        0, this.filterElemByKey("proposed", ngram.status.buckets), 0
                     ]
                 ]
             });
         }
 
-        console.log("formatted:", formatted_ngrams);
+        console.log(formatted_ngrams);
+        formatted_ngrams = formatted_ngrams.filter(elem =>{ return elem[1].reduce((a, b) => a + b)!=0});
+
         widget.render(formatted_ngrams);
         //}, 2000);
 
@@ -481,7 +489,10 @@ app.views.classification = Backbone.View.extend({
 
     },
     filterElemByKey: function(key, collection){
+
+        //console.log(key, " in ", collection)
         var res = collection.filter(item => {return item.key == key});
+        console.log(res);
         return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
     },
    /*
@@ -776,7 +787,7 @@ app.views.classification = Backbone.View.extend({
        $("#classif-graph-area").append(
            '<h5 class="mt-5" align="center">Tweets by predicted category</h5>' +
            '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
-        );
+       );
 
        var data = [{
            values: [sizeOfpositives, sizeOfNegatives],

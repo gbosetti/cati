@@ -182,8 +182,6 @@ class BubbleWidget{
 
     render(ngrams){
 
-        $(this.containerSelector).html("");
-
         if ($.isEmptyObject(ngrams)) {
             console.log("Empty");
             this.showNoBigramsFound(this.containerSelector);
