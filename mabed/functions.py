@@ -1386,6 +1386,35 @@ class Functions:
         res = tweets_connector.update(tid, query)
         return res
 
+    def get_total_tweets_by_ids(self, **kwargs):
+
+        if len(kwargs["ids"])==0:
+            return 0
+
+        ids = ""
+        for id in kwargs["ids"]:
+            ids += id + " or "
+        ids = ids[:-4]
+
+        query = {
+            "size": 0,
+            "query":{
+                "bool": {
+                    "must": [{
+                        "match": {
+                            "id_str": ids
+                        }
+                    }]
+                }
+            }
+        }
+
+        print(query)
+
+        my_connector = Es_connector(index=kwargs["index"])
+        res = my_connector.search(query)
+        return res['hits']['total']
+
     def set_retweets_state(self, **kwargs):
 
         tweets_connector = Es_connector(index=kwargs["index"], doc_type="tweet")

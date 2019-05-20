@@ -524,7 +524,9 @@ def suggest_classification():
                                                   n_size="2", results_size=data["results_size"]),
        "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
                                                   ids=negatives,
-                                                  n_size="2", results_size=data["results_size"])
+                                                  n_size="2", results_size=data["results_size"]),
+       "total_pos": functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=positives),
+       "total_neg": functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=negatives)
     })
 
 @app.route('/get_tweets_by_str_ids', methods=['POST'])

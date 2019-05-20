@@ -190,7 +190,7 @@ class BubbleWidget{
             return;
         }
 
-        var chart = new MultiPieChart(this.containerSelector, $(this.containerSelector).width(), this.graphHeight);
+        var chart = new MultiPieChart(this.containerSelector, parseInt($(this.containerSelector).width()), this.graphHeight);
         chart.onBubbleClick = this.onBubbleClick;
         chart.draw(ngrams);
     }

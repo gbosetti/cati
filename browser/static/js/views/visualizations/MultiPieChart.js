@@ -88,7 +88,11 @@ while (word = words.pop()) {
       })
     );
     nodes.enter().append("g").attr("class", "node").attr("transform", function(d) {
-    	return "translate(" + d.x + "," + d.y + ")";
+
+        var x_axis = isNaN(d.x)? 0 : d.x;
+        var y_axis = isNaN(d.y)? 0 : d.y;
+
+    	return "translate(" + x_axis + "," + y_axis + ")";
     });
 
     return nodes;

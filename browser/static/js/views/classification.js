@@ -101,6 +101,7 @@ app.views.classification = Backbone.View.extend({
             $.post(app.appURL+'save_classification', data, response => {
 
                 app.views.mabed.prototype.getClassificationStats();
+                $(".carousel").carousel(0);
                 resolve();
             }, 'json');
         });
@@ -252,6 +253,12 @@ app.views.classification = Backbone.View.extend({
     getRelatedTweetsToQueries: function(questions){
 
         return new Promise(function(resolve, reject) {
+
+            if(questions == undefined){
+                console.log("rejecting")
+                reject();
+            }
+
             questions_ids = "";
             questions.forEach(question => {
                 questions_ids += question.str_id + " or ";
@@ -371,9 +378,14 @@ app.views.classification = Backbone.View.extend({
             ];
 
             $.post(app.appURL+'suggest_classification', data, response => {
+
+                // $("#classif-graph-area").html("");
+                console.log(response);
                 this.drawNgrams("#cloud_q1", response.pos, "confirmed");
                 this.drawNgrams("#cloud_q2", response.neg, "negative");
                 this.drawQuadrantsSlider('.pips-range-vertical');
+
+                this.drawPiechart(response.total_pos, response.total_neg);
                 resolve();
             }, 'json');
         });
@@ -416,25 +428,11 @@ app.views.classification = Backbone.View.extend({
         var mapped = res.map(res => { return {"text": res.key , "size": res.doc_count }});
         return this.fit_to_max(mapped, 35);
     },
-    generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
-
-        $("#classif-graph-area").html("");
-        this.drawQuadrants(positiveTweets, negativeTweets);
-        this.drawBoxplot(positiveTweets, negativeTweets);
-        this.drawPiechart(positiveTweets, negativeTweets);
-        var divHeight = 350;
-        //this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
-        //this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
-
-        // Store them for user manipulation
-        this.positiveTweets = positiveTweets;
-        this.negativeTweets = negativeTweets;
-    },
     drawNgrams: function(containerSelector, ngrams, category){
 
         //console.log("drawNgrams",containerSelector, app.session.s_index, app.session.s_name);
         //var event = app.eventsCollection.get({cid: this.lastNgramsEventId}).toJSON();
-
+        //imeout(()=>{
         var widget = new BubbleWidget(containerSelector, app.session.s_index, 'session_'+app.session.s_name, 500, "proposed"); //Proposed since the data being classified is the unlabeled, and it doesn't change in Elasticsearch until the end of the process
         var formatted_ngrams;
 
@@ -458,9 +456,9 @@ app.views.classification = Backbone.View.extend({
             });
         }
 
-
-
+        console.log("formatted:", formatted_ngrams);
         widget.render(formatted_ngrams);
+        //}, 2000);
 
 //        console.log("000");
 //        $(containerSelector).html("");
@@ -773,19 +771,19 @@ app.views.classification = Backbone.View.extend({
             }
         });
     },
-    drawPiechart: function(positiveTweets, negativeTweets){
+    drawPiechart: function(sizeOfpositives, sizeOfNegatives){
 
-        $("#classif-graph-area").append(
-            '<h5 class="mt-5" align="center">Tweets by predicted label</h5>' +
-            '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
-         );
+       $("#classif-graph-area").append(
+           '<h5 class="mt-5" align="center">Tweets by predicted category</h5>' +
+           '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+        );
 
-        var data = [{
-            values: [positiveTweets.confidences.length, negativeTweets.confidences.length],
-            labels: ['Positive', 'Negative'],
-            type: 'pie'
-        }];
+       var data = [{
+           values: [sizeOfpositives, sizeOfNegatives],
+           labels: ['Positive', 'Negative'],
+           type: 'pie'
+       }];
 
-        Plotly.newPlot('classification-piechart', data, {});
+       Plotly.newPlot('classification-piechart', data, {});
     }
 });
