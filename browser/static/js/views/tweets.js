@@ -154,7 +154,6 @@ app.views.tweets = Backbone.View.extend({
         app.views.mabed.prototype.getClassificationStats();
     },
     presentRetweets(res, selector){
-        console.log("top retweets", res);
         var html = this.get_retweets_html(res);
         try{
         $(selector).html(html);
@@ -377,8 +376,7 @@ app.views.tweets = Backbone.View.extend({
     showLoadingMessage: function(containerSelector, height){
 
         $(containerSelector).html("");
-        var spinner = document.createElement("div");
-            spinner.className = "loader";
+        var spinner = $('<i class="fa fa-spinner fa-spin" style="font-size: 7em; color: Dodgerblue;"></i>')[0];
 
         var spinnerFrame = document.createElement("div");
             spinnerFrame.className = "card-columns";
