@@ -518,14 +518,15 @@ def save_user_answers():
 def suggest_classification():
     data = request.form
 
-    positives, negatives = classifier.get_classified_queries_ids()
+    target_min_score = float(data.get('target_min_score', '0'))
+    target_max_score = float(data.get('target_max_score', '1'))
+
+    positives, negatives = classifier.get_classified_queries_ids(target_min_score=target_min_score, target_max_score=target_max_score)
     return jsonify({
        "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
-                                                  ids=positives,
-                                                  n_size="2", results_size=data["results_size"]),
+                                                  ids=positives, n_size="2", results_size=data["results_size"]),
        "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
-                                                  ids=negatives,
-                                                  n_size="2", results_size=data["results_size"]),
+                                                  ids=negatives, n_size="2", results_size=data["results_size"]),
        "total_pos": functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=positives),
        "total_neg": functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=negatives)
     })

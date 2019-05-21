@@ -317,7 +317,7 @@ app.views.classification = Backbone.View.extend({
             <div class="row col">
               <div id="cloud_header_q1" class="col-2 d-flex justify-content-center">
                 <div class="align-self-center p-2">
-                  Confidence
+                  Score
                 </div>
               </div>
               <div id="cloud_header_q1" class="col-5 d-flex justify-content-center">
@@ -355,7 +355,7 @@ app.views.classification = Backbone.View.extend({
                       <div class="input-group mb-3">
                         <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1">
                         <div class="input-group-append">
-                          <button class="btn btn-default" type="submit"><i class="fa fa-refresh"></i></button>
+                          <button class="btn btn-default update-quadrants-bigrams"><i class="fa fa-refresh"></i></button>
                         </div>
                       </div>
                      </div>
@@ -365,6 +365,14 @@ app.views.classification = Backbone.View.extend({
               </div>
           </div>
         </div>`);
+
+        $('.update-quadrants-bigrams').on("click", (event)=>{
+            this.updateQuadrantsBigrams();
+            event.preventDefault();
+        });
+    },
+    renderQuadrantsBigrams: function(){
+        alert("Render!");
     },
     suggestClassification: function(){
 
@@ -387,8 +395,30 @@ app.views.classification = Backbone.View.extend({
             }, 'json');
         });
     },
+    updateQuadrantsBigrams: function(){
+
+        var sliderValues = $('.pips-range-vertical')[0].noUiSlider.get();
+        console.log(sliderValues);
+
+        data = [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "scores", value: JSON.stringify(this.last_al_scores)},
+            {name: "results_size", value:$('.top-bubbles-to-display').val()},
+            {name: "target_min_score", value: Math.min(...sliderValues)},
+            {name: "target_max_score", value: Math.max(...sliderValues)}
+        ];
+
+        $.post(app.appURL+'suggest_classification', data, response => {
+
+            this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+            this.drawNgrams("#cloud_q2", response.neg, "negative");
+            //this.drawQuadrantsSlider('.pips-range-vertical');
+        }, 'json');
+    },
     drawQuadrantsSlider: function(selector){
-         noUiSlider.create(document.querySelector(selector), {
+        var slider = document.querySelector(selector);
+         noUiSlider.create(slider, {
           start: [0.0, 1],
           connect: true,
           direction: 'rtl',  // ltr or rtl
@@ -403,7 +433,9 @@ app.views.classification = Backbone.View.extend({
             stepped: false,
             density: 4
           }
-       })
+       });
+
+        slider.noUiSlider.on('set', () => { this.updateQuadrantsBigrams() });
     },
     fit_to_max: function(collection, max){
 
@@ -429,6 +461,7 @@ app.views.classification = Backbone.View.extend({
         //console.log("drawNgrams",containerSelector, app.session.s_index, app.session.s_name);
         //var event = app.eventsCollection.get({cid: this.lastNgramsEventId}).toJSON();
         //imeout(()=>{
+        $(containerSelector).html("");
         var widget = new BubbleWidget(containerSelector, app.session.s_index, 'session_'+app.session.s_name, 500, "proposed"); //Proposed since the data being classified is the unlabeled, and it doesn't change in Elasticsearch until the end of the process
         var formatted_ngrams;
 

@@ -800,47 +800,48 @@ class ActiveLearning:
         full_queries = self.get_full_queries()
         return
 
-    def get_classified_queries_ids(self):
-        positives = []
-        negatives = []
+    # def get_classified_queries_ids(self):
+    #     positives = []
+    #     negatives = []
+    #
+    #     for index in self.last_samples:
+    #
+    #         id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
+    #         pred_label = self.categories[int(self.last_predictions[index])]
+    #
+    #         if (pred_label == "confirmed"):
+    #             positives.append(id_str)
+    #         else:
+    #             negatives.append(id_str)
+    #
+    #     return positives, negatives
 
-        for index in self.last_samples:
+    def get_classified_queries_ids(self, **kwargs):
 
-            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
-            pred_label = self.categories[int(self.last_predictions[index])]
+        # middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
+        pos_ids = []
+        neg_ids = []
 
-            if (pred_label == "confirmed"):
-                positives.append(id_str)
-            else:
-                negatives.append(id_str)
-
-        return positives, negatives
-
-    def get_full_queries_ids(self):
-
-        middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
-        high_pos_ids = []
-        high_neg_ids = []
-        low_pos_ids = []
-        low_neg_ids = []
+        confidences = []
+        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+            confidences.append(self.last_confidences[index])
+        min_conf = min(confidences)
+        max_conf = max(confidences)
 
         for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
 
             id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
             pred_label = self.categories[int(self.last_predictions[index])]
+            scaled_confidence = (self.last_confidences[index] - min_conf) / (max_conf - min_conf)
+            print("Scaled: ", scaled_confidence, " [", kwargs["target_min_score"], ",", kwargs["target_max_score"], "]")
 
-            if(self.last_confidences[index] > middle_conf):
+            if(scaled_confidence > kwargs["target_min_score"]) and (scaled_confidence < kwargs["target_max_score"]):
                 if (pred_label == "confirmed"):
-                    high_pos_ids.append(id_str)
-                else: high_neg_ids.append(id_str)
-
-            else:
-                if (pred_label == "confirmed"):
-                    low_pos_ids.append(id_str)
+                    pos_ids.append(id_str)
                 else:
-                    low_neg_ids.append(id_str)
+                    neg_ids.append(id_str)
 
-        return high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids
+        return pos_ids, neg_ids
 
     def get_classified_document_ids(self, predictions, confidences, **kwargs):
 
