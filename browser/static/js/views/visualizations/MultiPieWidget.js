@@ -3,7 +3,6 @@ class BubbleWidget{
 
     constructor(containerSelector, index, session, graphHeight, category){
 
-        //console.log(containerSelector, index, session);
         this.index = index;
         this.session = session;
         this.containerSelector = containerSelector;  // e.g. "#event-ngrams-tabs"
@@ -194,7 +193,7 @@ class BubbleWidget{
     }
 
     showNoBigramsFound(){
-        $(this.containerSelector).html("Sorry, no bigrams were found under this criteria.");
+        $(this.containerSelector).html('<span style="line-height: 500px;">Sorry, no bigrams were found under this criteria.</span>');
     }
 
     getCurrentData(){

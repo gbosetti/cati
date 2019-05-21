@@ -203,11 +203,7 @@ app.views.classification = Backbone.View.extend({
             container.style["min-height"] = "200px";
             container.style["padding-top"] = "3em";
 
-        var spinner = document.createElement("div");
-            spinner.className = "loader"; //new Spinner();
-            //spinner.style.float = "right";
-
-        container.appendChild(spinner);
+        container.appendChild($('<i class="fa fa-spinner fa-spin" style="font-size: 7em; color: Dodgerblue;"></i>')[0]);
         this.spinner = container;
     },
     loadTweetsForLearningStage: function(questions){
@@ -292,7 +288,6 @@ app.views.classification = Backbone.View.extend({
     trainModel: function(data){
 
         return new Promise((resolve, reject) => {
-
             $.post(app.appURL+'train_model', data, response => {
                 this.last_al_scores = response.scores;
                 this.loadTweetsForLearningStage(response.questions);
@@ -346,8 +341,8 @@ app.views.classification = Backbone.View.extend({
                   <div class="slider-range pips-range-vertical"></div>
                 </div>
               </div>
-              <div id="cloud_q1" class="col-5 border tag-cloud"></div>
-              <div id="cloud_q2" class="col-5 border tag-cloud"></div>
+              <div id="cloud_q1" class="col-5 border tag-cloud" style="text-align: center;"></div>
+              <div id="cloud_q2" class="col-5 border tag-cloud" style="text-align: center;"></div>
             </div>
           </div>
 
@@ -384,12 +379,9 @@ app.views.classification = Backbone.View.extend({
 
             $.post(app.appURL+'suggest_classification', data, response => {
 
-                // $("#classif-graph-area").html("");
-                console.log(response);
                 this.drawNgrams("#cloud_q1", response.pos, "confirmed");
                 this.drawNgrams("#cloud_q2", response.neg, "negative");
                 this.drawQuadrantsSlider('.pips-range-vertical');
-
                 this.drawPiechart(response.total_pos, response.total_neg);
                 resolve();
             }, 'json');
@@ -420,7 +412,6 @@ app.views.classification = Backbone.View.extend({
         var min_in_coll = Math.min(...sizes);
 
         collection.forEach(elem => {
-
             elem.size = ((elem.size - min_in_coll) / (max_in_coll - min_in_coll)) * max;
         });
 
@@ -462,37 +453,12 @@ app.views.classification = Backbone.View.extend({
             });
         }
 
-        console.log(formatted_ngrams);
         formatted_ngrams = formatted_ngrams.filter(elem =>{ return elem[1].reduce((a, b) => a + b)!=0});
-
         widget.render(formatted_ngrams);
-        //}, 2000);
-
-//        console.log("000");
-//        $(containerSelector).html("");
-//        app.views.tweets.prototype.renderBigramsGrid(containerSelector, 300, false, "col-12");
-//        console.log("001");
-//        app.views.tweets.prototype.updateBigramsControls(ngrams, this.ngrams);
-//        console.log("002");
-//
-//        var onBubbleClick = (label, evt) => {
-//
-//            var ngram = label.split(" ").join("-");
-//            var ngramsToGenerate = this.ngrams.formData.filter(item => {
-//                return item.name == "n-grams-to-generate"
-//            })[0];
-//            ngramsToGenerate = ngramsToGenerate != undefined ? ngramsToGenerate.value : 2;
-//            app.views.tweets.prototype.showNgramTweets(this.ngrams, this, ngramsToGenerate, label, ngram, "#event-ngrams-tabs li.active a", 'search_event_bigrams_related_tweets');
-//        };
-//
-//        app.views.tweets.prototype.renderBigramsChart(onBubbleClick, this.ngrams, ".bigrams-graph-area", ngrams, 600);
-
     },
     filterElemByKey: function(key, collection){
 
-        //console.log(key, " in ", collection)
         var res = collection.filter(item => {return item.key == key});
-        console.log(res);
         return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
     },
    /*
