@@ -54,6 +54,13 @@ htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
 classifier = ActiveLearning()
 
+al_path = os.path.join(os.getcwd(), "classification", "logs", "current_al_status.json")
+if not os.path.exists(os.path.dirname(al_path)):
+    os.makedirs(os.path.dirname(al_path))
+
+al_backend_logger = BackendLogger(al_path)
+app.loop_index = 0
+
 # ==================================================================
 # 1. Tests and Debug
 # ==================================================================
@@ -470,6 +477,13 @@ def save_classification():
     return jsonify(True)
 
 
+@app.route('/clear_al_logs', methods=['POST'])
+def clear_al_logs():
+    al_backend_logger.clear_logs()
+    app.loop_index = 0
+    return jsonify(True)
+
+
 @app.route('/train_model', methods=['POST'])
 # @cross_origin()
 def train_model():
@@ -499,6 +513,12 @@ def train_model():
                                                                        cnf_weight=1,
                                                                        ret_weight=0,
                                                                        bgr_weight=0)
+
+    al_backend_logger.add_raw_log('{ "loop": ' + str(app.loop_index) +
+                                    ', "datetime": "' + str(datetime.datetime.now()) +
+                                    '", "accuracy": ' + str(scores["accuracy"]) +
+                                    ', "precision": ' + str(scores["precision"]) + ' } \n')
+    app.loop_index += 1
 
     return jsonify({"questions": questions, "scores": scores})
 
@@ -535,6 +555,19 @@ def suggest_classification():
 def get_tweets_by_str_ids():
     data = request.form
     return jsonify(functions.get_tweets_by_str_ids(index=data['index'], id_strs=data["id_strs"]))
+
+
+@app.route('/get_results_from_al_logs', methods=['POST'])
+def get_results_from_al_logs():
+    data = request.form
+
+    hyp_results = []
+    #session_files = [f for f in os.scandir(os.path.dirname(al_path)) if not f.is_dir()]  # and "_OUR_" in f.name]
+    logs = classifier.read_file(al_path)  # session_files[0].path)
+    loops_values, accuracies, precision = classifier.process_results(logs)
+    hyp_results.append({"loops": loops_values, "accuracies": accuracies, "precisions": precision})
+
+    return jsonify(hyp_results)  # classifier.get_results_from_al_logs())
 
 
 @app.route('/most_frequent_n_grams', methods=['POST'])

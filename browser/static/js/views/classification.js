@@ -136,6 +136,7 @@ app.views.classification = Backbone.View.extend({
         else{
             console.log("First training");
             return new Promise((resolve, reject)=>{
+                this.clear_al_logs();
                 this.download_al_init_data(data).then(()=>{
                     this.isProcessStarted = true;
                     this.trainModel(data).then(()=>{
@@ -276,6 +277,13 @@ app.views.classification = Backbone.View.extend({
             }, 'json');
         });
     },
+    clear_al_logs: function(data){
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'clear_al_logs', data, response => {
+                resolve();
+            }, 'json');
+        });
+    },
     download_al_init_data: function(data){
         return new Promise((resolve, reject) => {
             $.post(app.appURL+'download_al_init_data', data, response => {
@@ -391,6 +399,10 @@ app.views.classification = Backbone.View.extend({
                 this.drawNgrams("#cloud_q2", response.neg, "negative");
                 this.drawQuadrantsSlider('.pips-range-vertical');
                 this.drawPiechart(response.total_pos, response.total_neg);
+                this.requestResultsEvolutionBarcharts(data).then(res =>{
+                    console.log(res);
+                    this.drawResultsEvolutionScatterplots("classif-graph-area", res);
+                });
                 resolve();
             }, 'json');
         });
@@ -784,7 +796,7 @@ app.views.classification = Backbone.View.extend({
     drawPiechart: function(sizeOfpositives, sizeOfNegatives){
 
        $("#classif-graph-area").append(
-           '<h5 class="mt-5" align="center">Tweets by predicted category</h5>' +
+           '<h5 class="mt-5" align="center">Documents by predicted category</h5>' +
            '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
        );
 
@@ -795,5 +807,76 @@ app.views.classification = Backbone.View.extend({
        }];
 
        Plotly.newPlot('classification-piechart', data, {});
+    },
+    requestResultsEvolutionBarcharts: function(){
+
+        return new Promise((resolve, reject)=>{
+            var data = [];
+            $.post(app.appURL+'get_results_from_al_logs', data, response => {
+                resolve(response);
+            }, 'json');
+        });
+    },
+    drawResultsEvolutionScatterplots: function(containerId, results){
+
+       $("#"+containerId).append(
+           '<h5 class="mt-5" align="center">Evolution on precision</h5>' +
+           '<div id="precision-barchart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+       );
+
+       var title = "---", x_axis_prop="loops", y_axis_prop="accuracies", trace_name="...", x_axis_label="Loops", y_axis_label="Accuracy";
+
+        var data = [];
+        results.forEach(res => {
+
+            data.push({
+                x: res[x_axis_prop],
+                y: res[y_axis_prop],
+                //mode: 'markers',
+                type: 'scatter'
+            })
+        });
+        console.log("Data to draw:", data);
+
+        /*var layout = {
+            title: {
+                text: title,
+                xref: 'paper',
+                x:0
+            },
+            xaxis: {
+                title: {
+                    text: x_axis_label,
+                    font: {
+                        size: 18,
+                        color: '#7f7f7f'
+                    }
+                }
+            },
+            yaxis: {
+                title: {
+                    text: y_axis_label,
+                    font: {
+                        size: 18,
+                        color: '#7f7f7f'
+                    }
+                }
+            }
+        }*/
+
+        var layout = {
+          title:'Data Labels Hover',
+          xaxis: {
+            autotick: false,
+            ticks: 'outside',
+            tick0: 0,
+            dtick: 1,
+            ticklen: 8,
+            tickwidth: 4,
+            tickcolor: '#000'
+          }
+        };
+
+        Plotly.newPlot("precision-barchart", data, layout);
     }
 });

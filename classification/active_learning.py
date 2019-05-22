@@ -816,6 +816,63 @@ class ActiveLearning:
     #
     #     return positives, negatives
 
+    def get_results_from_al_logs(self):
+
+        # Initialization
+        logs_folders = [f.path for f in os.scandir(logs_path) if f.is_dir()]
+        target_loops = [10, 20, 50, 100]
+        configs = []
+        values_by_loop = {}
+        loop_prefix = "loop "
+        for loop in target_loops:
+            values_by_loop[loop_prefix + str(loop)] = []
+
+
+
+    def get_config_value(self, prop_name, full_text):
+        start_index = full_text.index(prop_name) + 4
+        end_index = start_index + 3
+
+        return full_text[start_index:end_index]
+
+    def get_config_name(self, full_text):
+
+        cnf = str(int(float(self.get_config_value("_cnf", full_text)) * 100))
+        ret = str(int(float(self.get_config_value("_ret", full_text)) * 100))
+        bgr = str(int(float(self.get_config_value("_bgr", full_text)) * 100))
+
+        return cnf + "·" + ret + "·" + bgr
+
+    def get_value_at_loop(self, prop_name, loop_index, logs):
+
+        target_loop = [log for log in logs if log["loop"] == loop_index]
+
+        return target_loop[0]
+
+    def read_file(self, path):
+        file = open(path, "r")
+        logs = '['
+        for line in file:
+            line = line.replace('", "f1"', ', "f1"')
+            line = line.replace('", "recall"', ', "recall"')
+            line = line.replace('", "precision"', ', "precision"')
+            line = line.replace('", "positive_precision"', ', "positive_precision"')
+            line = line.replace('", "wrong_pred_answers"', ', "wrong_pred_answers"')
+
+            logs = logs + line
+        logs = logs[:-1]
+        logs = logs + ']'
+        return json.loads(logs.replace('\n', ','))
+
+    def process_results(self, logs):
+        loop_logs = [log for log in logs if 'loop' in log]
+
+        loops_values = [log["loop"] for log in logs if 'loop' in log]  # datetime
+        accuracies = [log["accuracy"] for log in logs if 'loop' in log]
+        precision = [log["precision"] for log in logs if 'loop' in log]
+
+        return loops_values, accuracies, precision
+
     def get_classified_queries_ids(self, **kwargs):
 
         # middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
@@ -833,7 +890,7 @@ class ActiveLearning:
             id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
             pred_label = self.categories[int(self.last_predictions[index])]
             scaled_confidence = (self.last_confidences[index] - min_conf) / (max_conf - min_conf)
-            print("Scaled: ", scaled_confidence, " [", kwargs["target_min_score"], ",", kwargs["target_max_score"], "]")
+            # print("Scaled: ", scaled_confidence, " [", kwargs["target_min_score"], ",", kwargs["target_max_score"], "]")
 
             if(scaled_confidence > kwargs["target_min_score"]) and (scaled_confidence < kwargs["target_max_score"]):
                 if (pred_label == "confirmed"):
