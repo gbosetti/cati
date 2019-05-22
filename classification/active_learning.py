@@ -361,7 +361,10 @@ class ActiveLearning:
              os.makedirs(path)
 
         for tweet in dataset:
-            self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
+            try:
+                self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
+            except KeyError as ke:
+               print("Key value missing , maybe this tweet doesn't have the"+ field+"field.")
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
@@ -756,10 +759,13 @@ class ActiveLearning:
             #Adding the score according to teh retweets
             j=0
             for retweet in top_retweets:  # Sorted from most to lower retweets
-                bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"]["2grams"])  # TODO: this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
-                if bigram == question["text"]:
-                    question["ret_pos"] = j
+                try:
+                    bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"]["2grams"])  # TODO: this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
+                    if bigram == question["text"]:
+                        question["ret_pos"] = j
                     break
+                except KeyError:
+                    raise Exception("Tweet without a 2gram")
                 j+=1
 
             #Adding the score according to the bigrams
