@@ -6,6 +6,7 @@ import plotly.io as pio
 import os
 import re
 import statistics
+import operator
 
 #PARAMS
 logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments-2015"
@@ -110,11 +111,11 @@ for scenario_path in logs_folders:
 
         accuracies = [log["accuracy"] for log in loops]
         accuracy_average = statistics.mean(accuracies)
-        accuracy_stdev = statistics.mean(accuracies)
+        accuracy_stdev = statistics.stdev(accuracies)
 
         precisions = [log["precision"] for log in loops]
         precision_average = statistics.mean(precisions)
-        precision_stdev = statistics.mean(precisions)
+        precision_stdev = statistics.stdev(precisions)
 
         measurements.append({
             "name": get_config_name(config_file.name),
@@ -146,4 +147,28 @@ for scenario_path in logs_folders:
         }
     })
 
+# PRINT THE BEST CONFIGURATIONS
+print("BEST CONFIGS:")
 print(json.dumps(full_scenario_results, indent=4, sort_keys=True, ensure_ascii=False))
+
+# PRINT THE MOST COMMON IN THE 4 SCENARIOS
+full_configs_names_accuracy = [x for sub_list in [scenario["top_accuracy"]["matching_configs"] for scenario in full_scenario_results] for x in sub_list]
+unique_configs_names_accuracy = list(set(full_configs_names_accuracy))
+sorted_configs_accuracy = []
+for config in unique_configs_names_accuracy:
+    sorted_configs_accuracy.append({ "count": full_configs_names_accuracy.count(config), "name": config })
+
+sorted_configs_accuracy.sort(key=lambda i: (i['count']), reverse=True)
+print("SORTED TOP CONFIGS FOR ACCURACY:")
+print(json.dumps(sorted_configs_accuracy, indent=4, sort_keys=True, ensure_ascii=False))
+
+
+full_configs_names_precision = [x for sub_list in [scenario["top_precision"]["matching_configs"] for scenario in full_scenario_results] for x in sub_list]
+unique_configs_names_precision = list(set(full_configs_names_precision))
+sorted_configs_precision = []
+for config in unique_configs_names_precision:
+    sorted_configs_precision.append({ "count": full_configs_names_precision.count(config), "name": config })
+
+sorted_configs_precision.sort(key=lambda i: (i['count']), reverse=True)
+print("SORTED TOP CONFIGS FOR PRECISION:")
+print(json.dumps(sorted_configs_precision, indent=4, sort_keys=True, ensure_ascii=False))
