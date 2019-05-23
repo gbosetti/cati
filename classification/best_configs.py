@@ -9,7 +9,7 @@ import statistics
 import operator
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments-2015"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_2017"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -134,6 +134,12 @@ for scenario_path in logs_folders:
     top_precision = measurements[0]
     top_precision_configs = [config["name"] for config in measurements if config["precision_average"] == top_precision["precision_average"] and config["precision_stdev"] == top_precision["precision_stdev"]]
 
+    measurements.sort(key=lambda i: (i['precision_average']+i['accuracy_average'], -(i['precision_stdev']+i['accuracy_stdev'])), reverse=True)
+    top_both = measurements[0]
+    top_both_configs = [config["name"] for config in measurements
+                             if config["precision_average"]+config["accuracy_average"] == top_precision["precision_average"]+top_precision["accuracy_average"]
+                             and config["precision_stdev"]+config[ "accuracy_stdev"] == top_precision["precision_stdev"]+top_precision["accuracy_stdev"]]
+
     full_scenario_results.append({
         "scenario": scenario_name,
         # "measurements": measurements,
@@ -144,6 +150,10 @@ for scenario_path in logs_folders:
         "top_precision": {
             "value": top_precision,
             "matching_configs": top_precision_configs
+        },
+        "top_accuracy_and_precision":{
+            "value": top_both,
+            "matching_configs": top_both_configs
         }
     })
 

@@ -57,7 +57,7 @@ def draw_barchart(**kwargs):
             dtick=0.25,
             ticklen=8,
             tickwidth=4,
-            tickangle=45,
+            tickangle=0,
             tickcolor='#000'
         ),
         yaxis=dict(
@@ -75,7 +75,7 @@ def draw_barchart(**kwargs):
         ),
         barmode='group',
         autosize=False,
-        width=4500,
+        width=1500,
         height=350
     )
     fig = go.Figure(data=data, layout=layout)
@@ -140,15 +140,16 @@ def get_config_value(prop_name, full_text):
 def get_config_name(full_text):
 
     hyp = re.search(r'HYP', full_text, re.M | re.I)
+    scenario = full_text[full_text.index("test_")+6:full_text.index("test_")+7]  # .index(element) 'session_lyon2017_test_01_HYP_500_mda0.005_smss[500].txt'
+
     if hyp is None:
         cnf = str(int(float(get_config_value("_cnf", full_text))*100))
         ret = str(int(float(get_config_value("_ret", full_text))*100))
         bgr = str(int(float(get_config_value("_bgr", full_text))*100))
 
-        return cnf + "·" + ret + "·" + bgr
+        return cnf + "·" + ret + "·" + bgr + " (" + scenario + ")"
     else:
-        print("hyp")
-        return "HYP"
+        return "HYP (" + scenario + ")"
 
 def get_value_at_loop(prop_name, loop_index, logs):
 
@@ -180,9 +181,9 @@ for path in logs_folders:
     draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
                   x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
                   full_path=os.path.join(output_path, scenario_name + '_OUR_accuracies' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.7)
+                  target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.85)
 
     draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
                   x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
                   full_path=os.path.join(output_path, scenario_name + '_OUR_precision' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="precision", min_y_axis_value=0.7)
+                  target_loops=target_loops, prop_name="precision", min_y_axis_value=0.92)
