@@ -4,9 +4,10 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.io as pio
 import os
+import re
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments-2015"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -24,7 +25,7 @@ def draw_barchart(**kwargs):
 
         text = res
         if kwargs["round_values"]:
-            text = ["<b>" + str(round(val, 4)) + "<b>" for val in text]
+            text = ["<b>" + str(round(val, 5)) + "<b>" for val in text]
 
         if kwargs["show_labels"]:
             trace = go.Bar(
@@ -74,7 +75,7 @@ def draw_barchart(**kwargs):
         ),
         barmode='group',
         autosize=False,
-        width=1200,
+        width=4500,
         height=350
     )
     fig = go.Figure(data=data, layout=layout)
@@ -138,11 +139,16 @@ def get_config_value(prop_name, full_text):
 
 def get_config_name(full_text):
 
-    cnf = str(int(float(get_config_value("_cnf", full_text))*100))
-    ret = str(int(float(get_config_value("_ret", full_text))*100))
-    bgr = str(int(float(get_config_value("_bgr", full_text))*100))
+    hyp = re.search(r'HYP', full_text, re.M | re.I)
+    if hyp is None:
+        cnf = str(int(float(get_config_value("_cnf", full_text))*100))
+        ret = str(int(float(get_config_value("_ret", full_text))*100))
+        bgr = str(int(float(get_config_value("_bgr", full_text))*100))
 
-    return cnf + "·" + ret + "·" + bgr
+        return cnf + "·" + ret + "·" + bgr
+    else:
+        print("hyp")
+        return "HYP"
 
 def get_value_at_loop(prop_name, loop_index, logs):
 
@@ -155,8 +161,11 @@ def get_value_at_loop(prop_name, loop_index, logs):
 hyp_results = []
 for path in logs_folders:
 
+    scenario_name = os.path.basename(os.path.normpath(path))
+
     # Get all the OUR files for the session
-    session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
+    # session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
+    session_files = [f for f in os.scandir(path) if not f.is_dir() ]
 
     for file in session_files:
         # Get the logs of the only file for HYP
@@ -168,22 +177,12 @@ for path in logs_folders:
         for loop in target_loops:
             values_by_loop[loop_prefix + str(loop)].append(get_value_at_loop("accuracy", loop, logs))
 
+    draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
+                  full_path=os.path.join(output_path, scenario_name + '_OUR_accuracies' + '.png'), configs=configs,
+                  target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.7)
 
-    # Get the values from such file
-    # loops_values, accuracies, wrong_answers = process_results(logs)
-    # hyp_results.append({ "loops": loops_values, "_total_loops": len(loops_values),
-    #                      "accuracies": accuracies,
-    #                      "wrong_answers": wrong_answers, "_total_wrong_answers": sum(wrong_answers),
-    #                      "scenario_name": "Secnario " + path[-1:], "_max_accuracy": round(max(accuracies), 2)})
-
-# print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
-
-draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
-              full_path=os.path.join(output_path, 'OUR_accuracies' + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.87)
-
-draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
-              x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
-              full_path=os.path.join(output_path, 'OUR_precision' + '.png'), configs=configs,
-              target_loops=target_loops, prop_name="precision", min_y_axis_value=0.92)
+    draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
+                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
+                  full_path=os.path.join(output_path, scenario_name + '_OUR_precision' + '.png'), configs=configs,
+                  target_loops=target_loops, prop_name="precision", min_y_axis_value=0.7)

@@ -52,7 +52,7 @@ for source in config['elastic_search_sources']:
 
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
-classifier = ActiveLearning()
+classifier = ActiveLearning(download_folder_name="tmp_data")
 
 al_path = os.path.join(os.getcwd(), "classification", "logs", "current_al_status.json")
 if not os.path.exists(os.path.dirname(al_path)):
@@ -64,7 +64,6 @@ app.loop_index = 0
 # ==================================================================
 # 1. Tests and Debug
 # ==================================================================
-
 # Enable CORS
 # cors = CORS(app)
 # app.config['CORS_HEADERS'] = 'Content-Type'
@@ -460,6 +459,8 @@ def download_al_init_data():
     data = request.form
     download_data = to_boolean(data["download_data"])
     debug_limit = to_boolean(data["debug_limit"])
+
+    classifier.clean_directories()
 
     # download
     if(True==download_data): #This just downloads, then add code to copy to tmp_data

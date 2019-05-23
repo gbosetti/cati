@@ -49,16 +49,18 @@ from elasticsearch_dsl.connections import connections
 
 class ActiveLearning:
 
-    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled"):
+    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data"):
+        # If session_folder and download_folder are different, donot forget to use clone_original_files to move the ones in the download folder to the session folder (the target one)
 
-        self.DATA_FOLDER = os.path.join(os.getcwd(), "classification", "tmp_data")
-        self.ORIGINAL_DATA_FOLDER = os.path.join(os.getcwd(), "classification", "original_tmp_data")
+        self.DATA_FOLDER = os.path.join(os.getcwd(), "classification", session_folder_name)
+        self.ORIGINAL_DATA_FOLDER = os.path.join(os.getcwd(), "classification", download_folder_name)
 
         self.ORIGINAL_TRAIN_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, train_folder)
         self.ORIGINAL_TEST_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, test_folder)
         self.ORIGINAL_UNLABELED_FOLDER = os.path.join(self.ORIGINAL_DATA_FOLDER, unlabeled_folder)
 
         self.TRAIN_FOLDER = os.path.join(self.DATA_FOLDER, train_folder)
+        self.TEST_FOLDER = os.path.join(self.DATA_FOLDER, test_folder)
         self.TEST_FOLDER = os.path.join(self.DATA_FOLDER, test_folder)
         self.UNLABELED_FOLDER = os.path.join(self.DATA_FOLDER, unlabeled_folder)
 
@@ -307,11 +309,14 @@ class ActiveLearning:
 
     def clean_directories(self):
         print("Cleaning directories")
-        self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER))
-        self.delete_folder_contents(os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
+        # Used in the experiment
+        # self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER))
+        # self.delete_folder_contents(os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER))
+        # self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER))
+        # self.delete_folder_contents(os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER))
+        # self.delete_folder_contents(os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER))
+        self.delete_folder_contents(self.ORIGINAL_DATA_FOLDER)
+        self.delete_folder_contents(self.DATA_FOLDER)
 
     def read_data_from_dataset(self, **kwargs):
 
@@ -790,7 +795,9 @@ class ActiveLearning:
             basename = os.path.basename(question["filename"])
             dstDir = os.path.join(self.TRAIN_FOLDER, question["label"], basename)
             print("Moving", question["filename"], " to ", dstDir)
-            shutil.move(question["filename"], dstDir)
+            try:
+                shutil.move(question["filename"], dstDir)
+            except: print("Error: the file was not found in the training folder")
 
     def remove_matching_answers_from_test_set(self, labeled_questions):
 

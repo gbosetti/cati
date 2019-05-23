@@ -118,8 +118,8 @@ app.views.classification = Backbone.View.extend({
             {name: "max_samples_to_sort", value:500}, //TODO
             {name: "text_field", value:"2grams"}, //TODO
             {name: "is_field_array", value:false}, //TODO
-            {name: "debug_limit", value:true}, //TODO
-            {name: "download_data", value:false},
+            {name: "debug_limit", value:false}, //TODO
+            {name: "download_data", value:true},
             {name: "sampling_strategy", value:sampling_strategy}
         ];
     },
