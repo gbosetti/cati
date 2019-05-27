@@ -7,7 +7,7 @@ import os
 import re
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_2017_selected"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments-2015-selected"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -36,7 +36,7 @@ def draw_barchart(**kwargs):
                     family='Arial'
                 ),
                 textposition='auto',
-                name= "at " + loop_index # at loop 10
+                name="at " + loop_index # at loop 10
             )
         else:
             trace = go.Bar(
@@ -68,7 +68,7 @@ def draw_barchart(**kwargs):
             tickmode='linear',
             ticks='outside',
             tick0=0,
-            dtick=0.01,
+            dtick=kwargs["dtick"],
             ticklen=8,
             tickwidth=4,
             tickcolor='#000'
@@ -181,9 +181,9 @@ for path in logs_folders:
     draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
                   x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
                   full_path=os.path.join(output_path, scenario_name + '_OUR_accuracies' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="accuracy", min_y_axis_value=0.85)
+                  target_loops=target_loops, prop_name="accuracy", dtick=0.05, min_y_axis_value=0.70) # 2017 = 0.85)
 
     draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
                   x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
                   full_path=os.path.join(output_path, scenario_name + '_OUR_precision' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="precision", min_y_axis_value=0.92)
+                  target_loops=target_loops, prop_name="precision", dtick=0.01, min_y_axis_value=0.96) # 2017 = 0.92)

@@ -292,7 +292,7 @@ class Functions:
 
     def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2,
                            **kwargs):
-        mabed = self.detect_events(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=kwargs["logger"])
+        mabed = self.detect_events(index=index, k=k, maf=maf, mrf=mrf, tsl=tsl, p=p, theta=theta, sigma=sigma, cluster=cluster, logger=kwargs["logger"])
 
         # format data
         event_descriptions = []

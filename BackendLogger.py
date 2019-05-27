@@ -47,6 +47,6 @@ class BackendLogger:
             return logs
 
         except IOError as err:
-            print(self.filename + ": the file was not found.", err)
+            # print(self.filename + ": the file was not found.", err)
             return '[]'
 

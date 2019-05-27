@@ -182,7 +182,8 @@ def get_backend_logs():
 def detect_events():
 
     data = request.form
-    index = data['index']
+    target_index = data['index']
+    print("\n\nTARGET INDEX:", target_index)
     k = int(data['top_events'])
     maf = float(data['min_absolute_frequency'])
     mrf = float(data['max_relative_frequency'])
@@ -196,16 +197,18 @@ def detect_events():
     events=""
     res = False
     if filter=="all":
-        events = functions.event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=app.backend_logger)
+        events = functions.event_descriptions(target_index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=app.backend_logger)
     elif filter == "proposedconfirmed":
         filter = ["proposed","confirmed"]
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=app.backend_logger)
+        events = functions.filtered_event_descriptions(target_index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=app.backend_logger)
     else:
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster, logger=app.backend_logger)
+        events = functions.filtered_event_descriptions(target_index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster, logger=app.backend_logger)
     if not events:
         events = "No Result!"
     else:
         res = True
+
+    print("END OF DETECTION")
     return jsonify({"result": res, "events":events})
 
 
@@ -1313,6 +1316,7 @@ def available_indexes():
     res = []
     for source in config['elastic_search_sources']:
         res.append(source['index'])
+    print("Available indexes:", res)
     return jsonify(res);
 
 # @app.route('/get_app_url', methods=['GET'])
