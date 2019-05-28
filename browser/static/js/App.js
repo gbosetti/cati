@@ -124,6 +124,12 @@ var app = (function () {
                 });
             }
             return this.eventsView;
+        },
+        maps: function() {
+            if(!this.mapsView) {
+                this.mapsView = new api.views.maps();
+            }
+            return this.mapsView;
         }
     };
 
@@ -136,6 +142,7 @@ var app = (function () {
             "mabed": "mabed",
             "events": "events",
             "beta": "beta",
+            "maps": "maps",
             "beta2": "beta2",
             "": "home"
         },
@@ -196,6 +203,15 @@ var app = (function () {
                 view.render();
             }
 
+        },
+        maps: function(){
+            let view = ViewsFactory.maps();
+            $('#mabed-nav .nav-item').removeClass('active');
+            $('#nav-tweets').addClass('active');
+            api
+                .title("Maps")
+                .changeContent(view.$el);
+            view.render();
         },
         results: function (archive) {
             var view = ViewsFactory.client();
