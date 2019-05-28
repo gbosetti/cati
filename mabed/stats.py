@@ -24,6 +24,6 @@ def overlap_coefficient(interval_0, interval_1):
     smallest_interval_cardinality = float(min(interval_0[1] - interval_0[0], interval_1[1] - interval_1[0]))
     if(smallest_interval_cardinality==0):
         print("smallest_interval_cardinality==0")
-        return 0
+        return 1
     print("smallest_interval_cardinality==", float(intersection_cardinality / smallest_interval_cardinality))
     return float(intersection_cardinality / smallest_interval_cardinality)
