@@ -17,14 +17,56 @@ app.views.maps = Backbone.View.extend({
         app.views.mabed.prototype.getClassificationStats();
 
         console.log("Render the map");
-        var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+        let mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
 
         L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-            maxZoom: 18,
-            id: 'mapbox.streets',
-            accessToken: 'your.mapbox.access.token'
-        }).addTo(mymap);
+                        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+                        maxZoom: 18,
+                        id: 'mapbox.streets',
+                        accessToken: accessToken
+                    }).addTo(mymap);
+        let data = {
+            "index": "geo"
+        };
+        // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
+        //$.post(app.appURL+geoJsonEndpoint,data,function(response, status){
+        //L.geoJson(response).addTo(mymap)
+        //});
+        let drawnItems = new L.FeatureGroup();
+        mymap.addLayer(drawnItems);
+        let options = {
+            position: 'topright',
+            draw: {
+                polyline: false,
+                marker: false,
+                layer: false,
+                circlemarker: false,
+                polygon: {
+                    allowIntersection: false,
+                    drawError: {
+                        color: '#e1e100',
+                        message: '<strong> Wrong shape </strong>'
+                    },
+                    shapeOptions: {
+                        color:'#3be'
+                    }
+                },
+                circle: false,
+                rectangle: {
+                    shapeOptions: {
+                        clickable: false,
+                        color:'#3be'
+                    }
+                },
+            },
+            edit: {
+                edit: false,
+                featureGroup: drawnItems,
+                remove: false
+            }
+        };
+        let drawControl = new L.Control.Draw( options);
+        mymap.addControl(drawControl);
         return this;
     }
 
