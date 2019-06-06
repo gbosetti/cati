@@ -20,20 +20,25 @@ class ActiveLearningNoUi:
 
         self.backend_logger.clear_logs()
 
+    def join_ids(self, questions, field_name="filename"):
+
+        # print("all the questions", kwargs["questions"])
+        all_ids = ""
+        for question in questions:
+            # Adding the label field
+            question_id = self.classifier.extract_filename_no_ext(question[field_name])
+            all_ids += question_id + " or "
+
+        all_ids = all_ids[:-3]
+
+        return all_ids
+
     def get_answers(self, **kwargs):
 
         my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
         wrong_labels=0
 
-        # print("all the questions", kwargs["questions"])
-        all_ids = ""
-        for question in kwargs["questions"]:
-
-            # Adding the label field
-            question_id = self.classifier.extract_filename_no_ext(question["filename"])
-            all_ids += question_id + " or "
-
-        all_ids = all_ids[:-3]
+        all_ids = self.join_ids(kwargs["questions"])
 
         res = my_connector.search({
             "query": {
@@ -55,6 +60,74 @@ class ActiveLearningNoUi:
         # print(json.dumps(kwargs["questions"], indent=4, sort_keys=True))
         return kwargs["questions"], wrong_labels
 
+    def get_duplicated_answers(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
+        duplicated_docs=[]
+
+        # NOT WORKING PROPERLY. TRY GETTING THE DUPLICATES FROM THE MATRIX
+        splitted_questions = []
+        target_bigrams = []
+        for question in kwargs["questions"]:
+
+            splitted_questions.append(question)
+            if(len(splitted_questions)>99):
+                matching_docs = self.process_duplicated_answers(my_connector, splitted_questions)
+                duplicated_docs += matching_docs
+                splitted_questions=[] # re init
+
+        if len(splitted_questions)>0:
+            matching_docs = self.process_duplicated_answers(my_connector, splitted_questions)
+            duplicated_docs += matching_docs
+
+        return duplicated_docs
+
+    def process_duplicated_answers(self, my_connector, splitted_questions):
+
+        duplicated_docs = []
+        concatenated_ids = self.join_ids(splitted_questions)
+        matching_bigrams = my_connector.search({
+            "query": {
+                "match": {
+                    "id_str": concatenated_ids
+                }
+            }
+        })
+
+        for doc_bigrams in matching_bigrams["hits"]["hits"]:
+
+            bigrams = doc_bigrams["_source"]["2grams"]
+            bigrams_matches = []
+            for bigram in bigrams:
+                bigrams_matches.append({"match": {"2grams.keyword": bigram}})
+
+            docs_with_noise = my_connector.search({
+                "query": {
+                    "bool": {
+                        "must": bigrams_matches
+                    }
+                }
+            })
+
+            # print("\nMatching: ", bigrams)
+            if len(docs_with_noise["hits"]["hits"]) > 1:
+
+                # print("\nMatching: ", bigrams)
+                for tweet in docs_with_noise["hits"]["hits"]:
+
+                    if len(bigrams) == len(tweet["_source"]["2grams"]):
+                        # print(tweet["_source"]["2grams"])
+                        # current_bgram = ' '.join(tweet["_source"]["2grams"])
+                        label = [doc for doc in splitted_questions if
+                                 doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
+                        duplicated_docs.append({
+                            "filename": tweet["_source"]["id_str"],
+                            "2grams": tweet["_source"]["2grams"],
+                            "label": label
+                        })
+
+        return duplicated_docs
+
     def loop(self, **kwargs):
 
         # Building the model and getting the questions
@@ -75,6 +148,11 @@ class ActiveLearningNoUi:
         # Injecting the answers in the training set, and re-training the model
         self.classifier.move_answers_to_training_set(answers)
         self.classifier.remove_matching_answers_from_test_set(answers)
+
+        # self training
+        duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
+        self.classifier.move_answers_to_training_set(duplicated_answers)
+        self.classifier.remove_matching_answers_from_test_set(duplicated_answers)
 
         # Present visualization to the user, so he can explore the proposed classification
         # ...

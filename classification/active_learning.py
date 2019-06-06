@@ -46,6 +46,7 @@ from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
+from sklearn.preprocessing import scale
 
 class ActiveLearning:
 
@@ -377,11 +378,11 @@ class ActiveLearning:
     def loading_tweets_from_files(self):
 
         # Loading the datasets
-        print("Loading training data")
+        print("Loading training data from ", self.TRAIN_FOLDER)
         data_train = load_files(self.TRAIN_FOLDER, encoding=self.ENCODING)  # data_train
-        print("Loading testing data")
+        print("Loading testing data from ", self.TEST_FOLDER)
         data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
-        print("Loading target data")
+        print("Loading target data from ", self.UNLABELED_FOLDER)
         unlabeled = load_files(self.UNLABELED_FOLDER, encoding=self.ENCODING)
 
         print("Loading categories")
@@ -503,7 +504,6 @@ class ActiveLearning:
     def update_documents_status_by_match(self, **kwargs):
 
         my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
-
         query = {
             "query": {
                 "bool": {
@@ -515,8 +515,6 @@ class ActiveLearning:
                 }
             }
         }
-
-        print(query)
         return my_connector.update_by_query(query, "ctx._source." + kwargs["session"] + " = '" + kwargs["tag"] + "'")
 
     def download_data(self, **kwargs):
@@ -665,6 +663,7 @@ class ActiveLearning:
                                      min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
 
         # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
+        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
         X_train = vectorizer.fit_transform(data_train.data)
 
         if(len(data_test.data)==0):
@@ -691,8 +690,10 @@ class ActiveLearning:
 
         clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         # fits the model according to the training set (passing its data and the vectorized feature)
-        clf.fit(X_train, y_train)
-        pred = clf.predict(X_test)
+
+        data = scale(X_train)
+        clf.fit(data, y_train)
+        pred = clf.predict(data)
 
         #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
         #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
@@ -790,7 +791,7 @@ class ActiveLearning:
 
     def move_answers_to_training_set(self, labeled_questions):
 
-        # print("Moving the user labeled questions into the proper folders")
+        print("Moving docs into the training subfolders")
         for question in labeled_questions:
             basename = os.path.basename(question["filename"])
             dstDir = os.path.join(self.TRAIN_FOLDER, question["label"], basename)
