@@ -204,6 +204,11 @@ You can access the full list of optional arguments by executing:
 python experiment.py -h
 ```
 
+If you are using PyCharm, you can also edit the run/debug configuration and add the following example parameters:
+```
+-df True -cr True -dl True -i experiment_lyon_2015_gt -s session_lyon2015_test_03 -gts session_lyon2015_gt
+```
+
 ## Managing sessions
 Elasticsearch provides tools to manage our sessions, but some repetitive actions can be automated using the scripts 
 available.

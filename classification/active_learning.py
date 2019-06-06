@@ -690,10 +690,10 @@ class ActiveLearning:
 
         clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         # fits the model according to the training set (passing its data and the vectorized feature)
-
-        data = scale(X_train)
-        clf.fit(data, y_train)
-        pred = clf.predict(data)
+        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
+        normalized_X_train = scale(X_train, with_mean=False)
+        clf.fit(normalized_X_train, y_train)
+        pred = clf.predict(X_test)
 
         #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
         #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
