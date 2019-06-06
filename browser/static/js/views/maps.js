@@ -6,15 +6,16 @@ app.views.maps = Backbone.View.extend({
         'click #regenerate-ngrams': 'regenerateNgramsWithUserParams',
     },
     initialize: async function() {
-
-        var handler = _.bind(this.render, this);
+        let handler = _.bind(this.render, this);
     },
     render: async function () {
-        var html = this.template();
+        let scope = this;
+        let html = this.template();
         this.$el.html(html);
         this.delegateEvents();
         await app.views.mabed.prototype.setSessionTopBar();
         app.views.mabed.prototype.getClassificationStats();
+        let tweets = null;
 
         console.log("Render the map");
         let mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
@@ -29,10 +30,12 @@ app.views.maps = Backbone.View.extend({
             "index": "geo"
         };
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
-        //$.post(app.appURL+geoJsonEndpoint,data,function(response, status){
-        //L.geoJson(response).addTo(mymap)
-        //});
-        let drawnItems = new L.FeatureGroup();
+        $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
+            console.log(response);
+            tweets = L.geoJson(response);
+            tweets.addTo(mymap);
+        });
+        let drawnItems = new L.geoJSON();
         mymap.addLayer(drawnItems);
         let options = {
             position: 'topright',
@@ -54,7 +57,6 @@ app.views.maps = Backbone.View.extend({
                 circle: false,
                 rectangle: {
                     shapeOptions: {
-                        clickable: false,
                         color:'#3be'
                     }
                 },
@@ -67,7 +69,43 @@ app.views.maps = Backbone.View.extend({
         };
         let drawControl = new L.Control.Draw( options);
         mymap.addControl(drawControl);
+
+        mymap.on(L.Draw.Event.CREATED, function (e) {
+            drawnItems.clearLayers();
+            drawnItems.addLayer(e.layer);
+            scope.search_geospatial(drawnItems)
+                .then(nt => {
+                    console.log("newtweets");
+                    console.log(nt);
+                    mymap.removeLayer(tweets);
+                    nt.addTo(mymap);
+                    tweets= nt;
+                });
+        });
         return this;
+    },
+    search_geospatial(collection){
+        data = {
+            index: 'geo',
+            collection: collection.toGeoJSON(),
+        };
+        let res;
+        return new Promise(function (resolve,reject) {
+            fetch(app.appURL+searchEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+            .then(response => {
+                // still must update the results
+                resolve(L.geoJson(response));
+            });
+        });
+
     }
+
 
 });
