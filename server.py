@@ -263,6 +263,25 @@ def search_for_image_clusters():
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
     return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
 
+# Get all tweets with coordinates
+@app.route('/get_geo_coordinates', methods=['POST'])
+def get_geo_coordinates():
+    data = request.form
+    index = data['index']
+    geo = functions.get_geo_coordinates(index=index)
+    return jsonify(geo)
+
+@app.route('/get_geo_polygon', methods=['POST'])
+def get_geo_polygon():
+    data = request.get_json()
+    index = data['index']
+    features = data['collection']['features']
+    if len(features) == 1:
+        if features[0]['geometry']['type'] == "Polygon":
+            coordinates = features[0]['geometry']['coordinates'][0]
+            geo = functions.get_geo_coordinates_polygon(index=index,coordinates= coordinates)
+    return jsonify(geo)
+
 
 # Get Tweets
 @app.route('/get_image_folder', methods=['POST'])
