@@ -1059,6 +1059,61 @@ class Functions:
         return clusters
 
     # ==================================================================
+    # Geocoordinates
+    # ==================================================================
+
+    def get_geo_coordinates(self,index):
+        query = {
+            "query": {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": tweet
+            })
+
+        return features
+
+    def get_geo_coordinates_polygon(self,index, coordinates):
+        query = {
+            "query": {
+                "bool": {
+                    "must": {
+                        "exists": {
+                            "field": "coordinates.coordinates"
+                        }
+                    },
+                    "filter": {
+                        "geo_polygon": {
+                            "coordinates.coordinates": {
+                                "points": coordinates[:-1]
+                            }
+                        }
+                    }
+                },
+
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": tweet
+            })
+
+        return features
+
+
+    # ==================================================================
     # Sessions
     # ==================================================================
 
