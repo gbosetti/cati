@@ -46,7 +46,9 @@ from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
-from sklearn.preprocessing import scale
+# from sklearn.preprocessing import scale
+from sklearn import preprocessing
+
 
 class ActiveLearning:
 
@@ -691,9 +693,15 @@ class ActiveLearning:
         clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         # fits the model according to the training set (passing its data and the vectorized feature)
         # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        normalized_X_train = scale(X_train, with_mean=False)
+        # normalized_X_train = scale(X_train, with_mean=False)
+        scaler = preprocessing.StandardScaler(with_mean=False)
+        scaler = scaler.fit(X_train)
+
+        normalized_X_train = scaler.transform(X_train)
         clf.fit(normalized_X_train, y_train)
-        pred = clf.predict(X_test)
+
+        normalized_X_test = scaler.transform(X_test)
+        pred = clf.predict(normalized_X_test)
 
         #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
         #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
@@ -739,7 +747,9 @@ class ActiveLearning:
             "positive_precision": pos_precision_score
         }
 
-        return clf, X_train, X_test, y_train, y_test, X_unlabeled, self.categories, scores
+        normalized_X_unlabeled = scaler.transform(X_unlabeled)
+
+        return clf, normalized_X_train, normalized_X_test, y_train, y_test, normalized_X_unlabeled, self.categories, scores
 
 
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
