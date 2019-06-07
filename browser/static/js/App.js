@@ -207,7 +207,7 @@ var app = (function () {
         maps: function(){
             let view = ViewsFactory.maps();
             $('#mabed-nav .nav-item').removeClass('active');
-            $('#nav-tweets').addClass('active');
+            $('#nav-map').addClass('active');
             api
                 .title("Maps")
                 .changeContent(view.$el);
