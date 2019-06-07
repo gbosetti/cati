@@ -281,7 +281,7 @@
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" 	href="#clusted-based-active-learning" data-toggle="tab">Uncertainty Sampling</a></li>
+			                    <li class="nav-item active"><a class="nav-link active show" 	href="#clusted-based-active-learning" data-toggle="tab" on-pane-load="initializeUncertaintySampling">Uncertainty Sampling</a></li>
 			                    <li class="nav-item"><a class="nav-link" 				href="#extended-uncertainty-sampling" data-toggle="tab" on-pane-load="initializeExtendedUncertaintySampling">Extended Uncertainty Sampling</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
 			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
 			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
@@ -303,23 +303,44 @@
 			                                                <h3>About</h3>
 
 			                                                <div>
-			                                                    <p>
+			                                                    <p>		<!--  -->
 																		Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
 			                                                   			Then, our algorithm will try to learn from your choices and will suggest an automatic classification. If you agree with the classification, you can use it. Otherwise you can repeat the steps through different stages until you get an acceptable result.
 																</p>
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
+
+																	<!-- NUMBER OF QUERY SAMPLES -->
 			                                                        <div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify by default for each stage?</label>
+			                                                            <label for="num-tweet-questions" class="col-form-label font-weight-bold">How many tweets are you willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
 			                                                        </div>
 
-			                                                        <!--<div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
-			                                                            <div>
-			                                                                <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
-			                                                            </div>
-			                                                        </div>-->
+																	<!-- TEST DOCUMENTS -->
+																	<div class="form-group">
+
+																		<label for="num-tweet-questions" class="col-form-label font-weight-bold">Test documents:</label>
+
+																	  	<!-- USE THE ALREADY CLASSIFIED DATA % -->
+																		<div class="form-check">
+																			<input class="form-check-input" type="radio" name="testSubset" id="testSubsetPercentage" value="option1" disabled>
+																			<span class="form-check-label" for="testSubsetPercentage">
+																			  Use the a percentage of the current session:
+																			  <input class="form-control" type="number" value="20" id="test-subset-percentage" min="1" max="99">
+																			</span>
+																		</div>
+
+																		<!-- USE ANOTHER SESSION -->
+																		<div class="form-check">
+																			<input class="form-check-input" type="radio" name="testSubset" id="testSubsetExternalSession" value="option1" checked>
+																			<span class="form-check-label" for="testSubsetExternalSession">
+																			Use the following session:
+																			<select class="form-control" id="test-subset-external-session"></select>
+																			</span>
+																		</div>
+
+																	</div>
+
 			                                                    </div>
 			                                                </div>
 			                                            </div>

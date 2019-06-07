@@ -225,12 +225,9 @@ app.views.settings = Backbone.View.extend({
 
         $.get(app.appURL+'available_indexes', function (response) {
 
-            console.log("Updating selectors", response);
             //clear index list
-            let selector = document.querySelector('#session_index');
-            while (selector.firstChild) {
-                selector.removeChild(selector.firstChild);
-            }
+            document.querySelector('#session_index').innerHTML = "";
+            document.querySelector('#session_index_for_ngrams').innerHTML = "";
 
             //add fields
             for(let i = 0; i< response.length; i++){

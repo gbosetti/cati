@@ -32,8 +32,6 @@ app.views.classification = Backbone.View.extend({
             $('.carousel').carousel(1);
         });
 
-        this.initializeSamplingStrategyTab();
-
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
             this.numSampleQueries = document.querySelector("#num-tweet-questions").value;
         });
@@ -72,6 +70,8 @@ app.views.classification = Backbone.View.extend({
 
         //$("#remove-stopwords-al").bootstrapToggle();
         app.views.mabed.prototype.getClassificationStats();
+
+        this.initializeSamplingStrategyTab();
         //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
@@ -122,6 +122,22 @@ app.views.classification = Backbone.View.extend({
             {name: "download_data", value:true},
             {name: "sampling_strategy", value:sampling_strategy}
         ];
+    },
+    fillWithAvailableSessions: function(selectSelector){
+        $.get(app.appURL+'available_indexes', function (response) {
+
+            //clear index list
+            document.querySelector(selectSelector).innerHTML = "";
+
+            //add fields
+            for(let i = 0; i< response.length; i++){
+                let index_name = response[i];
+                let option = document.createElement('option');
+                option.setAttribute('value',index_name);
+                option.appendChild(document.createTextNode(index_name));
+                document.querySelector(selectSelector).appendChild(option);
+           }
+        },'json');
     },
     loadSamplingStage: function(){
 
@@ -175,13 +191,24 @@ app.views.classification = Backbone.View.extend({
             $('.popover-dismiss').popover({ html: true});
             this.isProcessStarted=false; //Restart the process
             $(".carousel").carousel(0); //Restart the carousel
-
-            setTimeout(()=>{
-                var loadingMethod = $('.nav-link.show').attr("on-pane-load");
-                if(loadingMethod)
-                    this[loadingMethod]();
-            }, 1000);
+            this.initializeSamplingMethod();
         });
+        this.initializeSamplingMethod();
+    },
+    initializeSamplingMethod: function(){
+
+        setTimeout(()=>{
+
+            var loadingMethod = $('.nav-link.show').attr("on-pane-load"); // e.g. initializeExtendedUncertaintySampling
+            console.log("loading method: ", loadingMethod);
+            if(loadingMethod)
+                this[loadingMethod]();
+
+        }, 1000);
+    },
+    initializeUncertaintySampling: function(){
+
+        this.fillWithAvailableSessions("#test-subset-external-session");
     },
     initializeExtendedUncertaintySampling: function(){
 
