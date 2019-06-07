@@ -1,5 +1,6 @@
 let geoJsonEndpoint="get_geo_coordinates";
 let searchEndpoint= "get_geo_polygon";
+let accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
 app.views.maps = Backbone.View.extend({
     template: _.template($("#tpl-map").html()),
     events: {
@@ -105,15 +106,28 @@ app.views.maps = Backbone.View.extend({
             }).then(response => response.json())
             .then(response => {
                 // still must update the results
-                resolve(
-                    L.geoJSON(response) .bindPopup( scope.popup())
-                );
+                let res = L.geoJSON(response) .bindPopup( scope.popup());
+                    res.on('popupopen', scope.selectTweet(res));
+                resolve(res);
             });
         });
 
     },
     popup(){
-        return  (layer) => (layer.feature.properties._source.text+"</br> This tweet was created : </br>" + layer.feature.properties._source.created_at);
+        return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
+    },
+    selectTweet(lgeoJSON){
+        console.log('my collection',lgeoJSON);
+        let scope = this;
+        return (e) => (scope.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
+    },
+    colorUser(tweet,collection){
+        collection.eachLayer(l => {
+            if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
+                console.log(l);
+                l._icon.src =  tweet.user.profile_image_url_https;
+            }
+        });
     }
 
 
