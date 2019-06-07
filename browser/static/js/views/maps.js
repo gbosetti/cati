@@ -32,7 +32,7 @@ app.views.maps = Backbone.View.extend({
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
             console.log(response);
-            tweets = L.geoJson(response);
+            tweets = L.geoJson(response).bindPopup( scope.popup());
             tweets.addTo(mymap);
         });
         let drawnItems = new L.geoJSON();
@@ -62,15 +62,16 @@ app.views.maps = Backbone.View.extend({
                 },
             },
             edit: {
-                edit: false,
+                edit: true,
                 featureGroup: drawnItems,
-                remove: false
+                remove: true
             }
         };
         let drawControl = new L.Control.Draw( options);
         mymap.addControl(drawControl);
 
         mymap.on(L.Draw.Event.CREATED, function (e) {
+            //TODO: support multiple polygons and trigger the search using a button
             drawnItems.clearLayers();
             drawnItems.addLayer(e.layer);
             scope.search_geospatial(drawnItems)
@@ -85,6 +86,7 @@ app.views.maps = Backbone.View.extend({
         return this;
     },
     search_geospatial(collection){
+        let scope = this;
         data = {
             index: 'geo',
             collection: collection.toGeoJSON(),
@@ -101,10 +103,15 @@ app.views.maps = Backbone.View.extend({
             }).then(response => response.json())
             .then(response => {
                 // still must update the results
-                resolve(L.geoJson(response));
+                resolve(
+                    L.geoJSON(response) .bindPopup( scope.popup())
+                );
             });
         });
 
+    },
+    popup(){
+        return  (layer) => ("This tweet was created : </br>" + layer.feature.properties._source.created_at);
     }
 
 
