@@ -7,7 +7,7 @@ import os
 import re
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments-2015-selected"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_2015_moving_repeated"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -181,9 +181,9 @@ for path in logs_folders:
     draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
                   x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
                   full_path=os.path.join(output_path, scenario_name + '_OUR_accuracies' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="accuracy", dtick=0.05, min_y_axis_value=0.70) # 2017 = 0.85)
+                  target_loops=target_loops, prop_name="accuracy", dtick=0.01, min_y_axis_value=0.87) # 2015 = 0.70) # 2017 = 0.85)
 
     draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
                   x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
                   full_path=os.path.join(output_path, scenario_name + '_OUR_precision' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="precision", dtick=0.01, min_y_axis_value=0.96) # 2017 = 0.92)
+                  target_loops=target_loops, prop_name="precision", dtick=0.01, min_y_axis_value=0.98) # 0.96) # 2017 = 0.92)

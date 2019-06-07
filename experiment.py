@@ -18,19 +18,15 @@ parser.add_argument("-i",
                     "--index",
                     dest="index",
                     help="The target index to classify")
-                    #, default="experiment_2017")
 
 parser.add_argument("-s",
                     "--session",
-                    dest="session",
-                    help="The target session to classify")
-                    #, default="session_lyon2017_test_04")
+                    dest="session")
 
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
                     help="The grountruth session to simulate the user's answer and to measure accuracy")
-                    #, default="session_lyon2017_test_gt")
 
 
 # Optional arguments
@@ -153,6 +149,7 @@ if clear_results:
     delete_folder(os.path.join(os.getcwd(), "classification", "original_tmp_data"))
 
 if download_files:
+    print("Downloading files from session ", args.session, " and ", args.gt_session)
     learner = ActiveLearningNoUi(logs_filename="download.txt")
     learner.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,

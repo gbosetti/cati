@@ -9,7 +9,7 @@ import statistics
 import operator
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments-2015"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_2015_moving_repeated"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -117,12 +117,18 @@ for scenario_path in logs_folders:
         precision_average = statistics.mean(precisions)
         precision_stdev = statistics.stdev(precisions)
 
+        clicks = [log["wrong_pred_answers"] for log in loops]
+        clicks_average = statistics.mean(clicks)
+        clicks_stdev = statistics.stdev(clicks)
+
         measurements.append({
             "name": get_config_name(config_file.name),
             "accuracy_average": accuracy_average,
             "accuracy_stdev": accuracy_stdev,
             "precision_average": precision_average,
-            "precision_stdev": precision_stdev
+            "precision_stdev": precision_stdev,
+            "clicks_average": clicks_average,
+            "clicks_stdev": clicks_stdev
         })
 
     # SORT THE CONFIGS BY HIGER AVERAGE AND LOWER STDEV
@@ -137,9 +143,18 @@ for scenario_path in logs_folders:
     measurements.sort(key=lambda i: (i['precision_average']+i['accuracy_average'], -(i['precision_stdev']+i['accuracy_stdev'])), reverse=True)
     top_both = measurements[0]
     top_both_configs = [config["name"] for config in measurements
-                             if config["precision_average"]+config["accuracy_average"] == top_precision["precision_average"]+top_precision["accuracy_average"]
-                             and config["precision_stdev"]+config[ "accuracy_stdev"] == top_precision["precision_stdev"]+top_precision["accuracy_stdev"]]
+                             if config["precision_average"]+config["accuracy_average"] == top_both["precision_average"]+top_both["accuracy_average"]
+                             and config["precision_stdev"]+config[ "accuracy_stdev"] == top_both["precision_stdev"]+top_both["accuracy_stdev"]]
 
+    measurements.sort(key=lambda i: (-i['clicks_average'], -i['clicks_stdev']), reverse=True)
+    top_clicks = measurements[0]
+    top_clicks_configs = [config["name"] for config in measurements if
+                             config["clicks_average"] == top_clicks["clicks_average"] and config[
+                                 "clicks_stdev"] == top_clicks["precision_stdev"]]
+
+    print("MEASUREMENTS (", scenario_name, ")")
+    print(json.dumps(measurements, indent=4, sort_keys=True, ensure_ascii=False))
+    # ("TOP BOTH FULL RANKING", measurements[0])
     full_scenario_results.append({
         "scenario": scenario_name,
         # "measurements": measurements,
@@ -154,12 +169,15 @@ for scenario_path in logs_folders:
         "top_accuracy_and_precision":{
             "value": top_both,
             "matching_configs": top_both_configs
+        },
+        "top_clicks": {
+            "value": top_clicks,
+            "matching_configs": top_clicks_configs
         }
     })
 
 # PRINT THE BEST CONFIGURATIONS
-print("BEST CONFIGS:")
-print(json.dumps(full_scenario_results, indent=4, sort_keys=True, ensure_ascii=False))
+print("BEST CONFIGS:", json.dumps(full_scenario_results, indent=4, sort_keys=True, ensure_ascii=False))
 
 # PRINT THE MOST COMMON IN THE 4 SCENARIOS
 full_configs_names_accuracy = [x for sub_list in [scenario["top_accuracy"]["matching_configs"] for scenario in full_scenario_results] for x in sub_list]
@@ -169,8 +187,7 @@ for config in unique_configs_names_accuracy:
     sorted_configs_accuracy.append({ "count": full_configs_names_accuracy.count(config), "name": config })
 
 sorted_configs_accuracy.sort(key=lambda i: (i['count']), reverse=True)
-print("SORTED TOP CONFIGS FOR ACCURACY:")
-print(json.dumps(sorted_configs_accuracy, indent=4, sort_keys=True, ensure_ascii=False))
+#print("SORTED TOP CONFIGS FOR ACCURACY:", json.dumps(sorted_configs_accuracy, indent=4, sort_keys=True, ensure_ascii=False))
 
 
 full_configs_names_precision = [x for sub_list in [scenario["top_precision"]["matching_configs"] for scenario in full_scenario_results] for x in sub_list]
@@ -180,5 +197,4 @@ for config in unique_configs_names_precision:
     sorted_configs_precision.append({ "count": full_configs_names_precision.count(config), "name": config })
 
 sorted_configs_precision.sort(key=lambda i: (i['count']), reverse=True)
-print("SORTED TOP CONFIGS FOR PRECISION:")
-print(json.dumps(sorted_configs_precision, indent=4, sort_keys=True, ensure_ascii=False))
+#print("SORTED TOP CONFIGS FOR PRECISION:", json.dumps(sorted_configs_precision, indent=4, sort_keys=True, ensure_ascii=False))
