@@ -1,3 +1,5 @@
+let geoJsonEndpoint="get_geo_coordinates";
+let searchEndpoint= "get_geo_polygon";
 app.views.maps = Backbone.View.extend({
     template: _.template($("#tpl-map").html()),
     events: {
@@ -111,7 +113,7 @@ app.views.maps = Backbone.View.extend({
 
     },
     popup(){
-        return  (layer) => ("This tweet was created : </br>" + layer.feature.properties._source.created_at);
+        return  (layer) => (layer.feature.properties._source.text+"</br> This tweet was created : </br>" + layer.feature.properties._source.created_at);
     }
 
 
