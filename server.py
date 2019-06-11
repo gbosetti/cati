@@ -391,12 +391,14 @@ def top_retweets():
 # @cross_origin()
 def generate_ngrams_for_index():
     data = request.form
-    preproc = PreProcessor()
+    #preproc = PreProcessor()
     propName = data['to_property']
+
+    print("Generating ngrams for index: ", data['index'])
 
     start_time = datetime.datetime.now()
     print("Starting at: ", start_time)
-    preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+    #preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
     res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
     return jsonify(res)

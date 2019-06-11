@@ -6,6 +6,7 @@ nltk.download('stopwords')
 from collections import Counter
 from mabed.es_connector import Es_connector
 from nltk.tokenize import TweetTokenizer
+import re
 
 
 class NgramBasedClasifier:
@@ -27,8 +28,10 @@ class NgramBasedClasifier:
         multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT"] + punctuation
         tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
         filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
+
         full_text = " ".join(filtered_words).lower()
-        return full_text
+        full_text_no_emojis = self.remove_emojis(full_text)
+        return full_text_no_emojis
 
     def search_bigrams_related_tweets(self, **kwargs):
 
@@ -321,6 +324,17 @@ class NgramBasedClasifier:
             except Exception as e:
                 print('Error: ' + str(e))
 
+    def remove_emojis(self, string):
+        emoji_pattern = re.compile("["
+                                   u"\U0001F600-\U0001F64F"  # emoticons
+                                   u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                                   u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                                   u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                                   u"\U00002702-\U000027B0"
+                                   u"\U000024C2-\U0001F251"
+                                   "]+", flags=re.UNICODE)
+        return emoji_pattern.sub(r'', string)
+
     def generate_ngrams_for_index(self, **kwargs):
 
         try:
@@ -408,7 +422,7 @@ class NgramBasedClasifier:
     def updatePropertyValue(self, **kwargs):
 
         tweet = kwargs["tweet"]
-        Es_connector().es.update(
+        Es_connector(index=kwargs["index"]).es.update(
             index=kwargs["index"],
             doc_type="tweet",
             id=tweet["_id"],

@@ -65,7 +65,7 @@ class ActiveLearningNoUi:
         my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
         duplicated_docs=[]
 
-        # NOT WORKING PROPERLY. TRY GETTING THE DUPLICATES FROM THE MATRIX
+        # IT SHOULD BE BETTER TO TRY GETTING THE DUPLICATES FROM THE MATRIX
         splitted_questions = []
         target_bigrams = []
         for question in kwargs["questions"]:
@@ -101,30 +101,39 @@ class ActiveLearningNoUi:
             for bigram in bigrams:
                 bigrams_matches.append({"match": {"2grams.keyword": bigram}})
 
-            docs_with_noise = my_connector.search({
+            # query = {
+            #     "query": {
+            #         "bool": {
+            #             "must": bigrams_matches
+            #         }
+            #     }
+            # }
+            query = {
+                #"_source": ["2grams", "text", "id_str"],
                 "query": {
                     "bool": {
-                        "must": bigrams_matches
+                        "should": bigrams_matches,
+                        "minimum_should_match": "75%"
                     }
                 }
-            })
+            }
 
-            # print("\nMatching: ", bigrams)
+            docs_with_noise = my_connector.search(query)
+
             if len(docs_with_noise["hits"]["hits"]) > 1:
 
                 # print("\nMatching: ", bigrams)
                 for tweet in docs_with_noise["hits"]["hits"]:
 
-                    if len(bigrams) == len(tweet["_source"]["2grams"]):
-                        # print(tweet["_source"]["2grams"])
-                        # current_bgram = ' '.join(tweet["_source"]["2grams"])
-                        label = [doc for doc in splitted_questions if
-                                 doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
-                        duplicated_docs.append({
-                            "filename": tweet["_source"]["id_str"],
-                            "2grams": tweet["_source"]["2grams"],
-                            "label": label
-                        })
+                    #if len(bigrams) == len(tweet["_source"]["2grams"]):
+                    print("...", tweet["_source"]["id_str"])
+                    label = [doc for doc in splitted_questions if
+                             doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
+                    duplicated_docs.append({
+                        "filename": tweet["_source"]["id_str"],
+                        "2grams": tweet["_source"]["2grams"],
+                        "label": label
+                    })
 
         return duplicated_docs
 
