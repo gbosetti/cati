@@ -154,9 +154,10 @@ app.views.tweets = Backbone.View.extend({
         app.views.mabed.prototype.getClassificationStats();
     },
     presentRetweets(res, selector){
-        var html = this.get_retweets_html(res);
+
+        var html = this.get_retweets_html(res.filter(elem => elem.doc_count > 1));
         try{
-        $(selector).html(html);
+            $(selector).html(html);
         }catch(err){console.log(err)}
     },
     hideNotFullSearchSearch: function(){
