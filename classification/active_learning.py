@@ -808,7 +808,7 @@ class ActiveLearning:
             print("Moving", question["filename"], " to ", dstDir)
             try:
                 shutil.move(question["filename"], dstDir)
-            except: print("Error: the file was not found in the training folder")
+            except: print("...") #""Error: the file was not found in the training folder")  # This may happen since we are retrieving all the docs (we do not make changes in the dataset until the end of the process)
 
     def remove_matching_answers_from_test_set(self, labeled_questions):
 

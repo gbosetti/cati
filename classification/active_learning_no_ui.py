@@ -72,17 +72,17 @@ class ActiveLearningNoUi:
 
             splitted_questions.append(question)
             if(len(splitted_questions)>99):
-                matching_docs = self.process_duplicated_answers(my_connector, splitted_questions)
+                matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions)
                 duplicated_docs += matching_docs
                 splitted_questions=[] # re init
 
         if len(splitted_questions)>0:
-            matching_docs = self.process_duplicated_answers(my_connector, splitted_questions)
+            matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions)
             duplicated_docs += matching_docs
 
         return duplicated_docs
 
-    def process_duplicated_answers(self, my_connector, splitted_questions):
+    def process_duplicated_answers(self, my_connector, session, splitted_questions):
 
         duplicated_docs = []
         concatenated_ids = self.join_ids(splitted_questions)
@@ -113,7 +113,14 @@ class ActiveLearningNoUi:
                 "query": {
                     "bool": {
                         "should": bigrams_matches,
-                        "minimum_should_match": "75%"
+                        "minimum_should_match": "75%",
+                        "must": [{
+                            "exists" : { "field" : "2grams" }
+                        },{
+                            "match":{
+                                session:"proposed"
+                            }
+                        }]
                     }
                 }
             }
@@ -126,7 +133,7 @@ class ActiveLearningNoUi:
                 for tweet in docs_with_noise["hits"]["hits"]:
 
                     #if len(bigrams) == len(tweet["_source"]["2grams"]):
-                    print("...", tweet["_source"]["id_str"])
+                    #print("...", tweet["_source"]["id_str"])
                     label = [doc for doc in splitted_questions if
                              doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
                     duplicated_docs.append({
