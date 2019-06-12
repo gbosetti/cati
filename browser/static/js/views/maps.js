@@ -13,6 +13,7 @@ app.views.maps = Backbone.View.extend({
     },
     render: async function () {
         let scope = this;
+        L.MakiMarkers.accessToken = accessToken;
         let html = this.template();
         this.$el.html(html);
         this.delegateEvents();
@@ -35,7 +36,11 @@ app.views.maps = Backbone.View.extend({
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
             console.log(response);
-            tweets = L.geoJson(response).bindPopup( scope.popup());
+            tweets = L.geoJson(response,{
+                pointToLayer: (g,l) => L.marker(l,{
+                    icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
+                })
+            }).bindPopup( scope.popup());
             tweets.on('popupopen', scope.selectTweet(tweets));
             tweets.addTo(mymap);
         });
@@ -107,7 +112,11 @@ app.views.maps = Backbone.View.extend({
             }).then(response => response.json())
             .then(response => {
                 // still must update the results
-                let res = L.geoJSON(response) .bindPopup( scope.popup());
+                let res = L.geoJSON(response, {
+                    pointToLayer: (g,l) => L.marker(l,{
+                        icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
+                    })
+                }) .bindPopup( scope.popup());
                     res.on('popupopen', scope.selectTweet(res));
                 resolve(res);
             });
@@ -123,16 +132,15 @@ app.views.maps = Backbone.View.extend({
         return (e) => (scope.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
     },
     colorUser(tweet,collection){
-        L.MakiMarkers.accessToken = accessToken;
         collection.eachLayer(l => {
             if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
                 //l._icon.src = "static/images/pin-m+b00.png"
                 //l._icon = L.MakiMarkers.icon({icon:null, color: "#b00"});
                 //l._icon= L.Icon.Default;
-                l.setIcon(L.MakiMarkers.icon({icon:null, color: "#b00"}));
+                l.setIcon(L.MakiMarkers.icon({icon:null, color: "#0b0"}));
                 console.log(l);
             }else{
-                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#0b0"}));
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"}));
             }
         });
     },
