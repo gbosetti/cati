@@ -36,6 +36,7 @@ app.views.maps = Backbone.View.extend({
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
             console.log(response);
             tweets = L.geoJson(response).bindPopup( scope.popup());
+            tweets.on('popupopen', scope.selectTweet(tweets));
             tweets.addTo(mymap);
         });
         let drawnItems = new L.geoJSON();
@@ -122,13 +123,18 @@ app.views.maps = Backbone.View.extend({
         return (e) => (scope.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
     },
     colorUser(tweet,collection){
+        L.MakiMarkers.accessToken = accessToken;
         collection.eachLayer(l => {
             if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
+                //l._icon.src = "static/images/pin-m+b00.png"
+                //l._icon = L.MakiMarkers.icon({icon:null, color: "#b00"});
+                //l._icon= L.Icon.Default;
+                l.setIcon(L.MakiMarkers.icon({icon:null, color: "#b00"}));
                 console.log(l);
-                l._icon.src =  tweet.user.profile_image_url_https;
+            }else{
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#0b0"}));
             }
         });
-    }
-
+    },
 
 });
