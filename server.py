@@ -276,6 +276,8 @@ def get_geo_polygon():
     data = request.get_json()
     index = data['index']
     features = data['collection']['features']
+    if len(features) == 0:
+        geo = functions.get_geo_coordinates(index=index)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
