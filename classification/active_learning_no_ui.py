@@ -166,8 +166,10 @@ class ActiveLearningNoUi:
         # self.classifier.remove_matching_answers_from_test_set(answers)
 
         # self training
-        duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
-        self.classifier.move_answers_to_training_set(duplicated_answers)
+        if (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
+            print("Moving duplicated")
+            duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
+            self.classifier.move_answers_to_training_set(duplicated_answers)
         # self.classifier.remove_matching_answers_from_test_set(duplicated_answers)
 
         # Present visualization to the user, so he can explore the proposed classification

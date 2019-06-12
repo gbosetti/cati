@@ -90,6 +90,12 @@ parser.add_argument("-sh",
                     help="If True, it skips the processing with the uncertainty distance method. Default is False.",
                     default=False)
 
+parser.add_argument("-sem",
+                    "--skip_experimental_method",
+                    dest="skip_experimental_method",
+                    help="If True, it skips the experimental method. Default is False.",
+                    default=False)
+
 def to_boolean(str_param):
     if isinstance(str_param, bool):
         return str_param
@@ -108,6 +114,7 @@ debug_limit = to_boolean(args.debug_limit)
 is_field_array = to_boolean(args.is_field_array)
 clear_results = to_boolean(args.clear_results)
 skip_hyperplane = to_boolean(args.skip_hyperplane)
+skip_experimental_method = to_boolean(args.skip_experimental_method)
 
 
 # Different configurations to run the algorythm.
@@ -170,19 +177,20 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                     text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
-    for weights in selected_combinations:
+    if skip_experimental_method is False:
+        for weights in selected_combinations:
 
-        print("Looping with weights: ", weights)
+            print("Looping with weights: ", weights)
 
-        logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
-                        "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
-                        "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
-        learner = ActiveLearningNoUi(logs_filename=logs_filename)
+            logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
+                            "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
+                            "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+            learner = ActiveLearningNoUi(logs_filename=logs_filename)
 
-        learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
-                    gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
-                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
+            learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
+                        gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
+                        min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                        text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
 
 
 

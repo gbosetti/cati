@@ -560,6 +560,8 @@ class ActiveLearning:
             processed = processed + len(accum_ids)
             print("Downloading: ", round(processed * 100 / total, 2), "%")
 
+        print("Downloading", accum_ids)
+
         # if confirmed_data == 0 or negative_data == 0:
         #     raise Exception('You need to have some already classified data in your testing/groundtruth dataset')
         #
