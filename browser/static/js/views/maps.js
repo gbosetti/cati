@@ -22,30 +22,29 @@ app.views.maps = Backbone.View.extend({
         let tweets = null;
 
         console.log("Render the map");
-        let mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
+        this.mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
 
         L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
                         attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
                         maxZoom: 18,
                         id: 'mapbox.streets',
                         accessToken: accessToken
-                    }).addTo(mymap);
+                    }).addTo(scope.mymap);
         let data = {
             "index": "geo"
         };
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
-            console.log(response);
             tweets = L.geoJson(response,{
                 pointToLayer: (g,l) => L.marker(l,{
                     icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
                 })
             }).bindPopup( scope.popup());
             tweets.on('popupopen', scope.selectTweet(tweets));
-            tweets.addTo(mymap);
+            tweets.addTo(scope.mymap);
         });
         let drawnItems = new L.geoJSON();
-        mymap.addLayer(drawnItems);
+        scope.mymap.addLayer(drawnItems);
         let options = {
             position: 'topright',
             draw: {
@@ -71,15 +70,15 @@ app.views.maps = Backbone.View.extend({
                 },
             },
             edit: {
-                edit: true,
+                edit: false,
                 featureGroup: drawnItems,
                 remove: true
             }
         };
         let drawControl = new L.Control.Draw( options);
-        mymap.addControl(drawControl);
+        scope.mymap.addControl(drawControl);
 
-        mymap.on(L.Draw.Event.CREATED, function (e) {
+        scope.mymap.on(L.Draw.Event.CREATED, function (e) {
             //TODO: support multiple polygons and trigger the search using a button
             drawnItems.clearLayers();
             drawnItems.addLayer(e.layer);
@@ -87,8 +86,17 @@ app.views.maps = Backbone.View.extend({
                 .then(nt => {
                     console.log("newtweets");
                     console.log(nt);
-                    mymap.removeLayer(tweets);
-                    nt.addTo(mymap);
+                    scope.mymap.removeLayer(tweets);
+                    nt.addTo(scope.mymap);
+                    tweets= nt;
+                });
+        });
+        scope.mymap.on(L.Draw.Event.DELETED, function (e) {
+            drawnItems.clearLayers();
+            scope.search_geospatial(drawnItems)
+                .then(nt => {
+                    scope.mymap.removeLayer(tweets);
+                    nt.addTo(scope.mymap);
                     tweets= nt;
                 });
         });
@@ -127,7 +135,6 @@ app.views.maps = Backbone.View.extend({
         return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
     },
     selectTweet(lgeoJSON){
-        console.log('my collection',lgeoJSON);
         let scope = this;
         return (e) => (scope.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
     },
@@ -138,11 +145,13 @@ app.views.maps = Backbone.View.extend({
                 //l._icon = L.MakiMarkers.icon({icon:null, color: "#b00"});
                 //l._icon= L.Icon.Default;
                 l.setIcon(L.MakiMarkers.icon({icon:null, color: "#0b0"}));
-                console.log(l);
             }else{
                 l.setIcon(L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"}));
             }
         });
     },
+    viewSession(){
+        let session = "session_"+app.session.s_name;
+    }
 
 });
