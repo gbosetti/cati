@@ -1076,7 +1076,9 @@ class Functions:
             features.append({
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
-                "properties": tweet
+                "properties": {
+                    "tweet": tweet['_source']
+                }
             })
 
         return features
@@ -1107,7 +1109,9 @@ class Functions:
             features.append({
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
-                "properties": tweet
+                "properties": {
+                    "tweet": tweet['_source']
+                }
             })
 
         return features
