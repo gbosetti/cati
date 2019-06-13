@@ -1068,9 +1068,23 @@ class Functions:
                 "exists": {
                     "field": "coordinates.coordinates"
                 }
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
             }
         }
         res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value_as_string']
+        max_date = res['aggregations']['max_date']['value_as_string']
         features = []
         for tweet in res['hits']['hits']:
             features.append({
@@ -1081,7 +1095,7 @@ class Functions:
                 }
             })
 
-        return features
+        return features,min_date,max_date
 
     def get_geo_coordinates_polygon(self,index, coordinates):
         query = {
@@ -1101,9 +1115,23 @@ class Functions:
                     }
                 },
 
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
             }
         }
         res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value_as_string']
+        max_date = res['aggregations']['max_date']['value_as_string']
         features = []
         for tweet in res['hits']['hits']:
             features.append({
@@ -1114,7 +1142,7 @@ class Functions:
                 }
             })
 
-        return features
+        return features,min_date,max_date
 
 
     # ==================================================================

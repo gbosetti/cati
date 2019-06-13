@@ -268,8 +268,13 @@ def search_for_image_clusters():
 def get_geo_coordinates():
     data = request.form
     index = data['index']
-    geo = functions.get_geo_coordinates(index=index)
-    return jsonify(geo)
+    geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date
+    }
+    return jsonify(result)
 
 @app.route('/get_geo_polygon', methods=['POST'])
 def get_geo_polygon():
@@ -277,12 +282,17 @@ def get_geo_polygon():
     index = data['index']
     features = data['collection']['features']
     if len(features) == 0:
-        geo = functions.get_geo_coordinates(index=index)
+        geo,min_date,max_date = functions.get_geo_coordinates(index=index)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo = functions.get_geo_coordinates_polygon(index=index,coordinates= coordinates)
-    return jsonify(geo)
+            geo,min_date,max_date = functions.get_geo_coordinates_polygon(index=index,coordinates= coordinates)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date
+    }
+    return jsonify(result)
 
 
 # Get Tweets

@@ -58,7 +58,7 @@ app.views.maps = Backbone.View.extend({
         };
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
-            scope.tweets = L.geoJson(response,{
+            scope.tweets = L.geoJson(response.geo,{
                 pointToLayer: (g,l) => L.marker(l,{
                     icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
                 })
@@ -143,7 +143,7 @@ app.views.maps = Backbone.View.extend({
             }).then(response => response.json())
             .then(response => {
                 // still must update the results
-                let res = L.geoJSON(response, {
+                let res = L.geoJSON(response.geo, {
                     pointToLayer: (g,l) => L.marker(l,{
                         icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
                     })
