@@ -6,7 +6,7 @@ app.views.maps = Backbone.View.extend({
     events: {
         'submit #settings_form': 'create_session',
         'click #deleteSession': 'deleteSession',
-        'click #regenerate-ngrams': 'regenerateNgramsWithUserParams',
+        'click #showClassificationOnMap': 'viewSession'
     },
     initialize: async function() {
         let handler = _.bind(this.render, this);
@@ -19,7 +19,30 @@ app.views.maps = Backbone.View.extend({
         this.delegateEvents();
         await app.views.mabed.prototype.setSessionTopBar();
         app.views.mabed.prototype.getClassificationStats();
-        let tweets = null;
+        scope.tweets = null;
+
+        let slider = $('#maps-slider-range-vertical')[0];
+
+        noUiSlider.create(slider, {
+            start: [0.2, 0.5],
+            connect: true,
+            direction: 'rtl',  // ltr or rtl
+            orientation: 'vertical',
+            tooltips: true,
+            range: {
+                'min': 0,
+                'max': 1
+            },
+            pips: { // Show a scale with the slider
+                mode: 'steps',
+                stepped: false,
+                density: 4
+            }
+        })
+
+        slider.noUiSlider.on('set', values => {
+            console.log(values);
+        });
 
         console.log("Render the map");
         this.mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
@@ -35,13 +58,16 @@ app.views.maps = Backbone.View.extend({
         };
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
-            tweets = L.geoJson(response,{
+            scope.tweets = L.geoJson(response,{
                 pointToLayer: (g,l) => L.marker(l,{
                     icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
                 })
             }).bindPopup( scope.popup());
-            tweets.on('popupopen', scope.selectTweet(tweets));
-            tweets.addTo(scope.mymap);
+            scope.tweets.on('popupopen', scope.selectTweet(scope.tweets));
+            // testing session view
+            scope.viewSession();
+            // end of test
+            scope.tweets.addTo(scope.mymap);
         });
         let drawnItems = new L.geoJSON();
         scope.mymap.addLayer(drawnItems);
@@ -86,18 +112,18 @@ app.views.maps = Backbone.View.extend({
                 .then(nt => {
                     console.log("newtweets");
                     console.log(nt);
-                    scope.mymap.removeLayer(tweets);
+                    scope.mymap.removeLayer(scope.tweets);
                     nt.addTo(scope.mymap);
-                    tweets= nt;
+                    scope.tweets= nt;
                 });
         });
         scope.mymap.on(L.Draw.Event.DELETED, function (e) {
             drawnItems.clearLayers();
             scope.search_geospatial(drawnItems)
                 .then(nt => {
-                    scope.mymap.removeLayer(tweets);
+                    scope.mymap.removeLayer(scope.tweets);
                     nt.addTo(scope.mymap);
-                    tweets= nt;
+                    scope.tweets= nt;
                 });
         });
         return this;
@@ -139,6 +165,7 @@ app.views.maps = Backbone.View.extend({
         return (e) => (scope.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
     },
     colorUser(tweet,collection){
+        console.log("tweets",this.tweets,'heh');
         collection.eachLayer(l => {
             if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
                 //l._icon.src = "static/images/pin-m+b00.png"
@@ -151,7 +178,18 @@ app.views.maps = Backbone.View.extend({
         });
     },
     viewSession(){
+        let scope =this;
         let session = "session_"+app.session.s_name;
+        console.log("showing sessions");
+        scope.tweets.eachLayer( l => {
+            if (l.feature.properties.tweet[session] === 'confirmed') {
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#0b0"}));
+            } else if (l.feature.properties.tweet[session] === 'proposed') {
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#bb0"}));
+            } else if (l.feature.properties.tweet[session] === 'negative') {
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#b00"}));
+            }
+        });
     }
 
 });
