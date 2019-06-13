@@ -31,6 +31,7 @@ class NgramBasedClasifier:
 
         full_text = " ".join(filtered_words).lower()
         full_text_no_emojis = self.remove_emojis(full_text)
+        full_text_no_emojis = " ".join(full_text_no_emojis.split())
         return full_text_no_emojis
 
     def search_bigrams_related_tweets(self, **kwargs):
@@ -361,13 +362,14 @@ class NgramBasedClasifier:
             #     self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
 
             while scroll_size > 0:
-                i += 1
-                res2 = my_connector.loop_paginatedSearch(sid, scroll_size)
-                scroll_size = res2["scroll_size"]
-                processed += scroll_size
-                tweets = res2["results"]
 
                 self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+
+                i += 1
+                res = my_connector.loop_paginatedSearch(sid, scroll_size)
+                scroll_size = res["scroll_size"]
+                processed += scroll_size
+                tweets = res["results"]
                 self.current_thread_percentage = round(processed * 100 / total, 2)
                 print("Completed: ", self.current_thread_percentage, "%")
 
