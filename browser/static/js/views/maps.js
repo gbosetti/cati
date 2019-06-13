@@ -64,9 +64,6 @@ app.views.maps = Backbone.View.extend({
                 })
             }).bindPopup( scope.popup());
             scope.tweets.on('popupopen', scope.selectTweet(scope.tweets));
-            // testing session view
-            scope.viewSession();
-            // end of test
             scope.tweets.addTo(scope.mymap);
         });
         let drawnItems = new L.geoJSON();
