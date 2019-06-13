@@ -28,20 +28,15 @@ app.views.maps = Backbone.View.extend({
             connect: true,
             direction: 'rtl',  // ltr or rtl
             orientation: 'vertical',
-            tooltips: true,
+            tooltips: false,
             range: {
                 'min': 0,
                 'max': 1
-            },
-            pips: { // Show a scale with the slider
-                mode: 'steps',
-                stepped: false,
-                density: 4
             }
         });
 
         scope.slider.noUiSlider.on('set', values => {
-            console.log(values);
+            scope.sliderUpdate(values);
         });
 
         console.log("Render the map");
@@ -58,16 +53,11 @@ app.views.maps = Backbone.View.extend({
         };
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
-            scope.tweets = L.geoJson(response.geo,{
-                pointToLayer: (g,l) => L.marker(l,{
-                    icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
-                })
-            }).bindPopup( scope.popup());
-            scope.tweets.on('popupopen', scope.selectTweet(scope.tweets));
-            scope.tweets.addTo(scope.mymap);
+            scope.addGeoToMap(response.geo);
+            scope.sliderBounds(response.min_date, response.max_date);
         });
-        let drawnItems = new L.geoJSON();
-        scope.mymap.addLayer(drawnItems);
+        scope.drawnItems = new L.geoJSON();
+        scope.mymap.addLayer(scope.drawnItems);
         let options = {
             position: 'topright',
             draw: {
@@ -94,7 +84,7 @@ app.views.maps = Backbone.View.extend({
             },
             edit: {
                 edit: false,
-                featureGroup: drawnItems,
+                featureGroup: scope.drawnItems,
                 remove: true
             }
         };
@@ -103,25 +93,20 @@ app.views.maps = Backbone.View.extend({
 
         scope.mymap.on(L.Draw.Event.CREATED, function (e) {
             //TODO: support multiple polygons and trigger the search using a button
-            drawnItems.clearLayers();
-            drawnItems.addLayer(e.layer);
-            scope.search_geospatial(drawnItems)
-                .then(response => {
-                    console.log("newtweets");
-                    console.log(response);
-                    scope.addGeoToMap(response.geo);
-                });
+            scope.drawnItems.clearLayers();
+            scope.drawnItems.addLayer(e.layer);
+            scope.search_geospatial(scope.drawnItems)
+                .then(r => scope.update_from_search(r));
         });
         scope.mymap.on(L.Draw.Event.DELETED, function (e) {
-            drawnItems.clearLayers();
-            scope.search_geospatial(drawnItems)
-                .then(response => {
-                    scope.addGeoToMap(response.geo);
-                });
+            scope.drawnItems.clearLayers();
+            scope.search_geospatial(scope.drawnItems)
+                .then(r => scope.update_from_search(r));
         });
         return this;
     },
     search_geospatial(collection){
+
         let scope = this;
         data = {
             index: 'geo',
@@ -143,6 +128,11 @@ app.views.maps = Backbone.View.extend({
     popup(){
         return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
     },
+    update_from_search(response){
+        let scope = this;
+        scope.mymap.removeLayer(scope.tweets);
+        scope.addGeoToMap(response.geo);
+    },
     addGeoToMap(geo){
         let scope = this;
         let mapgeo = L.geoJSON(geo, {
@@ -151,7 +141,6 @@ app.views.maps = Backbone.View.extend({
             })
         }) .bindPopup( scope.popup());
         mapgeo.on('popupopen', scope.selectTweet(mapgeo));
-        scope.mymap.removeLayer(scope.tweets);
         mapgeo.addTo(scope.mymap);
         scope.tweets= mapgeo;
     },
@@ -186,8 +175,22 @@ app.views.maps = Backbone.View.extend({
             }
         });
     },
-    slider_bounds(min,max){
+    dateFromTimestamp: timestamp => new Date(parseFloat(timestamp)).toString(),
+    sliderUpdate(values){
+        let scope = this;
+        let lower = document.getElementById("maps-date-lower");
+        let upper = document.getElementById("maps-date-upper");
+        lower.innerText= scope.dateFromTimestamp(values[0]);
+        upper.innerText= scope.dateFromTimestamp(values[1]);
+        scope.searchSpaceTime();
+    },
+    sliderBounds(min, max){
+        this.slider.noUiSlider.updateOptions({
+            range: {
+                'min':min ,
+                'max': max
+            },
+        });
         this.slider.noUiSlider.set([min,max]);
     }
-
 });
