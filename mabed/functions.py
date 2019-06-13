@@ -1083,8 +1083,8 @@ class Functions:
             }
         }
         res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
-        min_date = res['aggregations']['min_date']['value_as_string']
-        max_date = res['aggregations']['max_date']['value_as_string']
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
             features.append({
@@ -1130,8 +1130,8 @@ class Functions:
             }
         }
         res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
-        min_date = res['aggregations']['min_date']['value_as_string']
-        max_date = res['aggregations']['max_date']['value_as_string']
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
             features.append({
