@@ -9,7 +9,7 @@ import statistics
 import operator
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_2015_moving_repeated"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\foot_2015"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -150,7 +150,7 @@ for scenario_path in logs_folders:
     top_clicks = measurements[0]
     top_clicks_configs = [config["name"] for config in measurements if
                              config["clicks_average"] == top_clicks["clicks_average"] and config[
-                                 "clicks_stdev"] == top_clicks["precision_stdev"]]
+                                 "clicks_stdev"] == top_clicks["clicks_stdev"]]
 
     print("MEASUREMENTS (", scenario_name, ")")
     print(json.dumps(measurements, indent=4, sort_keys=True, ensure_ascii=False))

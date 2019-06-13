@@ -5,10 +5,11 @@ import plotly.graph_objs as go
 import plotly.io as pio
 import os
 import re
+import csv
 
 #PARAMS
 logs_path = "C:\\Users\\gbosetti\\Desktop\\foot_2015_selected"
-output_path = "C:\\Users\\gbosetti\\Desktop"
+output_path = "C:\\Users\\gbosetti\\Desktop\\"
 
 
 # Functions
@@ -130,13 +131,9 @@ def print_in_file(content, path):
 
 # Initialization
 logs_folders = [f.path for f in os.scandir(logs_path) if f.is_dir() ]
-target_loops = [1, 10, 20, 50, 100]
 configs = []
 values_by_loop = {}
 loop_prefix = "loop "
-for loop in target_loops:
-    values_by_loop[loop_prefix + str(loop)] = []
-
 
 def get_config_value(prop_name, full_text):
     start_index = full_text.index(prop_name) + 4
@@ -168,29 +165,21 @@ def get_value_at_loop(prop_name, loop_index, logs):
 
 # Looping each session to get the HYP results
 hyp_results = []
-for path in logs_folders:
+for subfolder in logs_folders:
 
-    scenario_name = os.path.basename(os.path.normpath(path))
-
+    scenario_name = os.path.basename(os.path.normpath(subfolder))
     # Get all the OUR files for the session
     # session_files = [f for f in os.scandir(path) if not f.is_dir() and "_OUR_" in f.name]
-    session_files = [f for f in os.scandir(path) if not f.is_dir() ]
+    session_files = [f for f in os.scandir(subfolder) if not f.is_dir() ]
 
     for file in session_files:
         # Get the logs of the only file for HYP
         file_content = read_file(file.path)
         logs = [line for line in file_content if 'loop' in line]
-        configs.append(get_config_name(file.name, "football_"))  # test_
 
-        for loop in target_loops:
-            values_by_loop[loop_prefix + str(loop)].append(get_value_at_loop("accuracy", loop, logs))
+        with open(output_path + scenario_name + "_" + get_config_name(file.name, "football_") + '.csv', 'w') as csvfile:
+            filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            filewriter.writerow(['Loop', 'Clicks', 'Precision', 'Accuracy'])
 
-    draw_barchart(title="Evolution of accuracy across loops and configurations", values_by_loop=values_by_loop,
-                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Accuracy", round_values=True, show_labels=True,
-                  full_path=os.path.join(output_path, scenario_name + '_OUR_accuracies' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="accuracy", dtick=0.01) # 2015 = 0.70) # 2017 = 0.85)
-
-    draw_barchart(title="Evolution of the precision across loops and configurations", values_by_loop=values_by_loop,
-                  x_axis_title="Configs (hw·dw·bw)", y_axis_title="Precision", round_values=True, show_labels=True,
-                  full_path=os.path.join(output_path, scenario_name + '_OUR_precision' + '.png'), configs=configs,
-                  target_loops=target_loops, prop_name="precision", dtick=0.01) # 0.96) # 2017 = 0.92)
+            for log in logs:
+                filewriter.writerow([log["loop"], log["wrong_pred_answers"], log["precision"], log["accuracy"]])
