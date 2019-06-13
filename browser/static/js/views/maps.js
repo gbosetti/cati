@@ -21,9 +21,9 @@ app.views.maps = Backbone.View.extend({
         app.views.mabed.prototype.getClassificationStats();
         scope.tweets = null;
 
-        let slider = $('#maps-slider-range-vertical')[0];
+        scope.slider = $('#maps-slider-range-vertical')[0];
 
-        noUiSlider.create(slider, {
+        noUiSlider.create(scope.slider, {
             start: [0.2, 0.5],
             connect: true,
             direction: 'rtl',  // ltr or rtl
@@ -38,9 +38,9 @@ app.views.maps = Backbone.View.extend({
                 stepped: false,
                 density: 4
             }
-        })
+        });
 
-        slider.noUiSlider.on('set', values => {
+        scope.slider.noUiSlider.on('set', values => {
             console.log(values);
         });
 
@@ -106,21 +106,17 @@ app.views.maps = Backbone.View.extend({
             drawnItems.clearLayers();
             drawnItems.addLayer(e.layer);
             scope.search_geospatial(drawnItems)
-                .then(nt => {
+                .then(response => {
                     console.log("newtweets");
-                    console.log(nt);
-                    scope.mymap.removeLayer(scope.tweets);
-                    nt.addTo(scope.mymap);
-                    scope.tweets= nt;
+                    console.log(response);
+                    scope.addGeoToMap(response.geo);
                 });
         });
         scope.mymap.on(L.Draw.Event.DELETED, function (e) {
             drawnItems.clearLayers();
             scope.search_geospatial(drawnItems)
-                .then(nt => {
-                    scope.mymap.removeLayer(scope.tweets);
-                    nt.addTo(scope.mymap);
-                    scope.tweets= nt;
+                .then(response => {
+                    scope.addGeoToMap(response.geo);
                 });
         });
         return this;
@@ -140,22 +136,24 @@ app.views.maps = Backbone.View.extend({
                 },
                 credentials: 'include',
                 body: JSON.stringify(data)
-            }).then(response => response.json())
-            .then(response => {
-                // still must update the results
-                let res = L.geoJSON(response.geo, {
-                    pointToLayer: (g,l) => L.marker(l,{
-                        icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
-                    })
-                }) .bindPopup( scope.popup());
-                    res.on('popupopen', scope.selectTweet(res));
-                resolve(res);
-            });
+            }).then(response => resolve(response.json()));
         });
 
     },
     popup(){
         return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
+    },
+    addGeoToMap(geo){
+        let scope = this;
+        let mapgeo = L.geoJSON(geo, {
+            pointToLayer: (g,l) => L.marker(l,{
+                icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
+            })
+        }) .bindPopup( scope.popup());
+        mapgeo.on('popupopen', scope.selectTweet(mapgeo));
+        scope.mymap.removeLayer(scope.tweets);
+        mapgeo.addTo(scope.mymap);
+        scope.tweets= mapgeo;
     },
     selectTweet(lgeoJSON){
         let scope = this;
@@ -187,6 +185,9 @@ app.views.maps = Backbone.View.extend({
                 l.setIcon(L.MakiMarkers.icon({icon: null, color: "#b00"}));
             }
         });
+    },
+    slider_bounds(min,max){
+        this.slider.noUiSlider.set([min,max]);
     }
 
 });
