@@ -126,11 +126,15 @@ class ActiveLearningNoUi:
 
                     label = [doc for doc in splitted_questions if
                              doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
-                    duplicated_docs.append({
-                        "filename": tweet["_source"]["id_str"],
-                        "2grams": tweet["_source"]["2grams"],
-                        "label": label
-                    })
+
+                    if tweet["_source"]["id_str"] not in concatenated_ids:
+                        duplicated_docs.append({
+                            "filename": tweet["_source"]["id_str"],
+                            "2grams": tweet["_source"]["2grams"],
+                            "text": tweet["_source"]["text"],
+                            "text_images": tweet["_source"]["text_images"],
+                            "label": label
+                        })
 
         return duplicated_docs
 
@@ -201,33 +205,42 @@ class ActiveLearningNoUi:
 
     def delete_temporary_labels(self, index, session, docs):
 
-        parts = len(docs) / 1000
+        matching_ids = set()
+        for doc in docs:
+            doc_id = os.path.basename(doc["filename"]).split(".")[0]
+            matching_ids.add(doc_id)
+
+        parts = len(matching_ids) / 1000
         if int(parts) != parts:
             parts = int(parts) + 1
         else:
             parts = int(parts)
 
-        paginated_ids = self.split_list(docs, parts)
+        paginated_ids = self.split_list(list(matching_ids), parts)
 
         print("Deleting temp vars")
 
         for page_ids in paginated_ids:
 
             matching_ids = []
-            for doc in page_ids:
-                doc_id = os.path.basename(doc["filename"]).split(".")[0]
+            for doc_id in page_ids:
                 matching_ids.append({"match": {"id_str": doc_id}})
 
-            query = {
-                "query": {
-                    "bool": {
-                        "should": matching_ids,
-                        "minimum_should_match": 1
+            try:
+                query = {
+                    "query": {
+                        "bool": {
+                            "should": matching_ids,
+                            "minimum_should_match": 1
+                        }
                     }
                 }
-            }
-            Es_connector(index=index).update_by_query(query, "ctx._source.remove('" + session + "_tmp')")
-            time.sleep(3)
+                Es_connector(index=index).update_by_query(query, "ctx._source.remove('" + session + "_tmp')")
+                #time.sleep(1)
+            except Exception as e:
+                print(e)
+        #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
+        #     return [],[]
 
     def add_temporary_labels(self, index, session, duplicated_ids):
 
@@ -255,55 +268,55 @@ class ActiveLearningNoUi:
 
     def run(self, **kwargs):
 
-        #try:
-        diff_accuracy = None
-        start_time = datetime.now()
-        accuracy = 0
-        prev_accuracy = 0
-        # stage_scores = []
+        try:
+            diff_accuracy = None
+            start_time = datetime.now()
+            accuracy = 0
+            prev_accuracy = 0
+            # stage_scores = []
 
-        loop_index = 0
-        looping_clicks = 0
-        self.backend_logger.clear_logs()  # Just in case there is a file with the same name
+            loop_index = 0
+            looping_clicks = 0
+            self.backend_logger.clear_logs()  # Just in case there is a file with the same name
 
-        # Copy downloaded files
-        self.classifier.clone_original_files()
-        self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
+            # Copy downloaded files
+            self.classifier.clone_original_files()
+            self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
-        #Temporarily label them
-        self.clear_temporary_labels(kwargs["index"], kwargs["session"])
-        self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
-        time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
-        self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
+            #Temporarily label them
+            self.clear_temporary_labels(kwargs["index"], kwargs["session"])
+            self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
+            time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
+            self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
 
-        #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
-        loop_index = 0
-        while loop_index in range(100):  # and accuracy<1:
+            #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
+            loop_index = 0
+            while loop_index in range(100):  # and accuracy<1:
 
-            print("\n---------------------------------")
-            loop_index+=1
-            scores, wrong_pred_answers = self.loop(**kwargs)
-            looping_clicks += wrong_pred_answers
+                print("\n---------------------------------")
+                loop_index+=1
+                scores, wrong_pred_answers = self.loop(**kwargs)
+                looping_clicks += wrong_pred_answers
 
-            # if len(stage_scores) > 0:
-            #     accuracy = scores["accuracy"]
-            #     prev_accuracy = stage_scores[-1]["accuracy"]
-            #     diff_accuracy = abs(accuracy - prev_accuracy)
+                # if len(stage_scores) > 0:
+                #     accuracy = scores["accuracy"]
+                #     prev_accuracy = stage_scores[-1]["accuracy"]
+                #     diff_accuracy = abs(accuracy - prev_accuracy)
 
-            self.backend_logger.add_raw_log('{ "loop": ' + str(loop_index) +
-                                            ', "datetime": "' + str(datetime.now()) +
-                                            '", "accuracy": ' + str(scores["accuracy"]) +
-                                            ', "f1": ' + str(scores["f1"]) +
-                                            ', "recall": ' + str(scores["recall"]) +
-                                            ', "precision": ' + str(scores["precision"]) +
-                                            ', "positive_precision": ' + str(scores["positive_precision"]) +
-                                            ', "wrong_pred_answers": ' + str(wrong_pred_answers) + ' } \n')
-            # stage_scores.append(scores)
+                self.backend_logger.add_raw_log('{ "loop": ' + str(loop_index) +
+                                                ', "datetime": "' + str(datetime.now()) +
+                                                '", "accuracy": ' + str(scores["accuracy"]) +
+                                                ', "f1": ' + str(scores["f1"]) +
+                                                ', "recall": ' + str(scores["recall"]) +
+                                                ', "precision": ' + str(scores["precision"]) +
+                                                ', "positive_precision": ' + str(scores["positive_precision"]) +
+                                                ', "wrong_pred_answers": ' + str(wrong_pred_answers) + ' } \n')
+                # stage_scores.append(scores)
 
-        self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
-        self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
+            self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
+            self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
-        # except Exception as e:
-        #     print(e)
+        except Exception as e:
+             print(e)
         #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
         #     return [],[]
