@@ -1,6 +1,34 @@
 from classification.ngram_based_classifier import NgramBasedClasifier
 from mabed.es_connector import Es_connector
 from mabed.functions import Functions
+import argparse
+
+# Instantiating the parser
+parser = argparse.ArgumentParser(description="CATI's Active Learning module")
+
+# General & mandatory arguments (with a default value so we can run it also through the PyCharm's UI
+
+parser.add_argument("-i",
+                    "--index",
+                    dest="index",
+                    help="The target index to which to add the new field")
+
+
+def to_boolean(str_param):
+    if isinstance(str_param, bool):
+        return str_param
+    elif str_param.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    else:
+        return False
+
+args = parser.parse_args()
+
+index = args.index  # E.g. "experiment_lyon_2015_gt"
+property_name = "text_images"
+langs = Functions().get_lang_count(index)["aggregations"]["distinct_lang"]["buckets"]
+langs = [lang["key"] for lang in langs]
+
 
 
 def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
@@ -26,10 +54,7 @@ def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
             }}
         )
 
-index = "experiment_lyon_2015_gt"
-property_name = "text_images"
-langs = Functions().get_lang_count(index)["aggregations"]["distinct_lang"]["buckets"]
-langs = [lang["key"] for lang in langs]
+
 
 try:
     my_connector = Es_connector(index=index)
