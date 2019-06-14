@@ -439,52 +439,52 @@ class NgramBasedClasifier:
         retrievedLangs = []
         if "en" in langs:
             swords = swords + stopwords.words('english')
-            retrievedLangs.push("en")
+            retrievedLangs.append("en")
         if "fr" in langs:
             swords = swords + stopwords.words('french')
-            retrievedLangs.push("fr")
+            retrievedLangs.append("fr")
         if "ar" in langs:
             swords = swords + stopwords.words('arabic')
-            retrievedLangs.push("ar")
+            retrievedLangs.append("ar")
         if "nl" in langs:
             swords = swords + stopwords.words('dutch')
-            retrievedLangs.push("nl")
+            retrievedLangs.append("nl")
         if "id" in langs:
             swords = swords + stopwords.words('indonesian')
-            retrievedLangs.push("id")
+            retrievedLangs.append("id")
         if "fi" in langs:
             swords = swords + stopwords.words('finnish')
-            retrievedLangs.push("fi")
+            retrievedLangs.append("fi")
         if "de" in langs:
             swords = swords + stopwords.words('german')
-            retrievedLangs.push("de")
+            retrievedLangs.append("de")
         if "hu" in langs:
             swords = swords + stopwords.words('hungarian')
-            retrievedLangs.push("hu")
+            retrievedLangs.append("hu")
         if "it" in langs:
             swords = swords + stopwords.words('italian')
-            retrievedLangs.push("it")
+            retrievedLangs.append("it")
         if "nb" in langs:
             swords = swords + stopwords.words('norwegian')
-            retrievedLangs.push("nb")
+            retrievedLangs.append("nb")
         if "pt" in langs:
             swords = swords + stopwords.words('portuguese')
-            retrievedLangs.push("pt")
+            retrievedLangs.append("pt")
         if "ro" in langs:
             swords = swords + stopwords.words('romanian')
-            retrievedLangs.push("ro")
+            retrievedLangs.append("ro")
         if "ru" in langs:
             swords = swords + stopwords.words('russian')
-            retrievedLangs.push("ru")
+            retrievedLangs.append("ru")
         if "es" in langs:
             swords = swords + stopwords.words('spanish')
-            retrievedLangs.push("es")
+            retrievedLangs.append("es")
         if "sv" in langs:
             swords = swords + stopwords.words('swedish')
-            retrievedLangs.push("sv")
+            retrievedLangs.append("sv")
         if "tr" in langs:
             swords = swords + stopwords.words('turkish')
-            retrievedLangs.push("tr")
+            retrievedLangs.append("tr")
 
         print("Stopwords matching the langs: ", retrievedLangs)
 
@@ -492,4 +492,3 @@ class NgramBasedClasifier:
         # The full list of languages may be found in C:/Users/username/AppData/Roming/nltk_data/corpora/stopwords
 
         return swords
-    
