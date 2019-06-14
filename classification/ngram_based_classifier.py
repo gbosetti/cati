@@ -342,6 +342,7 @@ class NgramBasedClasifier:
         try:
             # Get the data for performinga paginated search
             self.current_thread_percentage = 0
+            print("Starting")
             my_connector = Es_connector(index=kwargs["index"])
 
             query = kwargs.get('query', {
@@ -363,14 +364,13 @@ class NgramBasedClasifier:
             #     self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
 
             while scroll_size > 0:
-
+                tweets = res["results"]
                 self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
 
                 i += 1
                 res = my_connector.loop_paginatedSearch(sid, scroll_size)
                 scroll_size = res["scroll_size"]
                 processed += scroll_size
-                tweets = res["results"]
                 self.current_thread_percentage = round(processed * 100 / total, 2)
                 print("Completed: ", self.current_thread_percentage, "%")
 
