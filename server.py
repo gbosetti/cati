@@ -281,6 +281,7 @@ def get_geo_polygon():
     data = request.get_json()
     index = data['index']
     features = data['collection']['features']
+    #TODO: this checking can be done on the front
     if len(features) == 0:
         geo,min_date,max_date = functions.get_geo_coordinates(index=index)
     if len(features) == 1:
@@ -293,6 +294,27 @@ def get_geo_polygon():
         "max_date": max_date
     }
     return jsonify(result)
+
+@app.route('/get_geo_polygon_date', methods=['POST'])
+def get_geo_polygon_date():
+    data = request.get_json()
+    index = data['index']
+    features = data['collection']['features']
+    date_range = [data['date_min'], data['date_max']]
+    #TODO: this checking can be done on the front
+    if len(features) == 0:
+        geo,min_date,max_date = functions.get_geo_coordinates_date(index=index,date_range=date_range)
+    if len(features) == 1:
+        if features[0]['geometry']['type'] == "Polygon":
+            coordinates = features[0]['geometry']['coordinates'][0]
+            geo,min_date,max_date = functions.get_geo_coordinates_polygon_date_range(index=index,coordinates= coordinates, date_range = date_range)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date
+    }
+    return jsonify(result)
+
 
 
 # Get Tweets

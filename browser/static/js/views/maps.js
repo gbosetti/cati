@@ -1,5 +1,6 @@
 let geoJsonEndpoint="get_geo_coordinates";
 let searchEndpoint= "get_geo_polygon";
+let spaceTimeEndpoint= "get_geo_polygon_date";
 let accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
 app.views.maps = Backbone.View.extend({
     template: _.template($("#tpl-map").html()),
@@ -35,9 +36,6 @@ app.views.maps = Backbone.View.extend({
             }
         });
 
-        scope.slider.noUiSlider.on('set', values => {
-            scope.sliderUpdate(values);
-        });
 
         console.log("Render the map");
         this.mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
@@ -55,6 +53,9 @@ app.views.maps = Backbone.View.extend({
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
             scope.addGeoToMap(response.geo);
             scope.sliderBounds(response.min_date, response.max_date);
+            scope.slider.noUiSlider.on('set', values => {
+                scope.sliderUpdate(values);
+            });
         });
         scope.drawnItems = new L.geoJSON();
         scope.mymap.addLayer(scope.drawnItems);
@@ -123,7 +124,29 @@ app.views.maps = Backbone.View.extend({
                 body: JSON.stringify(data)
             }).then(response => resolve(response.json()));
         });
+    },
+    searchSpaceTime(){
 
+        let scope = this;
+        let collection = scope.drawnItems;
+        let date_range = scope.slider.noUiSlider.get();
+        data = {
+            index: 'geo',
+            collection: collection.toGeoJSON(),
+            date_min: date_range[0],
+            date_max: date_range[1]
+        };
+        let res;
+        return new Promise(function (resolve,reject) {
+            fetch(app.appURL+spaceTimeEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            }).then(response => resolve(response.json()) );
+        });
     },
     popup(){
         return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
@@ -178,19 +201,27 @@ app.views.maps = Backbone.View.extend({
     dateFromTimestamp: timestamp => new Date(parseFloat(timestamp)).toString(),
     sliderUpdate(values){
         let scope = this;
+        scope.displayDate(values[0],values[1]);
+        scope.searchSpaceTime()
+        .then(r => scope.update_from_search(r));
+    },
+    displayDate(l,u){
+        let scope = this;
         let lower = document.getElementById("maps-date-lower");
         let upper = document.getElementById("maps-date-upper");
-        lower.innerText= scope.dateFromTimestamp(values[0]);
-        upper.innerText= scope.dateFromTimestamp(values[1]);
-        scope.searchSpaceTime();
+        lower.innerText= scope.dateFromTimestamp(l);
+        upper.innerText= scope.dateFromTimestamp(u);
     },
     sliderBounds(min, max){
-        this.slider.noUiSlider.updateOptions({
+        let scope = this;
+        scope.slider.noUiSlider.updateOptions({
             range: {
                 'min':min ,
                 'max': max
             },
+            start:[min,max]
         });
-        this.slider.noUiSlider.set([min,max]);
+        scope.displayDate(min,max);
+        scope.slider.noUiSlider.set([min,max]);
     }
 });
