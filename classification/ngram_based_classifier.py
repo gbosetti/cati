@@ -16,6 +16,7 @@ class NgramBasedClasifier:
         self.current_thread_percentage = 0
         self.config_relative_path = config_relative_path
         self.tknzr = TweetTokenizer()
+        self.retrievedLangs = set() # Matching the languages in the dataset
 
     def get_n_grams(self, text, length=2):
         n_grams = zip(*[text[i:] for i in range(length)])
@@ -436,57 +437,57 @@ class NgramBasedClasifier:
     def get_stopwords_for_langs(self, langs):
 
         swords = []
-        retrievedLangs = []
+
         if "en" in langs:
             swords = swords + stopwords.words('english')
-            retrievedLangs.append("en")
+            self.retrievedLangs.add("en")
         if "fr" in langs:
             swords = swords + stopwords.words('french')
-            retrievedLangs.append("fr")
+            self.retrievedLangs.add("fr")
         if "ar" in langs:
             swords = swords + stopwords.words('arabic')
-            retrievedLangs.append("ar")
+            self.retrievedLangs.add("ar")
         if "nl" in langs:
             swords = swords + stopwords.words('dutch')
-            retrievedLangs.append("nl")
+            self.retrievedLangs.add("nl")
         if "id" in langs:
             swords = swords + stopwords.words('indonesian')
-            retrievedLangs.append("id")
+            self.retrievedLangs.add("id")
         if "fi" in langs:
             swords = swords + stopwords.words('finnish')
-            retrievedLangs.append("fi")
+            self.retrievedLangs.add("fi")
         if "de" in langs:
             swords = swords + stopwords.words('german')
-            retrievedLangs.append("de")
+            self.retrievedLangs.add("de")
         if "hu" in langs:
             swords = swords + stopwords.words('hungarian')
-            retrievedLangs.append("hu")
+            self.retrievedLangs.add("hu")
         if "it" in langs:
             swords = swords + stopwords.words('italian')
-            retrievedLangs.append("it")
+            self.retrievedLangs.add("it")
         if "nb" in langs:
             swords = swords + stopwords.words('norwegian')
-            retrievedLangs.append("nb")
+            self.retrievedLangs.add("nb")
         if "pt" in langs:
             swords = swords + stopwords.words('portuguese')
-            retrievedLangs.append("pt")
+            self.retrievedLangs.add("pt")
         if "ro" in langs:
             swords = swords + stopwords.words('romanian')
-            retrievedLangs.append("ro")
+            self.retrievedLangs.add("ro")
         if "ru" in langs:
             swords = swords + stopwords.words('russian')
-            retrievedLangs.append("ru")
+            self.retrievedLangs.add("ru")
         if "es" in langs:
             swords = swords + stopwords.words('spanish')
-            retrievedLangs.append("es")
+            self.retrievedLangs.add("es")
         if "sv" in langs:
             swords = swords + stopwords.words('swedish')
-            retrievedLangs.append("sv")
+            self.retrievedLangs.add("sv")
         if "tr" in langs:
             swords = swords + stopwords.words('turkish')
-            retrievedLangs.append("tr")
+            self.retrievedLangs.add("tr")
 
-        print("Stopwords matching the langs: ", retrievedLangs)
+
 
         # TODO: complete with the full list of supported langs (there are some langs supported but miissing  and not documented. E.g. Bulgarian or Ukrainian https://pypi.org/project/stop-words/ )
         # The full list of languages may be found in C:/Users/username/AppData/Roming/nltk_data/corpora/stopwords

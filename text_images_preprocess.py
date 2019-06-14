@@ -53,6 +53,7 @@ def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
                 property_name: full_text
             }}
         )
+    print("Languages for stopwords: ", ngramsAnalizer.retrievedLangs)
 
 
 
