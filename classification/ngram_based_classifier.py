@@ -447,27 +447,27 @@ class NgramBasedClasifier:
         if "id" in langs:
             swords = swords + stopwords.words('indonesian')
         if "fi" in langs:
-            swords = swords + stopwords.words('Finnish')
+            swords = swords + stopwords.words('finnish')
         if "de" in langs:
-            swords = swords + stopwords.words('German')
+            swords = swords + stopwords.words('german')
         if "hu" in langs:
-            swords = swords + stopwords.words('Hungarian')
+            swords = swords + stopwords.words('hungarian')
         if "it" in langs:
-            swords = swords + stopwords.words('Italian')
+            swords = swords + stopwords.words('italian')
         if "nb" in langs:
-            swords = swords + stopwords.words('Norwegian')
+            swords = swords + stopwords.words('norwegian')
         if "pt" in langs:
-            swords = swords + stopwords.words('Portuguese')
+            swords = swords + stopwords.words('portuguese')
         if "ro" in langs:
-            swords = swords + stopwords.words('Romanian')
+            swords = swords + stopwords.words('romanian')
         if "ru" in langs:
-            swords = swords + stopwords.words('Russian')
+            swords = swords + stopwords.words('russian')
         if "es" in langs:
             swords = swords + stopwords.words('spanish')
         if "sv" in langs:
-            swords = swords + stopwords.words('Swedish')
+            swords = swords + stopwords.words('swedish')
         if "tr" in langs:
-            swords = swords + stopwords.words('Turkish')
+            swords = swords + stopwords.words('turkish')
 
         # TODO: complete with the full list of supported langs (there are some langs supported but miissing  and not documented. E.g. Bulgarian or Ukrainian https://pypi.org/project/stop-words/ )
         # The full list of languages may be found in C:/Users/username/AppData/Roming/nltk_data/corpora/stopwords
