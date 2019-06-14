@@ -436,40 +436,60 @@ class NgramBasedClasifier:
     def get_stopwords_for_langs(self, langs):
 
         swords = []
+        retrievedLangs = []
         if "en" in langs:
             swords = swords + stopwords.words('english')
+            retrievedLangs.push("en")
         if "fr" in langs:
             swords = swords + stopwords.words('french')
+            retrievedLangs.push("fr")
         if "ar" in langs:
             swords = swords + stopwords.words('arabic')
+            retrievedLangs.push("ar")
         if "nl" in langs:
             swords = swords + stopwords.words('dutch')
+            retrievedLangs.push("nl")
         if "id" in langs:
             swords = swords + stopwords.words('indonesian')
+            retrievedLangs.push("id")
         if "fi" in langs:
             swords = swords + stopwords.words('finnish')
+            retrievedLangs.push("fi")
         if "de" in langs:
             swords = swords + stopwords.words('german')
+            retrievedLangs.push("de")
         if "hu" in langs:
             swords = swords + stopwords.words('hungarian')
+            retrievedLangs.push("hu")
         if "it" in langs:
             swords = swords + stopwords.words('italian')
+            retrievedLangs.push("it")
         if "nb" in langs:
             swords = swords + stopwords.words('norwegian')
+            retrievedLangs.push("nb")
         if "pt" in langs:
             swords = swords + stopwords.words('portuguese')
+            retrievedLangs.push("pt")
         if "ro" in langs:
             swords = swords + stopwords.words('romanian')
+            retrievedLangs.push("ro")
         if "ru" in langs:
             swords = swords + stopwords.words('russian')
+            retrievedLangs.push("ru")
         if "es" in langs:
             swords = swords + stopwords.words('spanish')
+            retrievedLangs.push("es")
         if "sv" in langs:
             swords = swords + stopwords.words('swedish')
+            retrievedLangs.push("sv")
         if "tr" in langs:
             swords = swords + stopwords.words('turkish')
+            retrievedLangs.push("tr")
+
+        print("Stopwords matching the langs: ", retrievedLangs)
 
         # TODO: complete with the full list of supported langs (there are some langs supported but miissing  and not documented. E.g. Bulgarian or Ukrainian https://pypi.org/project/stop-words/ )
         # The full list of languages may be found in C:/Users/username/AppData/Roming/nltk_data/corpora/stopwords
 
         return swords
+    
