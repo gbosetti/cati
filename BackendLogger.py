@@ -28,7 +28,7 @@ class BackendLogger:
         print(message)
 
     def clear_logs(self):
-        #self.logs = []
+        print("Removing ", self.filename)
         if os.path.isfile(self.filename):
             os.remove(self.filename)
 

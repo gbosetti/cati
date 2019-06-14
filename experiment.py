@@ -147,6 +147,7 @@ else:
 def delete_folder(path):
     if os.path.exists(path):
         #os.remove(path)
+        print("Deleting folder: ", path)
         shutil.rmtree(path)
 
 if clear_results:

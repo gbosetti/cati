@@ -36,6 +36,7 @@ from classification.ngram_based_classifier import NgramBasedClasifier
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+from mabed.functions import Functions
 nltk.download('stopwords')
 
 from sklearn.datasets import load_files
@@ -125,6 +126,8 @@ class ActiveLearning:
 
             if debug_limit:
                 print("\nDEBUG LIMIT\n")
+                res = my_connector.loop_paginatedSearch(sid, scroll_size)
+                self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
                 scroll_size = 0
 
         # print("\n-----total: ", total, " processed: ", processed, "\n")
@@ -184,6 +187,7 @@ class ActiveLearning:
 
     def delete_folder_contents(self, folder):
 
+        print("Removing folder: ", folder)
         if os.path.exists(folder):
             # os.remove(folder)
             shutil.rmtree(folder)
@@ -203,11 +207,24 @@ class ActiveLearning:
         file.write(content)
         file.close()
 
+    def get_unlabeled_ids(self):
+
+        proposed_path = os.path.join(self.UNLABELED_FOLDER, self.NO_CLASS_FOLDER)
+        unlabeled_files = [f.path for f in os.scandir(proposed_path)]
+        unlabeled_ids = []
+
+        for file_path in unlabeled_files:
+            name = os.path.basename(os.path.normpath(file_path))
+            name = os.path.splitext(name)[0]
+            unlabeled_ids.append(name)
+
+        return unlabeled_ids
+
     def get_samples_closer_to_hyperplane_bigrams_rt(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, **kwargs):
 
         # Getting
-        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
-        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])
+        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"] + "_tmp", results_size=kwargs["max_samples_to_sort"])
+        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"] + "_tmp", results_size=kwargs["max_samples_to_sort"])
 
         # compute absolute confidence for each unlabeled sample in each class
         decision = model.decision_function(
@@ -228,7 +245,7 @@ class ActiveLearning:
         question_samples = self.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.data_unlabeled, kwargs["max_samples_to_sort"]) # returns just unique (removes duplicated files)
         # question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
 
-        formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"])
+        formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"], kwargs["is_field_array"])
 
         selected_samples =sorted(formatted_samples, key=lambda k: (kwargs["cnf_weight"] * k.get('cnf_pos', 0) + kwargs["ret_weight"] * k.get('ret_pos', 0) + kwargs["bgr_weight"] * k.get('bgr_pos', 0)), reverse=False)
 
@@ -257,10 +274,15 @@ class ActiveLearning:
 
         functions = Functions()  # config_relative_path='../')
         retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
-                                                     label='proposed', retweets_number=kwargs['results_size'])
+                                          label='unlabeled', retweets_number=kwargs['results_size'])
 
         try:
-            return retweets["aggregations"]["top_text"]["buckets"]
+            buckets = []
+            for bucket in retweets["aggregations"]["top_text"]["buckets"]:
+                if bucket["doc_count"] > 1:
+                    buckets.append(bucket)
+
+            return buckets
         except KeyError as e:
             return []
 
@@ -268,7 +290,7 @@ class ActiveLearning:
 
         ngram_classifier = NgramBasedClasifier() #  config_relative_path='../')
         matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
-                                                      label='proposed', results_size=kwargs['results_size'],
+                                                      label='unlabeled', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)
 
         try:
@@ -678,6 +700,10 @@ class ActiveLearning:
             raise Exception('The target (unlabeled) set is empty.')
             return
 
+        if (len(self.data_unlabeled.data) == 0):
+            raise Exception('The unlabeled set is empty.')
+            return
+
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
         print("Vectorizing the test set")
         X_test = vectorizer.transform(data_test.data)
@@ -754,7 +780,7 @@ class ActiveLearning:
         return clf, normalized_X_train, normalized_X_test, y_train, y_test, normalized_X_unlabeled, self.categories, scores
 
 
-    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field='text'):
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field="", is_field_array=False):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         complete_question_samples = []
@@ -763,7 +789,7 @@ class ActiveLearning:
 
             question ={
                 "filename": self.data_unlabeled.filenames[index],
-                "text": self.data_unlabeled.data[index],
+                "analyzed_content": self.data_unlabeled.data[index],
                 "str_id": self.extract_filename_no_ext(self.data_unlabeled.filenames[index]),
                 "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
@@ -778,8 +804,11 @@ class ActiveLearning:
             j=0
             for retweet in top_retweets:  # Sorted from most to lower retweets
                 try:
-                    bigram = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"]["2grams"])  # TODO: this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
-                    if bigram == question["text"]:
+                    if is_field_array:
+                        analyzed_content = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"][text_field])  # TODO: FIXED POINT! this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
+                    else: analyzed_content = retweet["top_text_hits"]["hits"]["hits"][0]["_source"][text_field]
+
+                    if analyzed_content == question["analyzed_content"]:
                         question["ret_pos"] = j
                     break
                 except KeyError:
@@ -790,7 +819,7 @@ class ActiveLearning:
             j = 0
             for bigram in top_bigrams:  # Sorted from most to lower retweets
 
-                if bigram["key"] in question["text"]:
+                if bigram["key"] in question["analyzed_content"]:
                     question["bgr_pos"] = j
                     break
 
@@ -841,19 +870,6 @@ class ActiveLearning:
     #             negatives.append(id_str)
     #
     #     return positives, negatives
-
-    def get_results_from_al_logs(self):
-
-        # Initialization
-        logs_folders = [f.path for f in os.scandir(logs_path) if f.is_dir()]
-        target_loops = [10, 20, 50, 100]
-        configs = []
-        values_by_loop = {}
-        loop_prefix = "loop "
-        for loop in target_loops:
-            values_by_loop[loop_prefix + str(loop)] = []
-
-
 
     def get_config_value(self, prop_name, full_text):
         start_index = full_text.index(prop_name) + 4

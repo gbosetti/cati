@@ -3,6 +3,7 @@ from datetime import datetime
 from mabed.es_connector import Es_connector
 from BackendLogger import BackendLogger
 import os
+import time
 
 class ActiveLearningNoUi:
 
@@ -101,15 +102,7 @@ class ActiveLearningNoUi:
             for bigram in bigrams:
                 bigrams_matches.append({"match": {"2grams.keyword": bigram}})
 
-            # query = {
-            #     "query": {
-            #         "bool": {
-            #             "must": bigrams_matches
-            #         }
-            #     }
-            # }
             query = {
-                #"_source": ["2grams", "text", "id_str"],
                 "query": {
                     "bool": {
                         "should": bigrams_matches,
@@ -129,11 +122,8 @@ class ActiveLearningNoUi:
 
             if len(docs_with_noise["hits"]["hits"]) > 1:
 
-                # print("\nMatching: ", bigrams)
                 for tweet in docs_with_noise["hits"]["hits"]:
 
-                    #if len(bigrams) == len(tweet["_source"]["2grams"]):
-                    #print("...", tweet["_source"]["id_str"])
                     label = [doc for doc in splitted_questions if
                              doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
                     duplicated_docs.append({
@@ -155,7 +145,7 @@ class ActiveLearningNoUi:
             questions = self.classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
                                                                                X_unlabeled, categories, kwargs["num_questions"],
                                                                                max_samples_to_sort=kwargs["max_samples_to_sort"],
-                                                                               index=kwargs["index"], session=kwargs["session"], text_field=kwargs["text_field"],
+                                                                               index=kwargs["index"], session=kwargs["session"], text_field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
                                                                                cnf_weight=kwargs["cnf_weight"], ret_weight=kwargs["ret_weight"], bgr_weight=kwargs["bgr_weight"])
 
         # Asking the user (gt_dataset) to answer the questions
@@ -163,6 +153,7 @@ class ActiveLearningNoUi:
 
         # Injecting the answers in the training set, and re-training the model
         self.classifier.move_answers_to_training_set(answers)
+        self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
         # self.classifier.remove_matching_answers_from_test_set(answers)
 
         # self training
@@ -170,6 +161,7 @@ class ActiveLearningNoUi:
             print("Moving duplicated")
             duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
             self.classifier.move_answers_to_training_set(duplicated_answers)
+            self.delete_temporary_labels(kwargs["index"], kwargs["session"], duplicated_answers)
         # self.classifier.remove_matching_answers_from_test_set(duplicated_answers)
 
         # Present visualization to the user, so he can explore the proposed classification
@@ -194,8 +186,76 @@ class ActiveLearningNoUi:
                                              field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
                                              debug_limit=kwargs["debug_limit"])
 
+    def clear_temporary_labels(self, index, session):
+
+        Es_connector(index=index).update_by_query({
+            "query": {
+                "exists" : { "field" : session + "_tmp" }  # e.g. session_lyon2015_test_01_tmp
+            }
+        }, "ctx._source.remove('" + session + "_tmp')")
+
+    def split_list(self, alist, wanted_parts=1):
+        length = len(alist)
+        return [alist[i * length // wanted_parts: (i + 1) * length // wanted_parts]
+                for i in range(wanted_parts)]
+
+    def delete_temporary_labels(self, index, session, docs):
+
+        parts = len(docs) / 1000
+        if int(parts) != parts:
+            parts = int(parts) + 1
+        else:
+            parts = int(parts)
+
+        paginated_ids = self.split_list(docs, parts)
+
+        print("Deleting temp vars")
+
+        for page_ids in paginated_ids:
+
+            matching_ids = []
+            for doc in page_ids:
+                doc_id = os.path.basename(doc["filename"]).split(".")[0]
+                matching_ids.append({"match": {"id_str": doc_id}})
+
+            query = {
+                "query": {
+                    "bool": {
+                        "should": matching_ids,
+                        "minimum_should_match": 1
+                    }
+                }
+            }
+            Es_connector(index=index).update_by_query(query, "ctx._source.remove('" + session + "_tmp')")
+            time.sleep(3)
+
+    def add_temporary_labels(self, index, session, duplicated_ids):
+
+        parts = len(duplicated_ids)/1000
+        if int(parts) != parts:
+            parts = int(parts) + 1
+        else: parts = int(parts)
+
+        paginated_ids = self.split_list(duplicated_ids, parts)
+
+        for page_ids in paginated_ids:
+
+            matching_ids = []
+            for id in page_ids:
+                matching_ids.append({"match": {"id_str": id}})
+
+            Es_connector(index=index).update_by_query({
+                "query": {
+                  "bool": {
+                    "should": matching_ids,
+                    "minimum_should_match": 1
+                  }
+                }
+            }, "ctx._source." + session + "_tmp = 'unlabeled'")
+
     def run(self, **kwargs):
 
+        #try:
         diff_accuracy = None
         start_time = datetime.now()
         accuracy = 0
@@ -209,6 +269,12 @@ class ActiveLearningNoUi:
         # Copy downloaded files
         self.classifier.clone_original_files()
         self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
+
+        #Temporarily label them
+        self.clear_temporary_labels(kwargs["index"], kwargs["session"])
+        self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
+        time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
+        self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
 
         #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
         loop_index = 0
@@ -237,8 +303,7 @@ class ActiveLearningNoUi:
         self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
         self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
-
-
-
-
-
+        # except Exception as e:
+        #     print(e)
+        #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
+        #     return [],[]
