@@ -96,6 +96,12 @@ parser.add_argument("-sem",
                     help="If True, it skips the experimental method. Default is False.",
                     default=False)
 
+parser.add_argument("-sp",
+                    "--similarity_percentage",
+                    dest="similarity_percentage",
+                    help="A number followed by the % symbol. XX%",
+                    default="75%")
+
 def to_boolean(str_param):
     if isinstance(str_param, bool):
         return str_param
@@ -191,7 +197,8 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
             learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
                         gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
                         min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                        text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
+                        text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort,
+                        similarity_percentage=args.similarity_percentage)
 
 
 

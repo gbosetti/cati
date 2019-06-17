@@ -73,21 +73,22 @@ class ActiveLearningNoUi:
 
             splitted_questions.append(question)
             if(len(splitted_questions)>99):
-                matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions)
+                matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions, kwargs["text_field"], kwargs["is_field_array"], kwargs["similarity_percentage"])
                 duplicated_docs += matching_docs
                 splitted_questions=[] # re init
 
         if len(splitted_questions)>0:
-            matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions)
+            matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions, kwargs["text_field"], kwargs["is_field_array"], kwargs["similarity_percentage"])
             duplicated_docs += matching_docs
 
         return duplicated_docs
 
-    def process_duplicated_answers(self, my_connector, session, splitted_questions):
+    def process_duplicated_answers(self, my_connector, session, splitted_questions, field, is_field_array,
+                                   similarity_percentage):
 
         duplicated_docs = []
         concatenated_ids = self.join_ids(splitted_questions)
-        matching_bigrams = my_connector.search({
+        matching_docs = my_connector.search({
             "query": {
                 "match": {
                     "id_str": concatenated_ids
@@ -95,28 +96,34 @@ class ActiveLearningNoUi:
             }
         })
 
-        for doc_bigrams in matching_bigrams["hits"]["hits"]:
+        for doc_bigrams in matching_docs["hits"]["hits"]:
 
-            bigrams = doc_bigrams["_source"]["2grams"]
+            field_content = doc_bigrams["_source"][field]
             bigrams_matches = []
-            for bigram in bigrams:
-                bigrams_matches.append({"match": {"2grams.keyword": bigram}})
+
+            if is_field_array:
+                for f_content in field_content:
+                    bigrams_matches.append({"match": {field + ".keyword": f_content}})
+
+            else:
+                bigrams_matches.append({"match": {field + ".keyword": field_content}})
 
             query = {
                 "query": {
                     "bool": {
                         "should": bigrams_matches,
-                        "minimum_should_match": "75%",
+                        "minimum_should_match": similarity_percentage,
                         "must": [{
-                            "exists" : { "field" : "2grams" }
-                        },{
-                            "match":{
-                                session:"proposed"
+                            "exists": {"field": field}
+                        }, {
+                            "match": {
+                                session: "proposed"
                             }
                         }]
                     }
                 }
             }
+            print("TARGET QUERY:\n", query)
 
             docs_with_noise = my_connector.search(query)
 
@@ -130,9 +137,6 @@ class ActiveLearningNoUi:
                     if tweet["_source"]["id_str"] not in concatenated_ids:
                         duplicated_docs.append({
                             "filename": tweet["_source"]["id_str"],
-                            "2grams": tweet["_source"]["2grams"],
-                            "text": tweet["_source"]["text"],
-                            "text_images": tweet["_source"]["text_images"],
                             "label": label
                         })
 
