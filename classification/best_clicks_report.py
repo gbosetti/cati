@@ -8,7 +8,7 @@ import re
 import csv
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\foot_2015_selected"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_last"
 output_path = "C:\\Users\\gbosetti\\Desktop\\"
 
 

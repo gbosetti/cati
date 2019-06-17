@@ -70,7 +70,7 @@ parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
                     dest="selected_max_samples_to_sort",
                     help="The list of max number of sorted documents (according to their distance to the hyperplane) to score, as well as the maximum number of retweets and bigrams to consider for the scoring. E.g. [100, 500]",
-                    default=[500])
+                    default=[100])
 
 parser.add_argument("-cr",
                     "--clear_results",

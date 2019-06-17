@@ -9,7 +9,7 @@ import statistics
 import operator
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\foot_2015"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\logs_old_new"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 

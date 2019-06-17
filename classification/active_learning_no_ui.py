@@ -157,7 +157,7 @@ class ActiveLearningNoUi:
 
         # Injecting the answers in the training set, and re-training the model
         self.classifier.move_answers_to_training_set(answers)
-        self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
+        #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
         # self.classifier.remove_matching_answers_from_test_set(answers)
 
         # self training
@@ -165,7 +165,7 @@ class ActiveLearningNoUi:
             print("Moving duplicated")
             duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
             self.classifier.move_answers_to_training_set(duplicated_answers)
-            self.delete_temporary_labels(kwargs["index"], kwargs["session"], duplicated_answers)
+            #self.delete_temporary_labels(kwargs["index"], kwargs["session"], duplicated_answers)
         # self.classifier.remove_matching_answers_from_test_set(duplicated_answers)
 
         # Present visualization to the user, so he can explore the proposed classification
@@ -284,10 +284,10 @@ class ActiveLearningNoUi:
             self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
             #Temporarily label them
-            self.clear_temporary_labels(kwargs["index"], kwargs["session"])
+            #self.clear_temporary_labels(kwargs["index"], kwargs["session"])
             self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
-            time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
-            self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
+            #time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
+            #self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
 
             #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
             loop_index = 0

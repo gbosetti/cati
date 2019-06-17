@@ -223,8 +223,8 @@ class ActiveLearning:
     def get_samples_closer_to_hyperplane_bigrams_rt(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, **kwargs):
 
         # Getting
-        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"] + "_tmp", results_size=kwargs["max_samples_to_sort"])
-        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"] + "_tmp", results_size=kwargs["max_samples_to_sort"])
+        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])  #session=kwargs["session"] + "_tmp"
+        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])  #session=kwargs["session"] + "_tmp"
 
         # compute absolute confidence for each unlabeled sample in each class
         decision = model.decision_function(
@@ -783,6 +783,7 @@ class ActiveLearning:
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field="", is_field_array=False):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
+        print("max_samples_to_sort: ", max_samples_to_sort)
         complete_question_samples = []
         i=0
         for index in conf_sorted_question_samples: # Sorted from lower to higher confidence (lower = closer to the hyperplane)
