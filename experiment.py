@@ -1,5 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
-from classification.samplers import UncertaintySampler, BigramsRetweetsSampler
+from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 import argparse
 import itertools
 import os
@@ -79,16 +79,10 @@ parser.add_argument("-sc",
                     help="The combinations of weights that you want to use. Write it as a string. E.g. '[[0.9, 0.0, 0.1], [0.9, 0.1, 0.0]]' If it is not set, all the permutations of the multiples of 0.1 from 0 to 1 are used instead.",
                     default=None)
 
-parser.add_argument("-sh",
-                    "--skip_hyperplane",
-                    dest="skip_hyperplane",
-                    help="If True, it skips the processing with the uncertainty distance method. Default is False.",
-                    default=False)
-
-parser.add_argument("-sem",
-                    "--skip_experimental_method",
-                    dest="skip_experimental_method",
-                    help="If True, it skips the experimental method. Default is False.",
+parser.add_argument("-sm",
+                    "--sampling_methods",
+                    dest="sampling_methods",
+                    help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler",
                     default=False)
 
 parser.add_argument("-sp",
@@ -113,9 +107,6 @@ if args.index is None or args.session is None or args.gt_session is None:
 download_files = to_boolean(args.download_files)
 debug_limit = to_boolean(args.debug_limit)
 clear_results = to_boolean(args.clear_results)
-skip_hyperplane = to_boolean(args.skip_hyperplane)
-skip_experimental_method = to_boolean(args.skip_experimental_method)
-
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -168,27 +159,24 @@ if download_files:
 for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
-    if skip_hyperplane is False:
+    if 'UncertaintySampler' in args.sampling_methods:
 
         print("\nRunning hyperplane strategy\n")
-
-        logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+        logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
         sampler = UncertaintySampler()
         learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-
         learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                     min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
                     text_field=args.text_field)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
-    if skip_experimental_method is False:
+    if 'BigramsRetweetsSampler' in args.sampling_methods:
         for weights in selected_combinations:
 
             print("Looping with weights: ", weights)
-
-            logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
+            logs_filename = args.session + "_OUR" + \
                             "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
-                            "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+                            "_smss" + str(max_samples_to_sort) + ".txt"
             sampler = BigramsRetweetsSampler(max_samples_to_sort=max_samples_to_sort, index=args.index, session=args.session,
                 text_field=args.text_field, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2])
             learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
@@ -196,3 +184,17 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
             learner.run(index=args.index, session=args.session, num_questions=args.num_questions,
                         gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
                         text_field=args.text_field)
+
+    if 'DuplicatedDocsSampler' in args.sampling_methods:
+
+        print("\nRunning the DuplicatedDocsSampler strategy\n")
+
+        logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
+        sampler = DuplicatedDocsSampler(index=args.index, session=args.session,
+                text_field=args.text_field, similarity_percentage=args.similarity_percentage)
+        learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+        learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                    text_field=args.text_field)
+
+
