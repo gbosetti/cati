@@ -1,4 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
+from classification.samplers import UncertaintySampler, BigramsRetweetsSampler
 import argparse
 import itertools
 import os
@@ -60,12 +61,6 @@ parser.add_argument("-tf",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
                     default="2grams")
 
-parser.add_argument("-tfa",
-                    "--is_field_array",
-                    dest="is_field_array",
-                    help="Is the document field a String or an array of strings?",
-                    default=True)
-
 parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
                     dest="selected_max_samples_to_sort",
@@ -117,7 +112,6 @@ if args.index is None or args.session is None or args.gt_session is None:
 
 download_files = to_boolean(args.download_files)
 debug_limit = to_boolean(args.debug_limit)
-is_field_array = to_boolean(args.is_field_array)
 clear_results = to_boolean(args.clear_results)
 skip_hyperplane = to_boolean(args.skip_hyperplane)
 skip_experimental_method = to_boolean(args.skip_experimental_method)
@@ -167,7 +161,7 @@ if download_files:
     learner = ActiveLearningNoUi(logs_filename="download.txt")
     learner.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
-                    text_field=args.text_field, is_field_array=is_field_array)
+                    text_field=args.text_field)
     learner.clean_logs()
 
 #  Running the algorythm multiple times
@@ -175,13 +169,16 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
     if skip_hyperplane is False:
-        print("\nRunning hyperplane strategy\n")
-        logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
-        learner = ActiveLearningNoUi(logs_filename=logs_filename)
 
-        learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
-                    gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
+        print("\nRunning hyperplane strategy\n")
+
+        logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
+        sampler = UncertaintySampler()
+        learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+
+        learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                    text_field=args.text_field)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     if skip_experimental_method is False:
@@ -192,13 +189,10 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
             logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
                             "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
                             "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
-            learner = ActiveLearningNoUi(logs_filename=logs_filename)
+            sampler = BigramsRetweetsSampler(max_samples_to_sort=max_samples_to_sort, index=args.index, session=args.session,
+                text_field=args.text_field, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2])
+            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
 
-            learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
-                        gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
-                        min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                        text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort,
-                        similarity_percentage=args.similarity_percentage)
-
-
-
+            learner.run(index=args.index, session=args.session, num_questions=args.num_questions,
+                        gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
+                        text_field=args.text_field)

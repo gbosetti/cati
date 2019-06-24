@@ -8,7 +8,7 @@ import re
 import csv
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_old_selected"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiment3_2017_s0102_selected"
 output_path = "C:\\Users\\gbosetti\\Desktop\\"
 
 
@@ -177,7 +177,7 @@ for subfolder in logs_folders:
         file_content = read_file(file.path)
         logs = [line for line in file_content if 'loop' in line]
 
-        with open(output_path + scenario_name + "_" + get_config_name(file.name, "football_") + '.csv', 'w') as csvfile:
+        with open(output_path + scenario_name + "_" + get_config_name(file.name, "test_") + '.csv', 'w') as csvfile:
             filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             filewriter.writerow(['Loop', 'Clicks', 'Precision', 'Accuracy'])
 

@@ -17,6 +17,9 @@ class ActiveLearningNoUi:
 
         self.classifier = ActiveLearning()
 
+        if kwargs.get("sampler", None) != None:
+            self.classifier.set_sampling_strategy(kwargs["sampler"])
+
     def clean_logs(self, **kwargs):
 
         self.backend_logger.clear_logs()
@@ -61,100 +64,12 @@ class ActiveLearningNoUi:
         # print(json.dumps(kwargs["questions"], indent=4, sort_keys=True))
         return kwargs["questions"], wrong_labels
 
-    def get_duplicated_answers(self, **kwargs):
-
-        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
-        duplicated_docs=[]
-
-        # IT SHOULD BE BETTER TO TRY GETTING THE DUPLICATES FROM THE MATRIX
-        splitted_questions = []
-        target_bigrams = []
-        for question in kwargs["questions"]:
-
-            splitted_questions.append(question)
-            if(len(splitted_questions)>99):
-                matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions, kwargs["text_field"], kwargs["is_field_array"], kwargs["similarity_percentage"])
-                duplicated_docs += matching_docs
-                splitted_questions=[] # re init
-
-        if len(splitted_questions)>0:
-            matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions, kwargs["text_field"], kwargs["is_field_array"], kwargs["similarity_percentage"])
-            duplicated_docs += matching_docs
-
-        return duplicated_docs
-
-    def process_duplicated_answers(self, my_connector, session, splitted_questions, field, is_field_array,
-                                   similarity_percentage):
-
-        duplicated_docs = []
-        concatenated_ids = self.join_ids(splitted_questions)
-        matching_docs = my_connector.search({
-            "query": {
-                "match": {
-                    "id_str": concatenated_ids
-                }
-            }
-        })
-
-        for doc_bigrams in matching_docs["hits"]["hits"]:
-
-            field_content = doc_bigrams["_source"][field]
-            bigrams_matches = []
-
-            if is_field_array:
-                for f_content in field_content:
-                    bigrams_matches.append({"match": {field + ".keyword": f_content}})
-
-            else:
-                bigrams_matches.append({"match": {field + ".keyword": field_content}})
-
-            query = {
-                "query": {
-                    "bool": {
-                        "should": bigrams_matches,
-                        "minimum_should_match": similarity_percentage,
-                        "must": [{
-                            "exists": {"field": field}
-                        }, {
-                            "match": {
-                                session: "proposed"
-                            }
-                        }]
-                    }
-                }
-            }
-            print("TARGET QUERY:\n", query)
-
-            docs_with_noise = my_connector.search(query)
-
-            if len(docs_with_noise["hits"]["hits"]) > 1:
-
-                for tweet in docs_with_noise["hits"]["hits"]:
-
-                    label = [doc for doc in splitted_questions if
-                             doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
-
-                    if tweet["_source"]["id_str"] not in concatenated_ids:
-                        duplicated_docs.append({
-                            "filename": tweet["_source"]["id_str"],
-                            "label": label
-                        })
-
-        return duplicated_docs
-
     def loop(self, **kwargs):
 
         # Building the model and getting the questions
-        model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = self.classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False)
+        self.classifier.build_model(remove_stopwords=False)
 
-        if (kwargs["sampling_strategy"] == "closer_to_hyperplane"):
-            questions = self.classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, kwargs["num_questions"])
-        elif (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
-            questions = self.classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
-                                                                               X_unlabeled, categories, kwargs["num_questions"],
-                                                                               max_samples_to_sort=kwargs["max_samples_to_sort"],
-                                                                               index=kwargs["index"], session=kwargs["session"], text_field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
-                                                                               cnf_weight=kwargs["cnf_weight"], ret_weight=kwargs["ret_weight"], bgr_weight=kwargs["bgr_weight"])
+        questions = self.classifier.get_samples(kwargs["num_questions"])
 
         # Asking the user (gt_dataset) to answer the questions
         answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=self.classifier)
@@ -164,18 +79,12 @@ class ActiveLearningNoUi:
         #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
         # self.classifier.remove_matching_answers_from_test_set(answers)
 
-        # self training
-        if (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
-            print("Moving duplicated")
-            duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
-            self.classifier.move_answers_to_training_set(duplicated_answers)
-            #self.delete_temporary_labels(kwargs["index"], kwargs["session"], duplicated_answers)
-        # self.classifier.remove_matching_answers_from_test_set(duplicated_answers)
+        self.classifier.post_sampling() #In case you want, e.g., to move duplicated content
 
         # Present visualization to the user, so he can explore the proposed classification
         # ...
 
-        return scores, wrong_pred_answers
+        return self.classifier.scores, wrong_pred_answers
 
     def download_data(self, **kwargs):
 
@@ -185,13 +94,13 @@ class ActiveLearningNoUi:
             self.backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
 
             self.classifier.download_training_data(index=kwargs["index"], session=kwargs["session"],
-                                              field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                              field=kwargs["text_field"],
                                               debug_limit=kwargs["debug_limit"])
             self.classifier.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
-                                                  field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                                  field=kwargs["text_field"],
                                                   debug_limit=kwargs["debug_limit"])
             self.classifier.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
-                                             field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                             field=kwargs["text_field"],
                                              debug_limit=kwargs["debug_limit"])
 
     def clear_temporary_labels(self, index, session):
@@ -272,55 +181,56 @@ class ActiveLearningNoUi:
 
     def run(self, **kwargs):
 
-        try:
-            diff_accuracy = None
-            start_time = datetime.now()
-            accuracy = 0
-            prev_accuracy = 0
-            # stage_scores = []
+        #try:
+        diff_accuracy = None
+        start_time = datetime.now()
+        accuracy = 0
+        prev_accuracy = 0
+        # stage_scores = []
 
-            loop_index = 0
-            looping_clicks = 0
-            self.backend_logger.clear_logs()  # Just in case there is a file with the same name
+        loop_index = 0
+        looping_clicks = 0
+        self.backend_logger.clear_logs()  # Just in case there is a file with the same name
 
-            # Copy downloaded files
-            self.classifier.clone_original_files()
-            self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
+        # Copy downloaded files
+        self.classifier.clone_original_files()
+        self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
-            #Temporarily label them
-            #self.clear_temporary_labels(kwargs["index"], kwargs["session"])
-            self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
-            #time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
-            #self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
+        #Temporarily label them
+        #self.clear_temporary_labels(kwargs["index"], kwargs["session"])
+        self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
+        #time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
+        #self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
 
-            #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
-            loop_index = 0
-            while loop_index in range(100):  # and accuracy<1:
+        #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
+        loop_index = 0
+        while loop_index in range(100):  # and accuracy<1:
 
-                print("\n---------------------------------")
-                loop_index+=1
-                scores, wrong_pred_answers = self.loop(**kwargs)
-                looping_clicks += wrong_pred_answers
+            print("\n---------------------------------")
+            loop_index+=1
+            scores, wrong_pred_answers = self.loop(**kwargs)
+            looping_clicks += wrong_pred_answers
 
-                # if len(stage_scores) > 0:
-                #     accuracy = scores["accuracy"]
-                #     prev_accuracy = stage_scores[-1]["accuracy"]
-                #     diff_accuracy = abs(accuracy - prev_accuracy)
+            # if len(stage_scores) > 0:
+            #     accuracy = scores["accuracy"]
+            #     prev_accuracy = stage_scores[-1]["accuracy"]
+            #     diff_accuracy = abs(accuracy - prev_accuracy)
 
-                self.backend_logger.add_raw_log('{ "loop": ' + str(loop_index) +
-                                                ', "datetime": "' + str(datetime.now()) +
-                                                '", "accuracy": ' + str(scores["accuracy"]) +
-                                                ', "f1": ' + str(scores["f1"]) +
-                                                ', "recall": ' + str(scores["recall"]) +
-                                                ', "precision": ' + str(scores["precision"]) +
-                                                ', "positive_precision": ' + str(scores["positive_precision"]) +
-                                                ', "wrong_pred_answers": ' + str(wrong_pred_answers) + ' } \n')
-                # stage_scores.append(scores)
+            self.backend_logger.add_raw_log('{ "loop": ' + str(loop_index) +
+                                            ', "datetime": "' + str(datetime.now()) +
+                                            '", "accuracy": ' + str(scores["accuracy"]) +
+                                            ', "f1": ' + str(scores["f1"]) +
+                                            ', "recall": ' + str(scores["recall"]) +
+                                            ', "precision": ' + str(scores["precision"]) +
+                                            ', "positive_precision": ' + str(scores["positive_precision"]) +
+                                            ', "wrong_pred_answers": ' + str(wrong_pred_answers) + ' } \n')
+            # stage_scores.append(scores)
 
-            self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
-            self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
+        self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
+        self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
-        except Exception as e:
-             print(e)
+
+            #except Exception as e:
+            #    print(e)
         #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
         #     return [],[]

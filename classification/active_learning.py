@@ -71,8 +71,17 @@ class ActiveLearning:
         self.POS_CLASS_FOLDER = "confirmed"
         self.NEG_CLASS_FOLDER = "negative"
         self.NO_CLASS_FOLDER = "proposed"
-
         self.ENCODING = 'latin1'  # latin1
+
+    def get_samples(self, num_questions):
+        return self.sampler.get_samples(num_questions)
+
+    def post_sampling(self):
+        return self.sampler.post_sampling()
+
+    def set_sampling_strategy(self, sampler):
+        self.sampler = sampler
+        sampler.set_classifier(self)
 
     def clone_original_files(self):
         #try:
@@ -112,7 +121,7 @@ class ActiveLearning:
         total = int(res["total"])
         processed=len(res["results"])
 
-        self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+        self.write_data_in_folders(kwargs["field"], kwargs["folder"], res["results"])
 
         while scroll_size > 0:
             res = my_connector.loop_paginatedSearch(sid, scroll_size)
@@ -120,26 +129,17 @@ class ActiveLearning:
             processed += len(res["results"])
 
             # Writing the retrieved files into the folders
-            self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+            self.write_data_in_folders(kwargs["field"], kwargs["folder"], res["results"])
             if log_enabled:
                 print("Downloading: ", round(processed * 100 / total, 2), "%")
 
             if debug_limit:
                 print("\nDEBUG LIMIT\n")
                 res = my_connector.loop_paginatedSearch(sid, scroll_size)
-                self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res["results"])
+                self.write_data_in_folders(kwargs["field"], kwargs["folder"], res["results"])
                 scroll_size = 0
 
-        # print("\n-----total: ", total, " processed: ", processed, "\n")
         return total
-
-        # my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
-        # res = my_connector.bigSearch(kwargs["query"])
-        #
-        # self.write_data_in_folders(kwargs["field"], kwargs["is_field_array"], kwargs["folder"], res)
-        #
-        # return len(res)
-
 
     def get_langs_from_unlabeled_tweets(self, **kwargs):
 
@@ -220,39 +220,6 @@ class ActiveLearning:
 
         return unlabeled_ids
 
-    def get_samples_closer_to_hyperplane_bigrams_rt(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions, **kwargs):
-
-        # Getting
-        top_bigrams = self.get_top_bigrams(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])  #session=kwargs["session"] + "_tmp"
-        top_retweets = self.get_top_retweets(index=kwargs["index"], session=kwargs["session"], results_size=kwargs["max_samples_to_sort"])  #session=kwargs["session"] + "_tmp"
-
-        # compute absolute confidence for each unlabeled sample in each class
-        decision = model.decision_function(
-            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = model.predict(X_unlabeled)
-        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
-        if (len(categories) > 2):
-            confidences = np.average(confidences, axix=1)
-            print("when categories are more than 2")
-
-        sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
-
-        self.last_samples = sorted_samples_by_conf
-        self.last_confidences = confidences
-        self.last_predictions = predictions
-
-        question_samples = self.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.data_unlabeled, kwargs["max_samples_to_sort"]) # returns just unique (removes duplicated files)
-        # question_samples = sorted_samples_by_conf[0:kwargs["max_samples_to_sort"]].tolist()
-
-        formatted_samples = self.fill_questions(question_samples, predictions, confidences, categories, top_retweets, top_bigrams, kwargs["max_samples_to_sort"], kwargs["text_field"], kwargs["is_field_array"])
-
-        selected_samples =sorted(formatted_samples, key=lambda k: (kwargs["cnf_weight"] * k.get('cnf_pos', 0) + kwargs["ret_weight"] * k.get('ret_pos', 0) + kwargs["bgr_weight"] * k.get('bgr_pos', 0)), reverse=False)
-
-        selected_samples = selected_samples[0:num_questions]
-
-        return selected_samples
-
     def get_unique_sorted_samples_by_conf(self, sorted_samples_by_conf, data_unlabeled, max_docs):
 
         top_samples_indexes = []
@@ -297,30 +264,6 @@ class ActiveLearning:
             return matching_ngrams["aggregations"]["ngrams_count"]["buckets"]
         except KeyError as e:
             return []
-
-    def get_samples_closer_to_hyperplane(self, model, X_train, X_test, y_train, y_test, X_unlabeled, categories, num_questions):
-
-        # compute absolute confidence for each unlabeled sample in each class
-        #decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
-        decision = model.decision_function(
-            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = model.predict(X_unlabeled)
-        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
-        if (len(categories) > 2):
-            confidences = np.average(confidences, axix=1)
-            print("when categories are more than 2")
-
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
-        question_samples = sorted_samples[0:num_questions].tolist()
-
-        selected_samples = self.fill_questions(question_samples, predictions, confidences, categories)
-
-        self.last_samples = sorted_samples
-        self.last_confidences = confidences
-        self.last_predictions = predictions
-
-        return selected_samples
 
     # def classify_accurate_quartiles(self, **kwargs):  # min_acceptable_accuracy min_high_confidence
     #
@@ -379,13 +322,13 @@ class ActiveLearning:
 
         return confirmed_data, negative_data
 
-    def stringuify(self, field, is_field_array):
+    def stringuify(self, field):
 
-        if is_field_array:
+        if isinstance(field, list):
             return " ".join(field)
         else: return field
 
-    def write_data_in_folders(self, field, is_field_array, path, dataset):
+    def write_data_in_folders(self, field, path, dataset):
 
         #print("WRITTING FIELD: ", field)
 
@@ -394,7 +337,7 @@ class ActiveLearning:
 
         for tweet in dataset:
             try:
-                self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field], is_field_array))
+                self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field]))
             except KeyError as ke:
                print("Key value missing , maybe this tweet doesn't have the"+ field+"field.")
 
@@ -547,14 +490,13 @@ class ActiveLearning:
 
         self.clean_directories()
         self.download_training_data(index=kwargs["index"], session=kwargs["session"],
-                                               field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                               field=kwargs["text_field"],
                                                debug_limit=kwargs["debug_limit"])
         self.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
                                                    field=kwargs["text_field"],
-                                                   is_field_array=kwargs["is_field_array"],
                                                    debug_limit=kwargs["debug_limit"])
         self.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
-                                              field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                              field=kwargs["text_field"],
                                               debug_limit=kwargs["debug_limit"])
 
     def download_testing_data(self, **kwargs):
@@ -675,7 +617,6 @@ class ActiveLearning:
     def build_model(self, **kwargs):
 
         # Keep track of the last used params
-        self.num_questions = kwargs["num_questions"]
         self.remove_stopwords = kwargs["remove_stopwords"]
 
         # Starting the process
@@ -715,21 +656,20 @@ class ActiveLearning:
         X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
         print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
-        self.num_questions = kwargs["num_questions"]
         t0 = time()
 
-        clf = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         # fits the model according to the training set (passing its data and the vectorized feature)
         # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
         # normalized_X_train = scale(X_train, with_mean=False)
         scaler = preprocessing.StandardScaler(with_mean=False)
         scaler = scaler.fit(X_train)
 
-        normalized_X_train = scaler.transform(X_train)
-        clf.fit(normalized_X_train, y_train)
+        X_train = scaler.transform(X_train)
+        self.model.fit(X_train, y_train)
 
-        normalized_X_test = scaler.transform(X_test)
-        pred = clf.predict(normalized_X_test)
+        X_test = scaler.transform(X_test)
+        pred = self.model.predict(X_test)
 
         #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
         #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
@@ -767,20 +707,16 @@ class ActiveLearning:
         # pos_precision_score = metrics.precision_score(np.array(pos_y_test), np.array(pos_pred))
 
 
-        scores = {
+        self.scores = {
             "f1": score,
             "accuracy": accscore,
             "recall": recall_score,
             "precision": precision_score,
             "positive_precision": pos_precision_score
         }
+        self.X_unlabeled = scaler.transform(X_unlabeled)
 
-        normalized_X_unlabeled = scaler.transform(X_unlabeled)
-
-        return clf, normalized_X_train, normalized_X_test, y_train, y_test, normalized_X_unlabeled, self.categories, scores
-
-
-    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field="", is_field_array=False):
+    def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field=""):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
         print("max_samples_to_sort: ", max_samples_to_sort)
@@ -805,9 +741,10 @@ class ActiveLearning:
             j=0
             for retweet in top_retweets:  # Sorted from most to lower retweets
                 try:
-                    if is_field_array:
-                        analyzed_content = ' '.join(retweet["top_text_hits"]["hits"]["hits"][0]["_source"][text_field])  # TODO: FIXED POINT! this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field but we also need is_field_array to fully parametrize this
-                    else: analyzed_content = retweet["top_text_hits"]["hits"]["hits"][0]["_source"][text_field]
+                    target_field = retweet["top_text_hits"]["hits"]["hits"][0]["_source"][text_field]
+                    if isinstance(target_field, list):
+                        analyzed_content = ' '.join(target_field)  # TODO: FIXED POINT! this will fail if we download the text of the tweet instead of the bigram. We are receiving this field as text_field
+                    else: analyzed_content = target_field
 
                     if analyzed_content == question["analyzed_content"]:
                         question["ret_pos"] = j
@@ -840,7 +777,8 @@ class ActiveLearning:
             #print("Moving", question["filename"], " to ", dstDir)
             try:
                 shutil.move(question["filename"], dstDir)
-            except: print("...") #""Error: the file was not found in the training folder")  # This may happen since we are retrieving all the docs (we do not make changes in the dataset until the end of the process)
+            except:
+                pass  # print("...") #""Error: the file was not found in the training folder")  # This may happen since we are retrieving all the docs (we do not make changes in the dataset until the end of the process)
 
     def remove_matching_answers_from_test_set(self, labeled_questions):
 
@@ -1003,14 +941,95 @@ class ActiveLearning:
         ngram_counts = Counter(self.n_grams(full_text.split(), length))
         return ngram_counts.most_common(top_ngrams_to_retrieve)
 
+    def get_duplicated_answers(self, **kwargs):
 
-# classifier = ActiveLearning()
-# classifier.get_langs_from_unlabeled_tweets(
-#     index="twitterfdl2017",
-#     doc_type="tweet",
-#     host="localhost",
-#     port="9200"
-# )
-# classifier.start_learning()
-# classifier.clean_directories();
-# classifier.get_tweets_with_high_confidence();
+        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
+        duplicated_docs=[]
+
+        # IT SHOULD BE BETTER TO TRY GETTING THE DUPLICATES FROM THE MATRIX
+        splitted_questions = []
+        target_bigrams = []
+        for question in kwargs["questions"]:
+
+            splitted_questions.append(question)
+            if(len(splitted_questions)>99):
+                matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions, kwargs["text_field"], kwargs["similarity_percentage"])
+                duplicated_docs += matching_docs
+                splitted_questions=[] # re init
+
+        if len(splitted_questions)>0:
+            matching_docs = self.process_duplicated_answers(my_connector, kwargs["session"], splitted_questions, kwargs["text_field"], kwargs["similarity_percentage"])
+            duplicated_docs += matching_docs
+
+        return duplicated_docs
+
+    def join_ids(self, questions, field_name="filename"):
+
+        # print("all the questions", kwargs["questions"])
+        all_ids = ""
+        for question in questions:
+            # Adding the label field
+            question_id = self.extract_filename_no_ext(question[field_name])
+            all_ids += question_id + " or "
+
+        all_ids = all_ids[:-3]
+
+        return all_ids
+
+    def process_duplicated_answers(self, my_connector, session, splitted_questions, field, similarity_percentage):
+
+        duplicated_docs = []
+        concatenated_ids = self.join_ids(splitted_questions)
+        matching_docs = my_connector.search({
+            "query": {
+                "match": {
+                    "id_str": concatenated_ids
+                }
+            }
+        })
+
+        for doc_bigrams in matching_docs["hits"]["hits"]:
+
+            field_content = doc_bigrams["_source"][field]
+            bigrams_matches = []
+
+            if isinstance(field_content, list):
+                for f_content in field_content:
+                    bigrams_matches.append({"match": {field + ".keyword": f_content}})
+
+            else:
+                bigrams_matches.append({"match": {field + ".keyword": field_content}})
+
+            query = {
+                "query": {
+                    "bool": {
+                        "should": bigrams_matches,
+                        "minimum_should_match": similarity_percentage,
+                        "must": [{
+                            "exists": {"field": field}
+                        }, {
+                            "match": {
+                                session: "proposed"
+                            }
+                        }]
+                    }
+                }
+            }
+            # print("TARGET QUERY:\n", query)
+
+            docs_with_noise = my_connector.search(query)
+
+            if len(docs_with_noise["hits"]["hits"]) > 1:
+
+                for tweet in docs_with_noise["hits"]["hits"]:
+
+                    label = [doc for doc in splitted_questions if
+                             doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
+
+                    if tweet["_source"]["id_str"] not in concatenated_ids:
+                        duplicated_docs.append({
+                            "filename": tweet["_source"]["id_str"],
+                            "label": label
+                        })
+
+        return duplicated_docs

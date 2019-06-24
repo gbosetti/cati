@@ -471,7 +471,7 @@ def download_al_init_data():
     if(True==download_data): #This just downloads, then add code to copy to tmp_data
        classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
                              gt_session=data["gt_session"], text_field=data["text_field"],
-                             is_field_array=data["is_field_array"], debug_limit=debug_limit)
+                             debug_limit=debug_limit)
 
     return jsonify(True)
 

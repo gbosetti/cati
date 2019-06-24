@@ -9,7 +9,7 @@ import statistics
 import operator
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_old"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\experiment3_2017_s0102"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 
@@ -92,6 +92,8 @@ full_scenario_results = []
 top_accuracy_scenario_results = []
 top_precision_scenario_results = []
 
+meta_measurements = []
+
 for scenario_path in logs_folders:
 
     scenario_name = os.path.basename(os.path.normpath(scenario_path))
@@ -101,12 +103,15 @@ for scenario_path in logs_folders:
     session_files = [f for f in os.scandir(scenario_path) if not f.is_dir() ]
 
     # GET THE AVERAGES AND STDEVS (MEASUREMENTS) FOR EACH CONFIGURATION
+
     measurements = []
     for config_file in session_files:
 
         # For each configuration
         # Get the logs of the only file for HYP
         config = read_file(config_file.path)
+        config_name = get_config_name(config_file.name)
+        print(config_name)
         loops = [line for line in config if 'loop' in line]
 
         accuracies = [log["accuracy"] for log in loops]
@@ -122,7 +127,7 @@ for scenario_path in logs_folders:
         clicks_stdev = statistics.stdev(clicks)
 
         measurements.append({
-            "name": get_config_name(config_file.name),
+            "name": config_name,
             "accuracy_average": accuracy_average,
             "accuracy_stdev": accuracy_stdev,
             "precision_average": precision_average,
@@ -152,6 +157,9 @@ for scenario_path in logs_folders:
                              config["clicks_average"] == top_clicks["clicks_average"] and config[
                                  "clicks_stdev"] == top_clicks["clicks_stdev"]]
 
+    #full_ranking_top_click = [config["name"] for config in measurements]
+    meta_measurements.append(measurements)
+
     print("MEASUREMENTS (", scenario_name, ")")
     print(json.dumps(measurements, indent=4, sort_keys=True, ensure_ascii=False))
     # ("TOP BOTH FULL RANKING", measurements[0])
@@ -176,6 +184,10 @@ for scenario_path in logs_folders:
         }
     })
 
+
+
+
+
 # PRINT THE BEST CONFIGURATIONS
 print("BEST CONFIGS:", json.dumps(full_scenario_results, indent=4, sort_keys=True, ensure_ascii=False))
 
@@ -198,3 +210,26 @@ for config in unique_configs_names_precision:
 
 sorted_configs_precision.sort(key=lambda i: (i['count']), reverse=True)
 #print("SORTED TOP CONFIGS FOR PRECISION:", json.dumps(sorted_configs_precision, indent=4, sort_keys=True, ensure_ascii=False))
+
+
+
+print("META")
+meta_measurements
+all_configs = [config["name"] for config in meta_measurements[0]]
+accum_meta_configs =[]
+
+for config in all_configs:
+    avg=0
+    stdev = 0
+    for meta_config in meta_measurements:
+        config_avg = [c["clicks_average"] for c in meta_config if c["name"] == config]
+        avg+=config_avg[0]
+        config_stdev = [c["clicks_stdev"] for c in meta_config if c["name"] == config]
+        stdev += config_stdev[0]
+
+    accum_meta_configs.append({"name": config, "avg": avg, "stdev": stdev})
+
+accum_meta_configs.sort(key=lambda i: (-i['avg'], -i['stdev']), reverse=True)
+
+print("META")
+print(json.dumps(accum_meta_configs, indent=4, sort_keys=True, ensure_ascii=False))
