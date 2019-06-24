@@ -185,31 +185,33 @@ class DuplicatedDocsSampler(ActiveLearningSampler):
         for doc_bigrams in matching_docs["hits"]["hits"]:
 
             field_content = doc_bigrams["_source"][field]
-            bigrams_matches = []
+            #bigrams_matches = []
 
             if isinstance(field_content, list):
-                for f_content in field_content:
-                    bigrams_matches.append({"match": {field + ".keyword": f_content}})
-
-            else:
-                bigrams_matches.append({"match": {field + ".keyword": field_content}})
+                #for f_content in field_content:
+                    #bigrams_matches.append({"match": {field + ".keyword": f_content}})
+                raise NameError('Hi there. Please implement this or just use a non-array field. E.g. text or text_images instead of 2grams.')
 
             query = {
                 "query": {
                     "bool": {
-                        "should": bigrams_matches,
-                        "minimum_should_match": similarity_percentage,
-                        "must": [{
-                            "exists": {"field": field}
-                        }, {
-                            "match": {
-                                session: "proposed"
-                            }
-                        }]
+                        #"should": bigrams_matches,
+                        #"minimum_should_match": similarity_percentage,
+                        "must": [
+                            {
+                                "match":{ "text_images": field_content }
+                            },
+                            {
+                                "match": {session: "proposed"}
+                            },
+                            {
+                                "exists": {"field": field}
+                            },
+                        ]
                     }
                 }
             }
-            # print("TARGET QUERY:\n", query)
+            print("TARGET QUERY:\n", query)
 
             docs_with_noise = my_connector.search(query)
 
@@ -225,5 +227,6 @@ class DuplicatedDocsSampler(ActiveLearningSampler):
                             "filename": tweet["_source"]["id_str"],
                             "label": label
                         })
+                        print(tweet["_source"]["text_images"])
 
         return duplicated_docs
