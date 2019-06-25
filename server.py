@@ -22,6 +22,9 @@ from classification.active_learning import ActiveLearning
 from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.ngram_based_classifier import NgramBasedClasifier
 
+# rest
+from flask_restful import Resource, Api, reqparse
+
 
 # mabed
 from mabed.functions import Functions
@@ -30,6 +33,9 @@ app = Flask(__name__, static_folder='browser/static', template_folder='browser/t
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 app.backend_logger = BackendLogger()
+
+# restful api
+api = Api(app)
 
 functions = Functions()
 SELF = "'self'"
@@ -269,6 +275,37 @@ def get_geo_coordinates():
     data = request.form
     index = data['index']
     geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date
+    }
+    return jsonify(result)
+
+
+class Maps(Resource):
+    def get(self, index_name, session_name):
+        # return the tweets for the index with only the given session and in the geospatial tweets in a geoJson format
+        args = parser.parse_args()
+        startDate = args['startDate']
+        endDate = args['endDate']
+        geo,_,_ = functions.get_geo_coordinates(index=index_name)
+        #TODO : add parameters to the query, place, date, label and keyword
+        return {'geo': geo, "date": startDate, "endDate": endDate}
+
+
+parser = reqparse.RequestParser()
+parser.add_argument('startDate')
+parser.add_argument('endDate')
+parser.add_argument('endDate')
+api.add_resource(Maps, '/maps/<string:index_name>/<string:session_name>', endpoint="/maps")
+
+# Get all tweets with places
+@app.route('/get_geo_places', methods=['POST'])
+def get_geo_places():
+    data = request.form
+    index = data['index']
+    geo,min_date,max_date = functions.get_geo_places(index=index)
     result = {
         "geo":geo,
         "min_date":min_date,
