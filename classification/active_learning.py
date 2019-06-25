@@ -72,6 +72,7 @@ class ActiveLearning:
         self.NEG_CLASS_FOLDER = "negative"
         self.NO_CLASS_FOLDER = "proposed"
         self.ENCODING = 'latin1'  # latin1
+        self.loop_index = 0
 
     def get_samples(self, num_questions):
         return self.sampler.get_samples(num_questions)
@@ -768,6 +769,36 @@ class ActiveLearning:
         return complete_question_samples
 
 
+    def update_answers_labels_in_index(self, labeled_questions, index, session):
+
+        print("Marking answers in elastic")
+        for question in labeled_questions:
+            #print("Moving", question["filename"], " to ", dstDir)
+            try:
+                Es_connector(index=index).update_by_query({
+                    "query": {
+                        "match": {
+                            "id_str": question["filename"]
+                        }
+                    }
+                }, "ctx._source." + session + " = '" + question["label"] + "'")
+            except:
+                print("...")
+
+                {
+                    "script": {
+                        "source": "ctx._source.session_lyon2017_test_03 = params.label",
+                        "params": {
+                            "label": "proposed"
+                        }
+                    },
+                    "query": {
+                        "match": {
+                            "id_str": "..."
+                        }
+                    }
+                }
+
     def move_answers_to_training_set(self, labeled_questions):
 
         print("Moving docs into the training subfolders")
@@ -926,17 +957,17 @@ class ActiveLearning:
     def most_frequent_n_grams(self, tweet_texts, length=2, top_ngrams_to_retrieve=None, remove_stopwords=True, stemming=True):
 
         full_text = "".join(tweet_texts)
-        print(full_text)
+        #print(full_text)
 
         if remove_stopwords:
             punctuation = list(string.punctuation + "…" + "..." + "’" + "️" + "'" + '🔴' + '•')
             multilang_stopwords = self.get_stopwords_for_langs(self.langs) + ["Ã", "RT"] + punctuation
             tokenized_text = word_tokenize(full_text)  # tknzr = TweetTokenizer()             tokenized_text = tknzr.tokenize(full_text)
-            print("Detected tokens:", len(tokenized_text), tokenized_text)
+            #print("Detected tokens:", len(tokenized_text), tokenized_text)
             filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
-            print("Tokens after removing stop-words:", len(filtered_words), filtered_words)
+            #print("Tokens after removing stop-words:", len(filtered_words), filtered_words)
             full_text = " ".join(filtered_words)
-            print("FULL TEXT", full_text)
+            #print("FULL TEXT", full_text)
 
         ngram_counts = Counter(self.n_grams(full_text.split(), length))
         return ngram_counts.most_common(top_ngrams_to_retrieve)

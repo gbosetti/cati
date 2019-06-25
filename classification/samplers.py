@@ -1,5 +1,6 @@
 import numpy as np
 from mabed.es_connector import Es_connector
+import os
 
 # Sampling methods: UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 
@@ -93,15 +94,18 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         self.last_questions = selected_samples[0:num_questions]
         return self.last_questions
 
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
-class DuplicatedDocsSampler(ActiveLearningSampler):
+class MoveDuplicatedDocsSampler(ActiveLearningSampler):
 
     def __init__(self, **kwargs):
 
         self.index = kwargs["index"]
         self.session = kwargs["session"]
         self.text_field = kwargs["text_field"]
-        self.similarity_percentage = "75%"
+        self.similarity_percentage = kwargs["similarity_percentage"]
         return
 
     def get_samples(self, num_questions):
@@ -125,14 +129,15 @@ class DuplicatedDocsSampler(ActiveLearningSampler):
 
     def post_sampling(self):
         print("Moving duplicated documents")
-        duplicated_answers = self.get_duplicated_answers(questions=self.last_questions,
+        duplicated_answers = self.get_similar_docs(questions=self.last_questions,
                                                                     index=self.index,
                                                                     session=self.session,
                                                                     text_field=self.text_field,
                                                                     similarity_percentage=self.similarity_percentage)
         self.classifier.move_answers_to_training_set(duplicated_answers)
 
-    def get_duplicated_answers(self, **kwargs):
+
+    def get_similar_docs(self, **kwargs):
 
         my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
         duplicated_docs = []
@@ -140,6 +145,7 @@ class DuplicatedDocsSampler(ActiveLearningSampler):
         # IT SHOULD BE BETTER TO TRY GETTING THE DUPLICATES FROM THE MATRIX
         splitted_questions = []
         target_bigrams = []
+        # Process by 90
         for question in kwargs["questions"]:
 
             splitted_questions.append(question)
@@ -195,23 +201,30 @@ class DuplicatedDocsSampler(ActiveLearningSampler):
             query = {
                 "query": {
                     "bool": {
-                        #"should": bigrams_matches,
-                        #"minimum_should_match": similarity_percentage,
                         "must": [
                             {
-                                "match":{ "text_images": field_content }
+                                "more_like_this": {
+                                    "fields": [
+                                        "text_images"
+                                    ],
+                                    "like": field_content,
+                                    "min_term_freq": 1,
+                                    "max_query_terms": 25,
+                                    "minimum_should_match": similarity_percentage
+                                }
                             },
                             {
                                 "match": {session: "proposed"}
                             },
                             {
                                 "exists": {"field": field}
-                            },
+                            }
                         ]
                     }
                 }
             }
-            print("TARGET QUERY:\n", query)
+            #print("TARGET QUERY:\n", query)
+            #print(similarity_percentage)
 
             docs_with_noise = my_connector.search(query)
 
@@ -225,8 +238,112 @@ class DuplicatedDocsSampler(ActiveLearningSampler):
                     if tweet["_source"]["id_str"] not in concatenated_ids:
                         duplicated_docs.append({
                             "filename": tweet["_source"]["id_str"],
-                            "label": label
+                            "target_label": label,
+                            "text_images": tweet["_source"]["text_images"]
                         })
-                        print(tweet["_source"]["text_images"])
+                        #print(tweet["_source"]["text_images"])
 
         return duplicated_docs
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
+
+    def __init__(self, **kwargs):
+
+        MoveDuplicatedDocsSampler.__init__(self, **kwargs)
+        self.similar_docs = {}
+        self.confident_loop = kwargs["confident_loop"]
+        return
+
+    def post_sampling(self):
+
+        # Getting similar docs
+        docs = self.get_similar_docs(questions=self.last_questions, index=self.index, session=self.session,
+                                             text_field=self.text_field, similarity_percentage=self.similarity_percentage)
+
+        docs = self.fill_docs_with_predictions(docs, self.classifier.last_confidences, self.classifier.last_predictions, self.classifier.categories)
+
+        self.process_similar_docs(docs)
+        #self.remove_not_consecutive_similar_docs(docs) # purge
+
+        # If tere are docs with a high confidence label for more than X loops, then we move them to the training set
+        ht_docs = self.high_trust_similar_documents()
+        if len(ht_docs)>0:
+            self.classifier.move_answers_to_training_set(docs)
+            # self.classifier.update_answers_labels_in_index()
+
+    def fill_docs_with_predictions(self, docs, confidences, predictions, categories):
+
+        print("Filling duplicated documents with predictions. Total docs: ", len(docs))
+        #total_documents = len(docs)
+        #accum_docs = 0
+
+        found_docs_predictions = []  # If you are using the debu version, you may not found all the duplicated docs (since your unlabeled set is smaller, but we are looking for duplicated docs in the full unlabeled set)
+        for doc in docs:
+
+            for f_path in self.classifier.data_unlabeled.filenames:
+                f_name = os.path.splitext(os.path.basename(os.path.normpath(f_path)))[0]
+
+                if f_name == doc["filename"]:
+                    f_index, = np.where(self.classifier.data_unlabeled.filenames == f_path)[0]
+
+                    doc["confidence"] = confidences[f_index]
+                    doc["label"] = categories[int(predictions[f_index])]
+                    #f_text_images = self.classifier.data_unlabeled.data[f_index]
+
+                    found_docs_predictions.append(doc)
+
+                    break
+
+            #accum_docs+=1
+            #print(accum_docs*100/total_documents, "%")
+
+        return found_docs_predictions
+
+    def get_unique_docs(self, new_similar_docs):
+
+        unique_ids = set()
+        unique_docs = set()
+
+        for doc in new_similar_docs:
+            if doc["filename"] not in unique_ids:
+                unique_ids.add(doc["filename"])
+                unique_docs.add(doc)
+
+        return list(unique_docs)
+
+    def process_similar_docs(self, docs):
+
+        #For a matter of performance, we do not traverse the array twice
+        docs_ready_to_move = []
+
+        for doc in docs:
+            doc_id = doc["filename"]
+
+            prev_label=None
+            if self.similar_docs.get(doc_id, None) != None:
+                prev_label = self.similar_docs.get(doc_id, None)["label"]
+
+            self.similar_docs[doc_id] = {
+                "accum": self.similar_docs.get(doc_id, {"accum":0})["accum"] + 1,
+                #"last_loop_update": self.classifier.loop_index,
+                "label": doc["label"],
+                "confidence": doc["confidence"]
+            }
+
+            # Remove those docs which labeld do not match from loop to loop
+            if prev_label != None and prev_label != doc["label"]:
+                del self.similar_docs[doc_id]
+
+            # Collect and remove those docs which are there for more than X loops
+            if self.similar_docs[doc_id]["accum"] >= self.confident_loop:
+                docs_ready_to_move.append(self.similar_docs[doc_id])
+                del self.similar_docs[doc_id]
+
+        self.classifier.move_answers_to_training_set(docs_ready_to_move)
+
+    def high_trust_similar_documents(self):
+        return []

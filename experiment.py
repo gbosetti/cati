@@ -1,5 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
-from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
+from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
 import argparse
 import itertools
 import os
@@ -82,14 +82,22 @@ parser.add_argument("-sc",
 parser.add_argument("-sm",
                     "--sampling_methods",
                     dest="sampling_methods",
-                    help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler",
+                    help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler",
                     default=False)
 
 parser.add_argument("-sp",
-                    "--similarity_percentage",
-                    dest="similarity_percentage",
-                    help="A number followed by the % symbol. XX%",
+                    "--similarity_percentages",
+                    dest="similarity_percentages",
+                    help="A number followed by the % symbol. XX%. If you specify different percentages separate them with comma (not spaces)",
                     default="75%")
+
+parser.add_argument("-cl",
+                    "--confident_loops",
+                    dest="confident_loops",
+                    help="A number indicating at which amount of loops a similar document should be considered confident to move. If you specify different percentages separate them with comma (not spaces)",
+                    default="3")
+
+
 
 def to_boolean(str_param):
     if isinstance(str_param, bool):
@@ -107,6 +115,9 @@ if args.index is None or args.session is None or args.gt_session is None:
 download_files = to_boolean(args.download_files)
 debug_limit = to_boolean(args.debug_limit)
 clear_results = to_boolean(args.clear_results)
+sampling_methods = args.sampling_methods.split(',')
+similarity_percentages = args.similarity_percentages.split(',')
+confident_loops = args.confident_loops.split(',')
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -159,7 +170,7 @@ if download_files:
 for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
-    if 'UncertaintySampler' in args.sampling_methods:
+    if 'UncertaintySampler' in sampling_methods:
 
         print("\nRunning hyperplane strategy\n")
         logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
@@ -170,7 +181,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                     text_field=args.text_field)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
-    if 'BigramsRetweetsSampler' in args.sampling_methods:
+    if 'BigramsRetweetsSampler' in sampling_methods:
         for weights in selected_combinations:
 
             print("Looping with weights: ", weights)
@@ -185,16 +196,34 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                         gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
                         text_field=args.text_field)
 
-    if 'DuplicatedDocsSampler' in args.sampling_methods:
+    if 'MoveDuplicatedDocsSampler' in sampling_methods:
 
-        print("\nRunning the DuplicatedDocsSampler strategy\n")
+        print("\nRunning the MoveDuplicatedDocsSampler strategy\n")
 
-        logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
-        sampler = DuplicatedDocsSampler(index=args.index, session=args.session,
-                text_field=args.text_field, similarity_percentage=args.similarity_percentage)
-        learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-        learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field)
+        for similarity_percentage in similarity_percentages:
 
+            print("Looping with percentages: ", similarity_percentage)
+            logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
+            sampler = MoveDuplicatedDocsSampler(index=args.index, session=args.session,
+                    text_field=args.text_field, similarity_percentage=similarity_percentage)
+            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+            learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                        min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                        text_field=args.text_field)
 
+    if 'ConsecutiveDeferredMovDuplicatedDocsSampler' in sampling_methods:
+
+        print("\nRunning the ConsecutiveDeferredMovDuplicatedDocsSampler strategy\n")
+
+        for similarity_percentage in similarity_percentages:
+            for confident_loop in confident_loops:
+
+                print("Looping with percentages: ", similarity_percentage)
+                logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
+                sampler = ConsecutiveDeferredMovDuplicatedDocsSampler(index=args.index, session=args.session,
+                        text_field=args.text_field, similarity_percentage=similarity_percentage,
+                        confident_loop=int(confident_loop))
+                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                            text_field=args.text_field)

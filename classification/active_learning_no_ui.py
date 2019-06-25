@@ -76,6 +76,7 @@ class ActiveLearningNoUi:
 
         # Injecting the answers in the training set, and re-training the model
         self.classifier.move_answers_to_training_set(answers)
+        #self.classifier.move
         #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
         # self.classifier.remove_matching_answers_from_test_set(answers)
 
@@ -188,7 +189,6 @@ class ActiveLearningNoUi:
         prev_accuracy = 0
         # stage_scores = []
 
-        loop_index = 0
         looping_clicks = 0
         self.backend_logger.clear_logs()  # Just in case there is a file with the same name
 
@@ -208,6 +208,7 @@ class ActiveLearningNoUi:
 
             print("\n---------------------------------")
             loop_index+=1
+            self.classifier.loop_index = loop_index
             scores, wrong_pred_answers = self.loop(**kwargs)
             looping_clicks += wrong_pred_answers
 
