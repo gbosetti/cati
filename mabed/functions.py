@@ -1087,15 +1087,47 @@ class Functions:
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append({
-                "type": "Feature",
-                "geometry": tweet['_source']['coordinates'],
-                "properties": {
-                    "tweet": tweet['_source']
-                }
-            })
+            features.append(self.tweet_coordiantes_geojson(tweet))
 
-        return features,min_date,max_date
+
+        return self.as_geojson(features),min_date,max_date
+
+    def as_geojson(self,features):
+
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
+
+
+    def get_geo_places(self,index):
+        query = {
+            "query": {
+                "exists": {
+                    "field": "place.bounding_box"
+                }
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append(self.tweet_place_geojson(tweet))
+
+        return self.as_geojson(features),min_date,max_date
 
     def get_geo_coordinates_date(self,index,date_range):
         query = {
@@ -1137,15 +1169,39 @@ class Functions:
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append({
-                "type": "Feature",
-                "geometry": tweet['_source']['coordinates'],
-                "properties": {
-                    "tweet": tweet['_source']
-                }
-            })
+            features.append(self.tweet_coordiantes_geojson(tweet))
 
-        return features,min_date,max_date
+        return self.as_geojson(features),min_date,max_date
+
+# Put the tweets containing geospatial data inside a FeatureCollection
+    def tweets_as_geojson(self, res):
+        feature = []
+        for tweet in res['hits']['hits']:
+            if 'coordinates' in tweet['_source']:
+                feature.append(self.tweet_coordiantes_geojson(tweet))
+            elif ['place'] in tweet['_source']:
+                feature.append(self.tweet_place_geojson(tweet))
+
+        return feature
+
+    def tweet_place_geojson(self,tweet):
+        return {
+            "type": "Feature",
+            "geometry": tweet['_source']['place']['bounding_box'],
+            "properties": {
+                "tweet": tweet['_source']
+            }
+        }
+
+    def tweet_coordiantes_geojson(self,tweet):
+        return {
+            "type": "Feature",
+            "geometry": tweet['_source']['coordinates'],
+            "properties": {
+                "tweet": tweet['_source']
+            }
+        }
+
 
     def get_geo_coordinates_polygon(self,index, coordinates):
         query = {
@@ -1184,14 +1240,7 @@ class Functions:
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append({
-                "type": "Feature",
-                "geometry": tweet['_source']['coordinates'],
-                "properties": {
-                    "tweet": tweet['_source']
-                }
-            })
-
+            features.append(self.tweet_coordiantes_geojson(tweet))
         return features,min_date,max_date
 
     def get_geo_coordinates_polygon_date_range(self,index, coordinates,date_range):
@@ -1242,13 +1291,7 @@ class Functions:
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append({
-                "type": "Feature",
-                "geometry": tweet['_source']['coordinates'],
-                "properties": {
-                    "tweet": tweet['_source']
-                }
-            })
+            features.append(self.tweet_coordiantes_geojson(tweet))
 
         return features,min_date,max_date
 
