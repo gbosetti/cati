@@ -1,8 +1,8 @@
 require 'date'
+require 'nokogiri'
 
 def register(params)
-    @date_field = params["date_field"]
-    @date_format = params["date_format"]
+
 end
 
 
@@ -10,7 +10,15 @@ def filter(event)
     #event.set("timestamp_ms", DateTime.parse(event.get("published")).to_time.to_i)
     #event.set("timestamp_ms", DateTime.parse(event.get("published")).strftime('%Q'))
     #timestamp = DateTime.parse(event.get("published")).to_time
-    timestamp = DateTime.strptime(event.get(@date_field), @date_format).strftime('%Q')
-    event.set("timestamp_ms", timestamp )
+    original_text = event.get("text")
+    doc = Nokogiri::HTML(original_text)
+    doc.xpath('//text()').each do |node|
+        node.content = node.content.gsub("\n","")
+        node.content = " " + node.content + " "
+    end
+
+    text = doc.text
+
+    event.set("text", text )
     return [event]
 end
