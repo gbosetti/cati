@@ -264,16 +264,9 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
         docs = self.get_similar_docs(questions=self.last_questions, index=self.index, session=self.session,
                                              text_field=self.text_field, similarity_percentage=self.similarity_percentage)
 
-        docs = self.fill_docs_with_predictions(docs, self.classifier.last_confidences, self.classifier.last_predictions, self.classifier.categories)
-
-        self.process_similar_docs(docs)
-        #self.remove_not_consecutive_similar_docs(docs) # purge
-
-        # If tere are docs with a high confidence label for more than X loops, then we move them to the training set
-        ht_docs = self.high_trust_similar_documents()
-        if len(ht_docs)>0:
-            self.classifier.move_answers_to_training_set(docs)
-            # self.classifier.update_answers_labels_in_index()
+        # docs = self.fill_docs_with_predictions(docs, self.classifier.last_confidences, self.classifier.last_predictions, self.classifier.categories)
+        self.append_similar_docs(docs)
+        self.process_all_similar_docs()
 
     def fill_docs_with_predictions(self, docs, confidences, predictions, categories):
 
@@ -281,8 +274,13 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
         #total_documents = len(docs)
         #accum_docs = 0
 
+
+
         found_docs_predictions = []  # If you are using the debu version, you may not found all the duplicated docs (since your unlabeled set is smaller, but we are looking for duplicated docs in the full unlabeled set)
         for doc in docs:
+
+            # filtered_doc = [f_path for f_path in self.classifier.data_unlabeled.filenames if
+            # os.path.splitext(os.path.basename(f_path))[0] == doc["filename"]]
 
             for f_path in self.classifier.data_unlabeled.filenames:
                 f_name = os.path.splitext(os.path.basename(os.path.normpath(f_path)))[0]
@@ -315,35 +313,69 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
 
         return list(unique_docs)
 
-    def process_similar_docs(self, docs):
+    def append_similar_docs(self, docs):
 
         #For a matter of performance, we do not traverse the array twice
-        docs_ready_to_move = []
-
         for doc in docs:
             doc_id = doc["filename"]
 
-            prev_label=None
-            if self.similar_docs.get(doc_id, None) != None:
-                prev_label = self.similar_docs.get(doc_id, None)["label"]
-
             self.similar_docs[doc_id] = {
-                "accum": self.similar_docs.get(doc_id, {"accum":0})["accum"] + 1,
-                #"last_loop_update": self.classifier.loop_index,
-                "label": doc["label"],
-                "confidence": doc["confidence"]
+                "accum": self.similar_docs.get(doc_id, {"accum":0})["accum"],
+                "label": None, # doc["label"], We'll do it later to avoid doing it twice
+                "confidence": None # doc["confidence"]
             }
 
-            # Remove those docs which labeld do not match from loop to loop
-            if prev_label != None and prev_label != doc["label"]:
+    def process_all_similar_docs(self):
+
+        docs_ready_to_move = []
+        print("Updating similar docs. Total: ", len(self.similar_docs))
+
+        for doc_id in self.similar_docs.copy():
+
+            # Get the predictions on this loop...
+            prev_label = self.similar_docs[doc_id]["label"]
+            prediction = self.get_prediction(doc_id)
+
+            # Remove those docs which labeld do not match from loop to loop. Increase the others',
+            # and add the label and confidence
+            # prediction could be None if we are in debug mode
+            if prediction == None or (prev_label != None and prev_label != prediction["label"]):
                 del self.similar_docs[doc_id]
+            else:
+                self.similar_docs[doc_id]["accum"] += 1
+                self.similar_docs[doc_id]["label"] = prediction["label"]
+                self.similar_docs[doc_id]["confidence"] = prediction["confidence"]
 
-            # Collect and remove those docs which are there for more than X loops
-            if self.similar_docs[doc_id]["accum"] >= self.confident_loop:
-                docs_ready_to_move.append(self.similar_docs[doc_id])
-                del self.similar_docs[doc_id]
+                # Collect and remove those docs which are there for more than X loops
+                if self.similar_docs[doc_id]["accum"] >= self.confident_loop:
+                    # docs_ready_to_move[doc_id] = self.similar_docs[doc_id]
+                    self.similar_docs[doc_id]["str_id"] = doc_id
+                    self.similar_docs[doc_id]["filename"] = prediction["filename"]
+                    docs_ready_to_move.append(self.similar_docs[doc_id])
+                    # del self.similar_docs[doc_id] RuntimeError: dictionary changed size during iteration
 
-        self.classifier.move_answers_to_training_set(docs_ready_to_move)
+        if len(docs_ready_to_move)>0:
 
-    def high_trust_similar_documents(self):
-        return []
+            for doc in docs_ready_to_move:
+                del self.similar_docs[doc["str_id"]]
+
+            self.classifier.move_answers_to_training_set(docs_ready_to_move)
+
+    def get_prediction(self, doc_id):
+
+        pred = None
+
+        for f_path in self.classifier.data_unlabeled.filenames:
+            f_name = os.path.splitext(os.path.basename(os.path.normpath(f_path)))[0]
+
+            if f_name == doc_id:
+                f_index, = np.where(self.classifier.data_unlabeled.filenames == f_path)[0]
+
+                pred = {}
+                pred["confidence"] = self.classifier.last_confidences[f_index]
+                pred["label"] = self.classifier.categories[int(self.classifier.last_predictions[f_index])]
+                pred["filename"] = self.classifier.data_unlabeled.filenames[f_index]
+                # f_text_images = self.classifier.data_unlabeled.data[f_index]
+                break
+
+        return pred

@@ -720,7 +720,7 @@ class ActiveLearning:
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field=""):
 
         # AT THIS POINT IT LEARNS OR IT USES THE DATA
-        print("max_samples_to_sort: ", max_samples_to_sort)
+        # print("max_samples_to_sort: ", max_samples_to_sort)
         complete_question_samples = []
         i=0
         for index in conf_sorted_question_samples: # Sorted from lower to higher confidence (lower = closer to the hyperplane)

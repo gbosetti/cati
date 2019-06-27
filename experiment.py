@@ -95,7 +95,7 @@ parser.add_argument("-cl",
                     "--confident_loops",
                     dest="confident_loops",
                     help="A number indicating at which amount of loops a similar document should be considered confident to move. If you specify different percentages separate them with comma (not spaces)",
-                    default="3")
+                    default="2")
 
 
 
