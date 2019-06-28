@@ -365,16 +365,13 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
                         self.similar_docs[doc_id]["str_id"] = doc_id
                         self.similar_docs[doc_id]["filename"] = prediction["filename"]
                         docs_ready_to_move.append(self.similar_docs[doc_id])
-                        # del self.similar_docs[doc_id] RuntimeError: dictionary changed size during iteration
+                        del self.similar_docs[doc_id]
 
         print("Kept docs: ", len(self.similar_docs))
 
         if len(docs_ready_to_move)>0:
 
-            print("Moving docs: ", len(docs_ready_to_move))
-            for doc in docs_ready_to_move:
-                del self.similar_docs[doc["str_id"]]
-
+            print("Moving docs with conf. " + str(self.target_min_confidence) + ": ", len(docs_ready_to_move))
             self.classifier.move_answers_to_training_set(docs_ready_to_move)
 
     def get_prediction(self, doc_id):

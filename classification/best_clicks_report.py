@@ -8,7 +8,7 @@ import re
 import csv
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\2015_foot_dupl"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\2015_foot_dupl_with_conf"
 output_path = "C:\\Users\\gbosetti\\Desktop\\RESULTS\\"
 prefix_config_name = "football_"
 
@@ -136,9 +136,9 @@ configs = []
 values_by_loop = {}
 loop_prefix = "loop "
 
-def get_config_value(prop_name, full_text):
+def get_config_value(prop_name, full_text, length=3):
     start_index = full_text.index(prop_name) + len(prop_name)
-    end_index = start_index + 3
+    end_index = start_index + length
 
     return full_text[start_index:end_index]
 
@@ -153,7 +153,7 @@ def get_config_name(full_text, descriptor):
 
     dupl = re.search(r'DDS', full_text, re.M | re.I)
     if dupl is not None:
-        return "DDS " + get_config_value("_loops", full_text) + "(" + scenario + ")"
+        return "DDS_loops" + get_config_value("_loops", full_text) + "_conf" + get_config_value("_conf", full_text, 5) + "(" + scenario + ")"
 
     cnf = str(int(float(get_config_value("_cnf", full_text))*100))
     ret = str(int(float(get_config_value("_ret", full_text))*100))
