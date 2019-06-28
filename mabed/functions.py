@@ -1411,7 +1411,7 @@ class Functions:
         })
 
     # Add new session
-    def add_session(self, name, index, **kwargs):
+    def add_session(self, name, index,**kwargs):
 
         try:
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
@@ -1446,6 +1446,96 @@ class Functions:
                 kwargs["logger"].add_log("There are no documents in the selected index.")
                 return False
 
+        except RequestError as e:  # This is the correct syntax
+            print(e)
+            return False
+
+    def create_session_from_multiclassification(self, index, doc_type, field, logger):
+        my_connector = Es_connector(index=index, doc_type=doc_type)
+        fields = my_connector.field_values(field, size=100)
+        print(fields)
+        number_fields = len(fields)
+        for field_tuple in fields:
+            field_value = field_tuple['key']
+            logger.clear_logs()
+            print("adding session to index: ",index)
+            if self.add_multisession(name=field_value.replace(' ','_').lower(),index=index,field=field,field_value=field_value, number_fields=number_fields,doc_type=doc_type, initial_value='negative',logger=logger):
+                print('session created')
+        print("finish to create sessions")
+        return 3
+
+
+    # Add new session
+    def add_multisession(self, name, index, field,field_value,number_fields,doc_type="tweet", **kwargs):
+
+        try:
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+            es = Elasticsearch([{'host': my_connector.host, 'port': my_connector.port}])
+
+            if not es.indices.exists(index=self.sessions_index):
+                self.create_mabed_sessions_index(es)
+                kwargs["logger"].add_log("The existence of the " + self.sessions_index + " index was checked")
+
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+            session = self.get_session_by_Name(name)
+
+            if session['hits']['total'] == 0:
+                self.fix_read_only_allow_delete(self.sessions_index,
+                                                my_connector)  # Just in case we import it and the property isn't there
+                # Creating the new entry in the mabed_sessions
+                res = my_connector.post({
+                    "s_name": name,
+                    "s_index": index,
+                    "s_type": "tweet"
+                })
+                # Adding the session's field in the existing dataset
+                print('connecting to index:',index)
+                tweets_connector = Es_connector(index=index, doc_type=doc_type)
+                self.fix_read_only_allow_delete(index, tweets_connector)
+
+                kwargs["logger"].add_log("Starting with the labeling of the session's tweet to 'proposed'")
+                print('setting session value to confirmed')
+                source = "ctx._source['session_" + name + "'] = 'confirmed'"
+                query = {
+                    "query": {
+                        "bool": {
+                            "must": {
+                                "match": {
+                                    field: field_value
+                                }
+                            }
+                        }
+                    }
+                }
+                print(source, query)
+                while not tweets_connector.update_by_query(query,source ):
+                    print("retry:", query, source)
+
+                kwargs["logger"].add_log("The tweets labels were successfully updated to the 'proposed' state")
+
+                print('changing values')
+                source= "ctx._source['session_" + name + "'] = 'negative'"
+                query = {
+                    "query": {
+                        "bool":{
+                            "must_not":{
+                                "match": {
+                                    field: field_value
+                                }
+                            }
+                        }
+                    }
+                }
+                print("index: ",index)
+                while not tweets_connector.update_by_query(query, source ):
+                    print("try", query, source)
+                return res
+            else:
+                print(session)
+                print("============================================================================")
+                kwargs["logger"].add_log("There are no documents in the selected index.")
+                return False
         except RequestError as e:  # This is the correct syntax
             print(e)
             return False
