@@ -833,7 +833,11 @@ def event_image():
     image = functions.get_event_image(index, main_term, related_terms, s_name)
     res = False
     if image:
-        image = image['hits']['hits'][0]['_source']
+        try:
+            image = image['hits']['hits'][0]['_source']
+        except IndexError as ie:
+            print("query:",data)
+            print("image:",image)
         res = True
     return jsonify({"result":res, "image": image})
 
@@ -1521,6 +1525,15 @@ def get_session_results():
     return jsonify({"result": status, "body": res})
 
 
+@app.route('/create_session_from_multiclassification', methods=['POST'])
+def create_session_from_multiclassification():
+    data = request.get_json()
+    index = data['index']
+    doc_type = data['doc_type']
+    field = data['field']
+    print("Creating new sessions", index, doc_type,field)
+    functions.create_session_from_multiclassification(index,doc_type,field, logger=app.backend_logger)
+    return jsonify({"value":3})
 # ==================================================================
 # 6. Main
 # ==================================================================
