@@ -951,3 +951,22 @@ class Es_connector:
             fields=[field]
         )
         return len(res[(next(iter(res)))]['mappings'])  > 0
+
+    def field_values(self,field, size=10):
+        body = {
+            "aggs": {
+                "field_values": {
+                    "terms": {
+                        "field": field,
+                        "size": size
+                    }
+                }
+            }
+        }
+        data = self.es.search(
+            index=self.index,
+            doc_type=self.doc_type,
+            size=0,
+            body=body
+        )
+        return data["aggregations"]["field_values"]["buckets"]
