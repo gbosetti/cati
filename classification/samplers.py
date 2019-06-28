@@ -254,6 +254,8 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
     def __init__(self, **kwargs):
 
         MoveDuplicatedDocsSampler.__init__(self, **kwargs)
+
+        self.target_min_confidence = kwargs["target_min_confidence"]
         self.similar_docs = {}
         self.confident_loop = kwargs["confident_loop"]
         return
@@ -330,6 +332,9 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
         docs_ready_to_move = []
         print("Updating similar docs. Total: ", len(self.similar_docs))
 
+        min_conf = min(self.classifier.last_confidences)
+        max_conf = max(self.classifier.last_confidences)
+
         for doc_id in self.similar_docs.copy():
 
             # Get the predictions on this loop...
@@ -339,23 +344,34 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
             # Remove those docs which labeld do not match from loop to loop. Increase the others',
             # and add the label and confidence
             # prediction could be None if we are in debug mode
+
             if prediction == None or (prev_label != None and prev_label != prediction["label"]):
                 del self.similar_docs[doc_id]
             else:
-                self.similar_docs[doc_id]["accum"] += 1
-                self.similar_docs[doc_id]["label"] = prediction["label"]
-                self.similar_docs[doc_id]["confidence"] = prediction["confidence"]
 
-                # Collect and remove those docs which are there for more than X loops
-                if self.similar_docs[doc_id]["accum"] >= self.confident_loop:
-                    # docs_ready_to_move[doc_id] = self.similar_docs[doc_id]
-                    self.similar_docs[doc_id]["str_id"] = doc_id
-                    self.similar_docs[doc_id]["filename"] = prediction["filename"]
-                    docs_ready_to_move.append(self.similar_docs[doc_id])
-                    # del self.similar_docs[doc_id] RuntimeError: dictionary changed size during iteration
+                scaled_confidence = prediction["confidence"] - min_conf / max_conf - min_conf
+
+                if scaled_confidence < self.target_min_confidence:
+                    del self.similar_docs[doc_id]
+
+                else:
+                    self.similar_docs[doc_id]["accum"] += 1
+                    self.similar_docs[doc_id]["label"] = prediction["label"]
+                    self.similar_docs[doc_id]["confidence"] = prediction["confidence"]
+
+                    # Collect and remove those docs which are there for more than X loops
+                    if self.similar_docs[doc_id]["accum"] >= self.confident_loop:
+                        # docs_ready_to_move[doc_id] = self.similar_docs[doc_id]
+                        self.similar_docs[doc_id]["str_id"] = doc_id
+                        self.similar_docs[doc_id]["filename"] = prediction["filename"]
+                        docs_ready_to_move.append(self.similar_docs[doc_id])
+                        # del self.similar_docs[doc_id] RuntimeError: dictionary changed size during iteration
+
+        print("Kept docs: ", len(self.similar_docs))
 
         if len(docs_ready_to_move)>0:
 
+            print("Moving docs: ", len(docs_ready_to_move))
             for doc in docs_ready_to_move:
                 del self.similar_docs[doc["str_id"]]
 

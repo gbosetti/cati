@@ -8,8 +8,9 @@ import re
 import csv
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiment3_2017_s0102_selected"
-output_path = "C:\\Users\\gbosetti\\Desktop\\"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\2015_foot_dupl"
+output_path = "C:\\Users\\gbosetti\\Desktop\\RESULTS\\"
+prefix_config_name = "football_"
 
 
 # Functions
@@ -136,7 +137,7 @@ values_by_loop = {}
 loop_prefix = "loop "
 
 def get_config_value(prop_name, full_text):
-    start_index = full_text.index(prop_name) + 4
+    start_index = full_text.index(prop_name) + len(prop_name)
     end_index = start_index + 3
 
     return full_text[start_index:end_index]
@@ -147,14 +148,19 @@ def get_config_name(full_text, descriptor):
     hyp = re.search(r'HYP', full_text, re.M | re.I)
     scenario = full_text[full_text.index(descriptor)+6:full_text.index(descriptor)+7]  # .index(element) 'session_lyon2017_test_01_HYP_500_mda0.005_smss[500].txt'
 
-    if hyp is None:
-        cnf = str(int(float(get_config_value("_cnf", full_text))*100))
-        ret = str(int(float(get_config_value("_ret", full_text))*100))
-        bgr = str(int(float(get_config_value("_bgr", full_text))*100))
-
-        return cnf + "·" + ret + "·" + bgr + " (" + scenario + ")"
-    else:
+    if hyp is not None:
         return "HYP (" + scenario + ")"
+
+    dupl = re.search(r'DDS', full_text, re.M | re.I)
+    if dupl is not None:
+        return "DDS " + get_config_value("_loops", full_text) + "(" + scenario + ")"
+
+    cnf = str(int(float(get_config_value("_cnf", full_text))*100))
+    ret = str(int(float(get_config_value("_ret", full_text))*100))
+    bgr = str(int(float(get_config_value("_bgr", full_text))*100))
+
+    return cnf + "·" + ret + "·" + bgr + " (" + scenario + ")"
+
 
 def get_value_at_loop(prop_name, loop_index, logs):
 
@@ -177,7 +183,7 @@ for subfolder in logs_folders:
         file_content = read_file(file.path)
         logs = [line for line in file_content if 'loop' in line]
 
-        with open(output_path + scenario_name + "_" + get_config_name(file.name, "test_") + '.csv', 'w') as csvfile:
+        with open(output_path + scenario_name + "_" + get_config_name(file.name, prefix_config_name) + '.csv', 'w') as csvfile:
             filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             filewriter.writerow(['Loop', 'Clicks', 'Precision', 'Accuracy'])
 

@@ -97,6 +97,11 @@ parser.add_argument("-cl",
                     help="A number indicating at which amount of loops a similar document should be considered confident to move. If you specify different percentages separate them with comma (not spaces)",
                     default="2")
 
+parser.add_argument("-tmc",
+                    "--target_min_confidence",
+                    dest="target_min_confidence",
+                    help="A number between 0 and 1 indicating the minimum confidence on the predicted label to consider adding a document into the duplicated docs collection",
+                    default="0.35")
 
 
 def to_boolean(str_param):
@@ -118,6 +123,7 @@ clear_results = to_boolean(args.clear_results)
 sampling_methods = args.sampling_methods.split(',')
 similarity_percentages = args.similarity_percentages.split(',')
 confident_loops = args.confident_loops.split(',')
+target_min_confidence = float(args.target_min_confidence)
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -218,11 +224,13 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         for similarity_percentage in similarity_percentages:
             for confident_loop in confident_loops:
 
+                confident_loop = int(confident_loop)
+
                 print("Looping with percentages: ", similarity_percentage)
-                logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
+                logs_filename = args.session + "_DDS" + "_loops_" + str("%02d" % (confident_loop,)) + "_smss" + str(max_samples_to_sort) + ".txt"
                 sampler = ConsecutiveDeferredMovDuplicatedDocsSampler(index=args.index, session=args.session,
                         text_field=args.text_field, similarity_percentage=similarity_percentage,
-                        confident_loop=int(confident_loop))
+                        confident_loop=confident_loop, target_min_confidence=target_min_confidence)
                 learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
                 learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                             min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
