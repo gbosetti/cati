@@ -19,6 +19,8 @@ from nltk.tokenize import word_tokenize
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import UpdateByQuery
 
+from elasticsearch.client import Elasticsearch as es
+
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
 
@@ -1450,19 +1452,81 @@ class Functions:
             print(e)
             return False
 
+    # to debug :
+    # fetch(app.appURL+'create_session_from_multiclassification', {
+    #                 method: 'POST',
+    #                 headers: {
+    #                     'Content-Type': 'application/json'
+    #                 },
+    #                 credentials: 'include',
+    #                 body: JSON.stringify({index: "africa_labeled", doc_type: 'doc',field: 'event_type'})
+    #             })
     def create_session_from_multiclassification(self, index, doc_type, field, logger):
-        my_connector = Es_connector(index=index, doc_type=doc_type)
-        fields = my_connector.field_values(field, size=100)
+        session_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+        tweets_connector = Es_connector(index=index, doc_type="tweet")
+        es = Elasticsearch([{'host': tweets_connector.host, 'port': tweets_connector.port}])
+        field_keyword = field + ".keyword"
+        fields = tweets_connector.field_values(field_keyword, size=100)
         print(fields)
-        number_fields = len(fields)
+        source = ""
         for field_tuple in fields:
             field_value = field_tuple['key']
+            session_name = field_value.replace(' ', '_').lower()
             logger.clear_logs()
-            print("adding session to index: ",index)
-            if self.add_multisession(name=field_value.replace(' ','_').lower(),index=index,field=field,field_value=field_value, number_fields=number_fields,doc_type=doc_type, initial_value='negative',logger=logger):
-                print('session created')
+            # create a document in the mabed_session index
+            try:
+
+                if not es.indices.exists(index=self.sessions_index):
+                    self.create_mabed_sessions_index(es)
+                    logger.add_log("The existence of the " + self.sessions_index + " index was checked")
+
+                session = self.get_session_by_Name(session_name)
+
+                if session['hits']['total'] == 0:
+                    self.fix_read_only_allow_delete(self.sessions_index,
+                                                    session_connector)  # Just in case we import it and the property isn't there
+                    # Creating the new entry in the mabed_sessions
+                    res = session_connector.post({
+                        "s_name": session_name,
+                        "s_index": index,
+                        "s_type": "tweet"
+                    })
+                else:
+                    logger.add_log("There are no documents in the selected index.")
+
+            except RequestError as e:  # This is the correct syntax
+                print(e)
+                return False
+
+            source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
+            print(source)
+
+        query = {
+            "bool": {
+                "must": {
+                    "match_all": { }
+                }
+            }
+        }
+        body = {
+            "script": {
+                "source": source,
+                "lang": "painless"
+            },
+            "query": query
+        }
+        print("index: ", index)
+        print("body: ", body)
+        es.update_by_query(index=index, doc_type=doc_type, body=body)
         print("finish to create sessions")
         return 3
+
+    def create_session_script(self, session_name, field_name, field_value):
+        change_positive = f"ctx._source['session_{session_name}'] = 'positive'"
+        change_negative = f"ctx._source['session_{session_name}'] = 'negative'"
+        source = (f"if (ctx._source.{field_name} == '{field_value}')" "{" f"{change_positive}" " } else {"f"{change_negative}" "}")
+
+        return source
 
 
     # Add new session
@@ -1479,7 +1543,6 @@ class Functions:
 
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
             session = self.get_session_by_Name(name)
-
             if session['hits']['total'] == 0:
                 self.fix_read_only_allow_delete(self.sessions_index,
                                                 my_connector)  # Just in case we import it and the property isn't there
@@ -1494,43 +1557,51 @@ class Functions:
                 tweets_connector = Es_connector(index=index, doc_type=doc_type)
                 self.fix_read_only_allow_delete(index, tweets_connector)
 
-                kwargs["logger"].add_log("Starting with the labeling of the session's tweet to 'proposed'")
+                kwargs["logger"].add_log("Starting with the labeling of the session:"+ name +" tweet to 'confirmed'")
                 print('setting session value to confirmed')
                 source = "ctx._source['session_" + name + "'] = 'confirmed'"
                 query = {
-                    "query": {
-                        "bool": {
-                            "must": {
-                                "match": {
-                                    field: field_value
-                                }
+                    "bool": {
+                        "must": {
+                            "match": {
+                                field: field_value
                             }
                         }
                     }
                 }
-                print(source, query)
-                while not tweets_connector.update_by_query(query,source ):
-                    print("retry:", query, source)
-
-                kwargs["logger"].add_log("The tweets labels were successfully updated to the 'proposed' state")
+                body = {
+                    "script": {
+                        "source": source,
+                        "lang": "painless"
+                    },
+                    "query": query
+                }
+                print("index: ",index)
+                print("body: ",body)
+                es.update_by_query(index=index, doc_type=doc_type, body=body)
+                kwargs["logger"].add_log("Starting with the labeling of the session:"+ name +" tweet to 'negative'")
 
                 print('changing values')
                 source= "ctx._source['session_" + name + "'] = 'negative'"
                 query = {
-                    "query": {
-                        "bool":{
-                            "must_not":{
-                                "match": {
-                                    field: field_value
-                                }
+                    "bool":{
+                        "must_not":{
+                            "match": {
+                                field: field_value
                             }
                         }
                     }
                 }
+                body = {
+                    "script": {
+                        "source": source,
+                        "lang": "painless"
+                    },
+                    "query": query
+                }
                 print("index: ",index)
-                while not tweets_connector.update_by_query(query, source ):
-                    print("try", query, source)
-                return res
+                print("body: ",body)
+                es.update_by_query(index=index, doc_type=doc_type, body=body)
             else:
                 print(session)
                 print("============================================================================")
