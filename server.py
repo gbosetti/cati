@@ -215,6 +215,7 @@ def detect_events():
         res = True
 
     print("END OF DETECTION")
+    print(events["impact_data"])
     return jsonify({"result": res, "events":events})
 
 
