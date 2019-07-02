@@ -324,7 +324,8 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
             self.similar_docs[doc_id] = {
                 "accum": self.similar_docs.get(doc_id, {"accum":0})["accum"],
                 "label": None, # doc["label"], We'll do it later to avoid doing it twice
-                "confidence": None # doc["confidence"]
+                "confidence": None,
+                "text_images": doc["text_images"] # doc["confidence"]
             }
 
     def process_all_similar_docs(self):
@@ -359,6 +360,9 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
                     self.similar_docs[doc_id]["label"] = prediction["label"]
                     self.similar_docs[doc_id]["confidence"] = prediction["confidence"]
 
+                    self.similar_docs[doc_id]["text_images_real"] = self.similar_docs[doc_id]["text_images"]
+                    self.similar_docs[doc_id]["text_images"] = prediction["text_images"]
+
                     # Collect and remove those docs which are there for more than X loops
                     if self.similar_docs[doc_id]["accum"] >= self.confident_loop:
                         # docs_ready_to_move[doc_id] = self.similar_docs[doc_id]
@@ -388,7 +392,7 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
                 pred["confidence"] = self.classifier.last_confidences[f_index]
                 pred["label"] = self.classifier.categories[int(self.classifier.last_predictions[f_index])]
                 pred["filename"] = self.classifier.data_unlabeled.filenames[f_index]
-                # f_text_images = self.classifier.data_unlabeled.data[f_index]
+                pred["text_images"] = self.classifier.data_unlabeled.data[f_index]
                 break
 
         return pred
