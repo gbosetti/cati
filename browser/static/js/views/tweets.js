@@ -350,6 +350,7 @@ app.views.tweets = Backbone.View.extend({
         if(query && query.trim() != ""){ //If the user has entered at least a keyword
             this.requestTweets(data, startingReqTime);
             this.requestNgrams(data);
+            this.loadGeopositionedTweets();
             this.requestReTweets(data).then(
                 res => {
                     this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
