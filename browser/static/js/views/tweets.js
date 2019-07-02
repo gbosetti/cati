@@ -131,7 +131,7 @@ class GeoSpatialModule{
         noUiSlider.create(this.slider, {
             start: [0.2, 0.5],
             connect: true,
-            direction: 'rtl',  // ltr or rtl
+            direction: 'ltr',  // ltr or rtl
             orientation: 'horizontal',
             tooltips: false,
             range: {
