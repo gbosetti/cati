@@ -1,7 +1,3 @@
-let geoJsonEndpoint="get_geo_coordinates";
-let searchEndpoint= "get_geo_polygon";
-let spaceTimeEndpoint= "get_geo_polygon_date";
-let accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
 app.views.maps = Backbone.View.extend({
     template: _.template($("#tpl-map").html()),
     events: {
@@ -12,23 +8,23 @@ app.views.maps = Backbone.View.extend({
     initialize: async function() {
         let handler = _.bind(this.render, this);
     },
-    render: async function () {
+    renderMap: function() {
+
+        let geoJsonEndpoint="get_geo_coordinates";
+        let searchEndpoint= "get_geo_polygon";
+        let spaceTimeEndpoint= "get_geo_polygon_date";
+        let accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
+
         let scope = this;
         L.MakiMarkers.accessToken = accessToken;
-        let html = this.template();
-        this.$el.html(html);
-        this.delegateEvents();
-        await app.views.mabed.prototype.setSessionTopBar();
-        app.views.mabed.prototype.getClassificationStats();
+
         scope.tweets = null;
-
         scope.slider = $('#maps-slider-range-vertical')[0];
-
         noUiSlider.create(scope.slider, {
             start: [0.2, 0.5],
             connect: true,
             direction: 'rtl',  // ltr or rtl
-            orientation: 'vertical',
+            orientation: 'horizontal',
             tooltips: false,
             range: {
                 'min': 0,
@@ -104,6 +100,17 @@ app.views.maps = Backbone.View.extend({
             scope.search_geospatial(scope.drawnItems)
                 .then(r => scope.update_from_search(r));
         });
+    },
+    render: async function () {
+
+
+        let html = this.template();
+        this.$el.html(html);
+        this.delegateEvents();
+        await app.views.mabed.prototype.setSessionTopBar();
+        app.views.mabed.prototype.getClassificationStats();
+        this.renderMap();
+
         return this;
     },
     search_geospatial(collection){
