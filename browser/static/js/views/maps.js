@@ -47,7 +47,7 @@ app.views.maps = Backbone.View.extend({
                         accessToken: accessToken
                     }).addTo(scope.mymap);
         let data = {
-            "index": "geo"
+            "index": app.session.s_name
         };
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
         $.post(app.appURL+geoJsonEndpoint,data,function(response, status){
