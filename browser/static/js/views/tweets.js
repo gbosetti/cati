@@ -1,3 +1,225 @@
+class GeoSpatialModule{
+
+    constructor() {
+        this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
+        this.tweets = null;
+    }
+    search_geospatial(collection){
+
+        var data = {
+            index: 'geo',
+            collection: collection.toGeoJSON(),
+        };
+        return new Promise(function (resolve,reject) {
+            fetch(app.appURL+"get_geo_polygon", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            }).then(response => resolve(response.json()));
+        });
+    }
+    searchSpaceTime(){
+
+        let collection = this.drawnItems;
+        let date_range = this.slider.noUiSlider.get();
+        var data = {
+            index: 'geo',
+            collection: collection.toGeoJSON(),
+            date_min: date_range[0],
+            date_max: date_range[1]
+        };
+        let res;
+        return new Promise(function (resolve,reject) {
+            let spaceTimeEndpoint= "get_geo_polygon_date";
+            fetch(app.appURL+spaceTimeEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            }).then(response => resolve(response.json()) );
+        });
+    }
+    popup(){
+        return  (layer) => (
+            layer.feature.properties.tweet.text +
+            '</br></br><b>Created on:</b> ' + this.formatDateFromString(layer.feature.properties.tweet.created_at +
+            '</br>' /*+ this.createButton('Confirm')*/
+        ));
+    }
+    createButton(label) {
+        var btn = L.DomUtil.create('button');
+        btn.setAttribute('type', 'button');
+        btn.innerHTML = label;
+        return btn;
+    }
+    update_from_search(response){
+        this.mymap.removeLayer(this.tweets);
+        this.addGeoToMap(response.geo);
+    }
+    addGeoToMap(geo){
+        let mapgeo = L.geoJSON(geo, {
+            pointToLayer: (g,latlng) => L.marker(latlng,{
+                icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
+            })
+        }) .bindPopup( this.popup());
+        mapgeo.on('popupopen', this.selectTweet(mapgeo));
+        mapgeo.addTo(this.mymap);
+        this.tweets= mapgeo;
+    }
+    selectTweet(lgeoJSON){
+        return (e) => (this.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
+    }
+    colorUser(tweet,collection){
+        console.log("tweets",this.tweets,'heh');
+        collection.eachLayer(l => {
+            if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
+                //l._icon.src = "static/images/pin-m+b00.png"
+                //l._icon = L.MakiMarkers.icon({icon:null, color: "#b00"});
+                //l._icon= L.Icon.Default;
+                l.setIcon(L.MakiMarkers.icon({icon:null, color: "#0b0"}));
+            }else{
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"}));
+            }
+        });
+    }
+    viewSession(){
+        let session = "session_"+app.session.s_name;
+        this.tweets.eachLayer( l => {
+            if (l.feature.properties.tweet[session] === 'confirmed') {
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#0b0"}));
+            } else if (l.feature.properties.tweet[session] === 'proposed') {
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#bb0"}));
+            } else if (l.feature.properties.tweet[session] === 'negative') {
+                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#b00"}));
+            }
+        });
+    }
+    dateFromTimestamp(timestamp){
+        var fecha = new Date(parseFloat(timestamp));
+        return fecha.toLocaleDateString() + " " + fecha.toLocaleTimeString()
+    }
+    formatDateFromString(aStringDate){
+
+        var aDate = new Date(aStringDate);
+        return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString()
+    }
+    sliderUpdate(values){
+        this.displayDate(values[0],values[1]);
+        this.searchSpaceTime()
+        .then(r => this.update_from_search(r));
+    }
+    displayDate(lowerDate,upperDate){
+        let lower = document.getElementById("maps-date-lower");
+        let upper = document.getElementById("maps-date-upper");
+        lower.innerText= this.dateFromTimestamp(lowerDate);
+        upper.innerText= this.dateFromTimestamp(upperDate);
+    }
+    sliderBounds(min, max){
+        this.slider.noUiSlider.updateOptions({
+            range: {
+                'min':min ,
+                'max': max
+            },
+            start:[min,max]
+        });
+        this.displayDate(min,max);
+        this.slider.noUiSlider.set([min,max]);
+    }
+    loadSlider(){
+
+        this.slider = $('#maps-slider-range-vertical')[0];
+        noUiSlider.create(this.slider, {
+            start: [0, 1],
+            connect: true,
+            direction: 'ltr',  // ltr or rtl
+            orientation: 'horizontal',
+            tooltips: false,
+            range: { 'min': 0, 'max': 1 }
+        });
+    }
+    loadGeopositionedTweets(){
+
+        L.MakiMarkers.accessToken = this.accessToken;
+        this.loadSlider();
+        this.mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
+
+        L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+                        maxZoom: 18,
+                        id: 'mapbox.streets',
+                        accessToken: this.accessToken
+                    }).addTo(this.mymap);
+
+        this.drawnItems = new L.geoJSON();
+        this.mymap.addLayer(this.drawnItems);
+        let options = {
+            position: 'topright',
+            draw: {
+                polyline: false,
+                marker: false,
+                layer: false,
+                circlemarker: false,
+                polygon: {
+                    allowIntersection: false,
+                    drawError: {
+                        color: '#e1e100',
+                        message: '<strong> Wrong shape </strong>'
+                    },
+                    shapeOptions: {
+                        color:'#3be'
+                    }
+                },
+                circle: false,
+                rectangle: {
+                    shapeOptions: {
+                        color:'#3be'
+                    }
+                },
+            },
+            edit: {
+                edit: false,
+                featureGroup: this.drawnItems,
+                remove: true
+            }
+        };
+        let drawControl = new L.Control.Draw( options);
+        this.mymap.addControl(drawControl);
+
+        this.mymap.on(L.Draw.Event.CREATED, (e) => {
+            //TODO: support multiple polygons and trigger the search using a button
+            this.drawnItems.clearLayers();
+            this.drawnItems.addLayer(e.layer);
+            this.search_geospatial(this.drawnItems)
+                .then(r => this.update_from_search(r));
+        });
+        this.mymap.on(L.Draw.Event.DELETED, (e) => {
+            this.drawnItems.clearLayers();
+            this.search_geospatial(this.drawnItems)
+                .then(r => this.update_from_search(r));
+        });
+
+        // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
+        $.post(app.appURL+"get_geo_coordinates", { "index": "geo" } ,(response, status) => {
+
+            // Update map
+            this.addGeoToMap(response.geo);
+            var latlngs = response.geo.map(pdi => pdi.geometry.coordinates);
+            this.mymap.fitBounds(latlngs);
+
+            // Update slider
+            this.sliderBounds(response.min_date, response.max_date);
+            this.slider.noUiSlider.on('set', values => {
+                this.sliderUpdate(values);
+            });
+        });
+    }
+}
+
 app.views.tweets = Backbone.View.extend({
     template: _.template($("#tpl-page-tweets").html()),
     events: {
@@ -94,6 +316,9 @@ app.views.tweets = Backbone.View.extend({
       this.searchForTweets(); //Submit
       return false;
     },
+    loadGeopositionedTweets: function(){
+        new GeoSpatialModule().loadGeopositionedTweets();
+    },
     searchForTweets: function(){
 
         this.clearAllResultsTabs();
@@ -130,6 +355,7 @@ app.views.tweets = Backbone.View.extend({
                 (err) => { //In case of failing
                     this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
+            this.loadGeopositionedTweets();
             this.requestReTweets(data).then(
                 res => {
                     this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
@@ -165,7 +391,8 @@ app.views.tweets = Backbone.View.extend({
         $(".card").each((key, cardElem) => {
             if( !cardElem.querySelector(".collapse").classList.contains("collapseNgrams") &&
                 !cardElem.querySelector(".collapse").classList.contains("collapseRetweets") &&
-                !cardElem.querySelector(".collapse").classList.contains("collapseImages"))
+                !cardElem.querySelector(".collapse").classList.contains("collapseImages")&&
+                !cardElem.querySelector(".collapse").classList.contains("collapseGeopositioned"))
                 cardElem.hidden = true;
         });
     },
@@ -215,7 +442,32 @@ app.views.tweets = Backbone.View.extend({
                     <div class="container">
                       <div class="full-search-ngrams-classif" hidden></div>
                       <div class="search-accordion">
-                            <div class="card">
+
+                                <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Geopositioned tweets</a></div>
+                                  <div id="collapseGeopositioned" class="collapse show collapseGeopositioned">
+                                    <div class="card-body">
+
+                                        <!-- GEOPOSITIONED TWEETS SECTION -->
+                                        <div class="col-12 geopositioned_tweets_results">
+                                            <div id="mapid" style="height: 500px; width: 100%; margin-left:auto; margin-right:auto;"></div>
+                                            <div id="maps-slider-range-vertical" class="slider-range"></div>
+
+                                            <div class="row pt-3">
+                                                <div class="col-md-6 text-left">
+                                                    <b>From:</b> <span id="maps-date-lower"></span>
+                                                </div>
+                                                <div class="col-md-6 text-right">
+                                                    <b>To:</b> <span id="maps-date-upper"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseNgrams">Results grouped by ngrams</a></div>
                                   <div id="collapseNgrams" class="collapse show collapseNgrams"> <!-- class="collapse show" -->
                                     <div class="card-body">

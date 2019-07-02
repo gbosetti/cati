@@ -1061,6 +1061,200 @@ class Functions:
         return clusters
 
     # ==================================================================
+    # Geocoordinates
+    # ==================================================================
+
+    def get_geo_coordinates(self,index):
+        query = {
+            "query": {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date
+
+    def get_geo_coordinates_date(self,index,date_range):
+        query = {
+            "query": {
+                "bool": {
+                    "must":[
+                        {
+                            "exists": {
+                                "field": "coordinates.coordinates"
+                            }
+                        },
+                        {
+                            "range": {
+                                "created_at": {
+                                    "gte": date_range[0],
+                                    "lte": date_range[1],
+                                    "format": "epoch_millis"
+                                }
+                            }
+                        }
+                    ],
+                },
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date
+
+    def get_geo_coordinates_polygon(self,index, coordinates):
+        query = {
+            "query": {
+                "bool": {
+                    "must": {
+                        "exists": {
+                            "field": "coordinates.coordinates"
+                        }
+                    },
+                    "filter": {
+                        "geo_polygon": {
+                            "coordinates.coordinates": {
+                                "points": coordinates[:-1]
+                            }
+                        }
+                    }
+                },
+
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date
+
+    def get_geo_coordinates_polygon_date_range(self,index, coordinates,date_range):
+        query = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "exists": {
+                                "field": "coordinates.coordinates"
+                            }
+                        },
+                        {
+                            "range": {
+                                "created_at": {
+                                    "gte": date_range[0],
+                                    "lte": date_range[1],
+                                    "format": "epoch_millis"
+                                }
+                            }
+                        }
+                    ],
+                    "filter": {
+                        "geo_polygon": {
+                            "coordinates.coordinates": {
+                                "points": coordinates[:-1]
+                            }
+                        }
+                    }
+                },
+
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date
+
+    # ==================================================================
     # Sessions
     # ==================================================================
 
