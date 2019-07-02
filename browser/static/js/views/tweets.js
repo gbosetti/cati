@@ -572,14 +572,14 @@ app.views.tweets = Backbone.View.extend({
         var self = this;
         $.post(app.appURL+'search_for_tweets', data, function(response){
             self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
-        }, 'json').fail(self.cnxError);
+        }, 'json').fail(this.cnxError);
     },
     requestFullImageClusters: function(data){
         return new Promise((resolve, reject) => {
             $.post(app.appURL+'search_for_image_clusters', data, (response) => {
                 resolve(response);
-            }, 'json').fail(function(err){
-                self.cnxError(err);
+            }, 'json').fail((err)=>{
+                this.cnxError(err);
                 reject(err)
             });
         });
@@ -588,8 +588,8 @@ app.views.tweets = Backbone.View.extend({
         return new Promise((resolve, reject) => {
             $.post(app.appURL+'top_retweets', data, (response) => {
                 resolve(response);
-            }, 'json').fail(function(err){
-                self.cnxError(err);
+            }, 'json').fail((err)=>{
+                this.cnxError(err);
                 reject(err)
             });
         });
@@ -822,7 +822,6 @@ app.views.tweets = Backbone.View.extend({
             var html = '<div class="ngram_rel_tweets">' + this.get_tweets_html(response, '', loadMoreTweetsClass) + '</div>';
             client.delegateEvents();
             jc.setContent(html);
-            var self = this;
            $(".jconfirm-title").text(response.tweets.total + " tweets matching the " + ngramsToGenerate + "-gram «" + ngram + "»");
             this.loadMoreTweetsButton(response, loadMoreTweetsClass);
         }catch(err){console.log(err)}
@@ -933,7 +932,6 @@ app.views.tweets = Backbone.View.extend({
 
         //Updating the bigram's control
         var docName = "tweet";
-        var self = this;
         $.post(app.appURL+'get_mapping_spec', this.getIndexAndSession().concat([{name: "doc", value: docName}]), function(response){
 
             if(response == undefined || Object.keys(response).length == 0){
@@ -1290,7 +1288,7 @@ app.views.tweets = Backbone.View.extend({
 			    jc.close();
 			    self.searchForTweets();
 			}, 2000);
-		}).fail(self.cnxError);
+		}).fail(this.cnxError);
     	return false;
     },
     updateImageClusterStatus: function(e, data){
@@ -1381,7 +1379,7 @@ app.views.tweets = Backbone.View.extend({
 
         $.post(app.appURL+'tweets_filter', data, function(response){
             self.displayPaginatedResults(response, t0, data[0].value);
-        }, 'json').fail(self.cnxError);
+        }, 'json').fail(this.cnxError);
 
         return false;
     },
