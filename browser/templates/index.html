@@ -50,9 +50,6 @@
 						<li class="nav-item" id="nav-tweets">
 							<a class="nav-link" href="#tweets">Tweets Search</a>
 						</li>
-						<li class="nav-item" id="nav-map">
-							<a class="nav-link" href="#maps">Tweets Map</a>
-						</li>
 						<!--<li class="nav-item" id="nav-beta2">
 							<a class="nav-link" href="#beta2">Event-detection Model</a>
 						</li>-->
@@ -564,52 +561,6 @@
 			  </div>
 			</div>
 		</script>
-        <!--  MAPS -->
-    <!-- TODO: fix grid so slider is touching the map -->
-		<script type="text/template" id ="tpl-map">
-            <div class="row">
-				<div class="row col">
-					<div class="col-4 d-flex justify-content-center">
-						<div class="align-self-center p-2">
-							Date
-						</div>
-					</div>
-				</div>
-				<div class="row col">
-					<div class="col-8 d-flex justify-content-center">
-						<div class="align-self-center p-2">
-							Tweets
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="row">
-				<div class="row col">
-					<div class="col-4 d-flex justify-content-center">
-                        <div id="maps-slider-range-vertical" class="slider-range"></div>
-					</div>
-				</div>
-				<div class="row col">
-					<div class="col-8 border">
-						<div id="mapid" style="height: 500px; width: 100%;  margin-left:auto; margin-right:auto;"></div>
-					</div>
-				</div>
-            </div>
-            <div class="row">
-				<div class="row col-4 justify-content-center">
-					<div class="align-self-center p-2">
-						From: <span id="maps-date-lower"></span>
-					</div>
-					<div class="align-self-center p-2">
-                        To: <span id="maps-date-upper"></span>
-					</div>
-				</div>
-				<div class="row col-8 justify-content-center">
-					<button class="btn btn-default" id="showClassificationOnMap">Show Sessions classification</button>
-				</div>
-			</div>
-
-        </script>
 		<script type="text/template" id="tpl-page-tweets">
 
             <!-- SEARCH FORM -->
