@@ -9,7 +9,6 @@ class GeoSpatialModule{
             index: 'geo',
             collection: collection.toGeoJSON(),
         };
-        let res;
         return new Promise(function (resolve,reject) {
             fetch(app.appURL+"get_geo_polygon", {
                 method: 'POST',
@@ -45,7 +44,7 @@ class GeoSpatialModule{
         });
     }
     popup(){
-        return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
+        return  (layer) => (layer.feature.properties.tweet.text+"</br></br><b>Created on:</b> " + this.formatDateFromString(layer.feature.properties.tweet.created_at));
     }
     update_from_search(response){
         this.mymap.removeLayer(this.tweets);
@@ -92,6 +91,11 @@ class GeoSpatialModule{
     dateFromTimestamp(timestamp){
         var fecha = new Date(parseFloat(timestamp));
         return fecha.toLocaleDateString() + " " + fecha.toLocaleTimeString()
+    }
+    formatDateFromString(aStringDate){
+
+        var aDate = new Date(aStringDate);
+        return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString()
     }
     sliderUpdate(values){
         this.displayDate(values[0],values[1]);
