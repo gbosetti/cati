@@ -1,7 +1,10 @@
 class GeoSpatialModule{
+
+    constructor() {
+        this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
+    }
     search_geospatial(collection){
 
-        let scope = this;
         var data = {
             index: 'geo',
             collection: collection.toGeoJSON(),
@@ -20,9 +23,8 @@ class GeoSpatialModule{
     }
     searchSpaceTime(){
 
-        let scope = this;
-        let collection = scope.drawnItems;
-        let date_range = scope.slider.noUiSlider.get();
+        let collection = this.drawnItems;
+        let date_range = this.slider.noUiSlider.get();
         var data = {
             index: 'geo',
             collection: collection.toGeoJSON(),
@@ -46,24 +48,21 @@ class GeoSpatialModule{
         return  (layer) => (layer.feature.properties.tweet.text+"</br> This tweet was created : </br>" + layer.feature.properties.tweet.created_at);
     }
     update_from_search(response){
-        let scope = this;
-        scope.mymap.removeLayer(scope.tweets);
-        scope.addGeoToMap(response.geo);
+        this.mymap.removeLayer(this.tweets);
+        this.addGeoToMap(response.geo);
     }
     addGeoToMap(geo){
-        let scope = this;
         let mapgeo = L.geoJSON(geo, {
             pointToLayer: (g,l) => L.marker(l,{
                 icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
             })
-        }) .bindPopup( scope.popup());
-        mapgeo.on('popupopen', scope.selectTweet(mapgeo));
-        mapgeo.addTo(scope.mymap);
-        scope.tweets= mapgeo;
+        }) .bindPopup( this.popup());
+        mapgeo.on('popupopen', this.selectTweet(mapgeo));
+        mapgeo.addTo(this.mymap);
+        this.tweets= mapgeo;
     }
     selectTweet(lgeoJSON){
-        let scope = this;
-        return (e) => (scope.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
+        return (e) => (this.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
     }
     colorUser(tweet,collection){
         console.log("tweets",this.tweets,'heh');
@@ -79,10 +78,8 @@ class GeoSpatialModule{
         });
     }
     viewSession(){
-        let scope =this;
         let session = "session_"+app.session.s_name;
-        console.log("showing sessions");
-        scope.tweets.eachLayer( l => {
+        this.tweets.eachLayer( l => {
             if (l.feature.properties.tweet[session] === 'confirmed') {
                 l.setIcon(L.MakiMarkers.icon({icon: null, color: "#0b0"}));
             } else if (l.feature.properties.tweet[session] === 'proposed') {
@@ -120,11 +117,7 @@ class GeoSpatialModule{
     }
     loadGeopositionedTweets(){
 
-
-
-        let accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
-
-        L.MakiMarkers.accessToken = accessToken;
+        L.MakiMarkers.accessToken = this.accessToken;
 
         this.tweets = null;
         this.slider = $('#maps-slider-range-vertical')[0];
@@ -146,7 +139,7 @@ class GeoSpatialModule{
                         attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
                         maxZoom: 18,
                         id: 'mapbox.streets',
-                        accessToken: accessToken
+                        accessToken: this.accessToken
                     }).addTo(this.mymap);
         let data = {
             "index": "geo"
