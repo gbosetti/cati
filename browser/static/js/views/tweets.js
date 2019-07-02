@@ -2,7 +2,7 @@ class GeoSpatialModule{
     search_geospatial(collection){
 
         let scope = this;
-        data = {
+        var data = {
             index: 'geo',
             collection: collection.toGeoJSON(),
         };
@@ -23,7 +23,7 @@ class GeoSpatialModule{
         let scope = this;
         let collection = scope.drawnItems;
         let date_range = scope.slider.noUiSlider.get();
-        data = {
+        var data = {
             index: 'geo',
             collection: collection.toGeoJSON(),
             date_min: date_range[0],
