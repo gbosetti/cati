@@ -3,6 +3,8 @@ class GeoSpatialModule{
     constructor() {
         this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
         this.tweets = null;
+
+        $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
     }
     search_geospatial(collection){
 
@@ -47,9 +49,19 @@ class GeoSpatialModule{
     popup(){
         return  (layer) => (
             layer.feature.properties.tweet.text +
-            '</br></br><b>Created on:</b> ' + this.formatDateFromString(layer.feature.properties.tweet.created_at +
-            '</br>' /*+ this.createButton('Confirm')*/
-        ));
+            '</br></br><b>Created on:</b> ' + this.formatDateFromString(layer.feature.properties.tweet.created_at) +
+            '</br></br><div style="display: flex; justify-content: flex-end;">'+
+                '<button data-status="confirmed" class="onTweetStatusClicked" style="background: rgba( 40, 167, 69, 0.5);">Confirm</button>'+
+                '<button data-status="negative" class="onTweetStatusClicked" style="background: rgba(220, 53, 69, 0.63);">Reject</button>' +
+                '<button data-status="unlabeled" class="onTweetStatusClicked">Clear</button>'+
+            '</div>' //+ this.createButton('Confirm')
+        );
+    }
+    onTweetStatusClicked(evt){
+        var annotation = $(evt.target).data("status");
+        console.log("Annotation: ", annotation);
+        //TODO: POST TO THE SERVER
+        $(".leaflet-popup-close-button")[0].click();
     }
     createButton(label) {
         var btn = L.DomUtil.create('button');
