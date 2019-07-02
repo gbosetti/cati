@@ -2,6 +2,7 @@ class GeoSpatialModule{
 
     constructor() {
         this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
+        this.tweets = null;
     }
     search_geospatial(collection){
 
@@ -44,7 +45,17 @@ class GeoSpatialModule{
         });
     }
     popup(){
-        return  (layer) => (layer.feature.properties.tweet.text+"</br></br><b>Created on:</b> " + this.formatDateFromString(layer.feature.properties.tweet.created_at));
+        return  (layer) => (
+            layer.feature.properties.tweet.text +
+            '</br></br><b>Created on:</b> ' + this.formatDateFromString(layer.feature.properties.tweet.created_at +
+            '</br>' /*+ this.createButton('Confirm')*/
+        ));
+    }
+    createButton(label) {
+        var btn = L.DomUtil.create('button');
+        btn.setAttribute('type', 'button');
+        btn.innerHTML = label;
+        return btn;
     }
     update_from_search(response){
         this.mymap.removeLayer(this.tweets);
@@ -52,7 +63,7 @@ class GeoSpatialModule{
     }
     addGeoToMap(geo){
         let mapgeo = L.geoJSON(geo, {
-            pointToLayer: (g,l) => L.marker(l,{
+            pointToLayer: (g,latlng) => L.marker(latlng,{
                 icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
             })
         }) .bindPopup( this.popup());
@@ -119,24 +130,22 @@ class GeoSpatialModule{
         this.displayDate(min,max);
         this.slider.noUiSlider.set([min,max]);
     }
-    loadGeopositionedTweets(){
+    loadSlider(){
 
-        L.MakiMarkers.accessToken = this.accessToken;
-
-        this.tweets = null;
         this.slider = $('#maps-slider-range-vertical')[0];
         noUiSlider.create(this.slider, {
-            start: [0.2, 0.5],
+            start: [0, 1],
             connect: true,
             direction: 'ltr',  // ltr or rtl
             orientation: 'horizontal',
             tooltips: false,
-            range: {
-                'min': 0,
-                'max': 1
-            }
+            range: { 'min': 0, 'max': 1 }
         });
+    }
+    loadGeopositionedTweets(){
 
+        L.MakiMarkers.accessToken = this.accessToken;
+        this.loadSlider();
         this.mymap = L.map('mapid').setView([45.80556348, 4.80556348], 13);
 
         L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
@@ -145,18 +154,7 @@ class GeoSpatialModule{
                         id: 'mapbox.streets',
                         accessToken: this.accessToken
                     }).addTo(this.mymap);
-        let data = {
-            "index": "geo"
-        };
-        // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
-        let geoJsonEndpoint="get_geo_coordinates";
-        $.post(app.appURL+geoJsonEndpoint,data,(response, status) => {
-            this.addGeoToMap(response.geo);
-            this.sliderBounds(response.min_date, response.max_date);
-            this.slider.noUiSlider.on('set', values => {
-                this.sliderUpdate(values);
-            });
-        });
+
         this.drawnItems = new L.geoJSON();
         this.mymap.addLayer(this.drawnItems);
         let options = {
@@ -203,6 +201,21 @@ class GeoSpatialModule{
             this.drawnItems.clearLayers();
             this.search_geospatial(this.drawnItems)
                 .then(r => this.update_from_search(r));
+        });
+
+        // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
+        $.post(app.appURL+"get_geo_coordinates", { "index": "geo" } ,(response, status) => {
+
+            // Update map
+            this.addGeoToMap(response.geo);
+            var latlngs = response.geo.map(pdi => pdi.geometry.coordinates);
+            this.mymap.fitBounds(latlngs);
+
+            // Update slider
+            this.sliderBounds(response.min_date, response.max_date);
+            this.slider.noUiSlider.on('set', values => {
+                this.sliderUpdate(values);
+            });
         });
     }
 }
