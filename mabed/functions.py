@@ -1064,11 +1064,22 @@ class Functions:
     # Geocoordinates
     # ==================================================================
 
-    def get_geo_coordinates(self,index):
+    def get_geo_coordinates(self,index,search_by_label="confirmed OR proposed OR negative"):
         query = {
             "query": {
-                "exists": {
-                    "field": "coordinates.coordinates"
+                "bool": {
+                    "must": [
+                        {
+                            "exists": {
+                                "field": "coordinates.coordinates"
+                            }
+                        },
+                        {
+                            "match": {
+                                "session_lyon2015_test_03": search_by_label
+                            }
+                        }
+                    ]
                 }
             },
             "aggs": {
@@ -1084,6 +1095,7 @@ class Functions:
                 }
             }
         }
+        print(query)
         res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
         min_date = res['aggregations']['min_date']['value']
         max_date = res['aggregations']['max_date']['value']

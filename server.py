@@ -268,7 +268,7 @@ def search_for_image_clusters():
 def get_geo_coordinates():
     data = request.form
     index = data['index']
-    geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+    geo,min_date,max_date = functions.get_geo_coordinates(index=index, search_by_label=data["search_by_label"])
     result = {
         "geo":geo,
         "min_date":min_date,

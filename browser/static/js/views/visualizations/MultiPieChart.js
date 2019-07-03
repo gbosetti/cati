@@ -70,9 +70,6 @@ while (word = words.pop()) {
   }
 
 	draw(data){
-
-	    console.log("DATA", data);
-
 	    $(this.domSelector).html="";
         var layout = this.createLayout(data);
         var svg = this.createSvg(this.width, this.height);
