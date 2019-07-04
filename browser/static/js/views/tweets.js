@@ -217,7 +217,7 @@ class GeoSpatialModule{
         });
 
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
-        var data = { "index": "geo", "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value };
+        var data = { "index": app.session.s_index, "session": 'session_'+app.session.s_name, "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value };
         $.post(app.appURL+"get_geo_coordinates", data ,(response, status) => {
 
             if (response.geo.length > 0){

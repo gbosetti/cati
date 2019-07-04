@@ -153,11 +153,16 @@ def produce_dataset_stats():
 # Get Classification stats
 @app.route('/produce_classification_stats', methods=['GET','POST'])
 def produce_classification_stats():
-    data = request.form
-    #get session and index name
-    return jsonify({
-        "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
-    })
+
+    try:
+        data = request.form
+        #get session and index name
+        return jsonify({
+            "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
+        })
+    except Exception as err:
+        print("Error: ", err)
+        return "Error"
 
 @app.route('/get_elastic_logs', methods=['POST', 'GET'])
 # @cross_origin()
@@ -268,7 +273,7 @@ def search_for_image_clusters():
 def get_geo_coordinates():
     data = request.form
     index = data['index']
-    geo,min_date,max_date = functions.get_geo_coordinates(index=index, search_by_label=data["search_by_label"])
+    geo,min_date,max_date = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"])
     result = {
         "geo":geo,
         "min_date":min_date,
@@ -1390,6 +1395,11 @@ def available_indexes():
 # 7. Sessions
 # ==================================================================
 
+def get_available_indexes():
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    return config['elastic_search_sources']
+
 # Get Sessions
 @app.route('/sessions', methods=['POST', 'GET'])
 # @cross_origin()
@@ -1397,7 +1407,8 @@ def sessions():
     data = request.form
     # up1 = functions.update_all("mabed_sessions", "session", "s_type", "tweet")
     # up = functions.delete_session("s1")
-    res = functions.get_sessions()
+    available_indexes = get_available_indexes()
+    res = functions.get_sessions(available_indexes=available_indexes)
     return jsonify(res['hits']['hits'])
 
 # Add new Session

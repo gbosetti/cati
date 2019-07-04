@@ -1064,7 +1064,7 @@ class Functions:
     # Geocoordinates
     # ==================================================================
 
-    def get_geo_coordinates(self,index,search_by_label="confirmed OR proposed OR negative"):
+    def get_geo_coordinates(self,index,session,search_by_label="confirmed OR proposed OR negative"):
         query = {
             "query": {
                 "bool": {
@@ -1076,7 +1076,7 @@ class Functions:
                         },
                         {
                             "match": {
-                                "session_lyon2015_test_03": search_by_label
+                                session: search_by_label
                             }
                         }
                     ]
@@ -1096,7 +1096,9 @@ class Functions:
             }
         }
         print(query)
-        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        my_connector = Es_connector(index=index)
+        res = my_connector.search(query)
+
         min_date = res['aggregations']['min_date']['value']
         max_date = res['aggregations']['max_date']['value']
         features = []
@@ -1271,11 +1273,20 @@ class Functions:
     # ==================================================================
 
     # Get all sessions
-    def get_sessions(self):
+    def get_sessions(self, available_indexes=[]):
+
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+        index_matching = []
+        for index in available_indexes:
+            index_matching.append({"match":{"s_index": index["index"]}})
+
         query = {
             "query": {
-                "match_all": {}
+                "bool":{
+                   "should":index_matching,
+                   "minimum_should_match":1
+                }
             }
         }
 
