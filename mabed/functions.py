@@ -1095,7 +1095,6 @@ class Functions:
                 }
             }
         }
-        print(query)
         my_connector = Es_connector(index=index)
         res = my_connector.search(query)
 
@@ -1113,7 +1112,7 @@ class Functions:
 
         return features,min_date,max_date
 
-    def get_geo_coordinates_date(self,index,date_range):
+    def get_geo_coordinates_date(self,index,session,search_by_label,date_range):
         query = {
             "query": {
                 "bool": {
@@ -1121,6 +1120,11 @@ class Functions:
                         {
                             "exists": {
                                 "field": "coordinates.coordinates"
+                            }
+                        },
+                        {
+                            "match": {
+                                session: search_by_label
                             }
                         },
                         {
@@ -1163,15 +1167,22 @@ class Functions:
 
         return features,min_date,max_date
 
-    def get_geo_coordinates_polygon(self,index, coordinates):
+    def get_geo_coordinates_polygon(self,index, session, search_by_label, coordinates):
         query = {
             "query": {
                 "bool": {
-                    "must": {
-                        "exists": {
-                            "field": "coordinates.coordinates"
-                        }
-                    },
+                    "must": [
+                        {
+                            "exists": {
+                                "field": "coordinates.coordinates"
+                            }
+                        },
+                        {
+                            "match": {
+                                session: search_by_label
+                            }
+                        },
+                    ],
                     "filter": {
                         "geo_polygon": {
                             "coordinates.coordinates": {
@@ -1210,7 +1221,7 @@ class Functions:
 
         return features,min_date,max_date
 
-    def get_geo_coordinates_polygon_date_range(self,index, coordinates,date_range):
+    def get_geo_coordinates_polygon_date_range(self,index, session, search_by_label, coordinates,date_range):
         query = {
             "query": {
                 "bool": {
@@ -1218,6 +1229,11 @@ class Functions:
                         {
                             "exists": {
                                 "field": "coordinates.coordinates"
+                            }
+                        },
+                        {
+                            "match": {
+                                session: search_by_label
                             }
                         },
                         {
@@ -1274,6 +1290,9 @@ class Functions:
 
     # Get all sessions
     def get_sessions(self, available_indexes=[]):
+
+        if len(available_indexes)==0:
+            return {'hits': {'hits': []}}
 
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
 

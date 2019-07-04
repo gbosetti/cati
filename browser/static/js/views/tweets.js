@@ -7,11 +7,13 @@ class GeoSpatialModule{
 
         $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
     }
-    search_geospatial(collection){
+    search_geospatial(collection, data){
 
         var data = {
-            index: 'geo',
-            collection: collection.toGeoJSON(),
+            "index": app.session.s_index,
+            "session": 'session_'+app.session.s_name,
+            "collection": collection.toGeoJSON(),
+            "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value
         };
         return new Promise(function (resolve,reject) {
             fetch(app.appURL+"get_geo_polygon", {
@@ -24,12 +26,14 @@ class GeoSpatialModule{
             }).then(response => resolve(response.json()));
         });
     }
-    searchSpaceTime(){
+    searchSpaceTime(data){
 
         let collection = this.drawnItems;
         let date_range = this.slider.noUiSlider.get();
         var data = {
-            index: 'geo',
+            index: app.session.s_index,
+            session: 'session_'+app.session.s_name,
+            search_by_label: data.filter(item => {return item.name == "search_by_label"})[0].value,
             collection: collection.toGeoJSON(),
             date_min: date_range[0],
             date_max: date_range[1]
@@ -121,9 +125,9 @@ class GeoSpatialModule{
         var aDate = new Date(aStringDate);
         return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString()
     }
-    sliderUpdate(values){
+    sliderUpdate(values, data){
         this.displayDate(values[0],values[1]);
-        this.searchSpaceTime()
+        this.searchSpaceTime(data)
         .then(r => this.update_from_search(r));
     }
     displayDate(lowerDate,upperDate){
@@ -133,6 +137,7 @@ class GeoSpatialModule{
         upper.innerText= this.dateFromTimestamp(upperDate);
     }
     sliderBounds(min, max){
+        console.log("RESULTS:", min, max);
         this.slider.noUiSlider.updateOptions({
             range: {
                 'min':min ,
@@ -207,18 +212,18 @@ class GeoSpatialModule{
             //TODO: support multiple polygons and trigger the search using a button
             this.drawnItems.clearLayers();
             this.drawnItems.addLayer(e.layer);
-            this.search_geospatial(this.drawnItems)
+            this.search_geospatial(this.drawnItems, data)
                 .then(r => this.update_from_search(r));
         });
         this.mymap.on(L.Draw.Event.DELETED, (e) => {
             this.drawnItems.clearLayers();
-            this.search_geospatial(this.drawnItems)
+            this.search_geospatial(this.drawnItems, data)
                 .then(r => this.update_from_search(r));
         });
 
         // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
-        var data = { "index": app.session.s_index, "session": 'session_'+app.session.s_name, "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value };
-        $.post(app.appURL+"get_geo_coordinates", data ,(response, status) => {
+        var spec_data = { "index": app.session.s_index, "session": 'session_'+app.session.s_name, "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value };
+        $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
             if (response.geo.length > 0){
                 // Update map
@@ -230,7 +235,7 @@ class GeoSpatialModule{
                 // Update slider
                 this.sliderBounds(response.min_date, response.max_date);
                 this.slider.noUiSlider.on('set', values => {
-                    this.sliderUpdate(values);
+                    this.sliderUpdate(values, data);
                 });
             }
             else this.showNoTweetsFound()

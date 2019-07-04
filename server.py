@@ -288,11 +288,11 @@ def get_geo_polygon():
     features = data['collection']['features']
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+        geo,min_date,max_date = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"])
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon(index=index,coordinates= coordinates)
+            geo,min_date,max_date = functions.get_geo_coordinates_polygon(index=index,session=data["session"], search_by_label=data["search_by_label"], coordinates=coordinates)
     result = {
         "geo":geo,
         "min_date":min_date,
@@ -308,11 +308,11 @@ def get_geo_polygon_date():
     date_range = [data['date_min'], data['date_max']]
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates_date(index=index,date_range=date_range)
+        geo,min_date,max_date = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon_date_range(index=index,coordinates= coordinates, date_range = date_range)
+            geo,min_date,max_date = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
@@ -1409,6 +1409,7 @@ def sessions():
     # up = functions.delete_session("s1")
     available_indexes = get_available_indexes()
     res = functions.get_sessions(available_indexes=available_indexes)
+    print("available sessions: ", res)
     return jsonify(res['hits']['hits'])
 
 # Add new Session

@@ -77,13 +77,14 @@ app.views.mabed = Backbone.View.extend({
         }else{
             console.log("The current session is "+app.session.s_name);
         }
-        let self =this;
         return new Promise(resolve => {
             $.get(app.appURL+'sessions', null, function(response){
+                console.log("sessions res:", response);
                 resolve(response);
             }, 'json');
         }).then(res => {
-            return self.fillAvailableSessions(res,'#session_topbar')
+            console.log("available sessions:", res);
+            return this.fillAvailableSessions(res,'#session_topbar')
         })
     },
     fillAvailableSessions(response,componentSelector){

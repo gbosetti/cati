@@ -31,6 +31,8 @@ class Es_connector:
         session_timeout = config['default']['sessions_index']['timeout']
         session_index = config['default']['sessions_index']['index']
         session_doc_type = config['default']['sessions_index']['doc_type']
+
+        default_index = None
         for source in config['elastic_search_sources']:
             if source['index'] == default_source:
                 default_host = source['host']
@@ -42,7 +44,7 @@ class Es_connector:
                 default_doc_type = source['doc_type']
 
         available = False
-        if index == default_index:
+        if default_index != None and index == default_index:
             # Define config
             self.host = default_host
             self.port = default_port
@@ -77,6 +79,7 @@ class Es_connector:
         if not available:
             # We can just throw an error instead
             # Or have elastic search throw it
+            print("Index ", index, " not found")
             raise Exception('The "' + index + '" index is not available, please check that it is defined in the config.json file and try again.')
 
         self.size = 500
