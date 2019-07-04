@@ -87,7 +87,6 @@ app.views.mabed = Backbone.View.extend({
         })
     },
     fillAvailableSessions(response,componentSelector){
-        var self = this;
         return new Promise(resolve => {
             let html = "";
             let sessions = [];
@@ -114,7 +113,7 @@ app.views.mabed = Backbone.View.extend({
         }).then(value => {
             $(componentSelector).html(value);
         }).then( value => {
-            return self.show_seesion_info();
+            return app.views.settings.prototype.show_seesion_info();
         });
     },
     switchSession: function(){
