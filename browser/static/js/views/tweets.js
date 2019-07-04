@@ -232,6 +232,9 @@ class GeoSpatialModule{
                 var group = L.featureGroup(markerArray); //.addTo(map);
                 this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
 
+                //Update matching tweets query
+                $(".geo_res_num").html(response.geo.length + " ");
+
                 // Update slider
                 this.sliderBounds(response.min_date, response.max_date);
                 this.slider.noUiSlider.on('set', values => {
@@ -399,7 +402,6 @@ app.views.tweets = Backbone.View.extend({
                     this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last');
                 },
                 err => { //In case of failing
-                    console.log(err);
                     this.clearContainer(".imagesClusters");
                     this.showNoRetweetsFound(".imagesClusters");
             });
@@ -477,6 +479,9 @@ app.views.tweets = Backbone.View.extend({
 
                                         <!-- GEOPOSITIONED TWEETS SECTION -->
                                         <div class="col-12 geopositioned_tweets_results">
+                                            <div class="pl-0 mt-1 mb-2 col-12 geo_tweets_results" style="display: block;">
+                                                <span class="geo_res_num"></span>results matching the query
+                                            </div>
                                             <div id="mapid" style="height: 500px; width: 100%; margin-left:auto; margin-right:auto;"></div>
                                             <div id="maps-slider-range-vertical" class="slider-range"></div>
 
