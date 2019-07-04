@@ -259,6 +259,7 @@ app.views.tweets = Backbone.View.extend({
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
         'click .massive_tagging_to_state': 'massive_tagging_to_state',
+        'click .geo_selection_to_state': 'geo_selection_to_state',
         'click #search_not_labeled': 'search_not_labeled'
     },
     initialize: function() {
@@ -491,6 +492,15 @@ app.views.tweets = Backbone.View.extend({
                                                 </div>
                                                 <div class="col-md-6 text-right">
                                                     <b>To:</b> <span id="maps-date-upper"></span>
+                                                </div>
+                                            </div>
+
+                                            <div class="row pt-3">
+                                                <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="text-align: right;">
+                                                    Mark the tweets matching the selection as:
+                                                    <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative geo_selection_to_state">Negative</a>
+                                                    <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid geo_selection_to_state">Confirmed</a>
+                                                    <a href="#" data-state="unlabeled" class="timeline_btn options_btn_clear geo_selection_to_state">Unlabeled</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -1402,6 +1412,15 @@ app.views.tweets = Backbone.View.extend({
         }, 'json').fail(this.cnxError);
 
         return false;
+    },
+    geo_selection_to_state: function(e){
+
+        e.preventDefault();
+        var jc = this.createChangingStatePopup();
+
+        setTimeout(() => { jc.close(); }, 1000);
+
+        return False;
     },
     massive_tagging_to_state: function(e){
         e.preventDefault();
