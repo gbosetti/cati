@@ -274,11 +274,12 @@ def get_geo_coordinates():
     data = request.form
     index = data['index']
     date_range = [data.get('date_min', None), data.get('date_max', None)]
-    geo,min_date,max_date = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
+    geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_matching_docs
     }
     return jsonify(result)
 
@@ -291,15 +292,16 @@ def get_geo_polygon():
 
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], date_range=date_range)
+        geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon(index=index,session=data["session"], search_by_label=data["search_by_label"], word=data["word"], coordinates=coordinates, date_range=date_range)
+            geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates_polygon(index=index,session=data["session"], search_by_label=data["search_by_label"], word=data["word"], coordinates=coordinates, date_range=date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_matching_docs
     }
     return jsonify(result)
 
@@ -311,15 +313,16 @@ def get_geo_polygon_date():
     date_range = [data['date_min'], data['date_max']]
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
+        geo,min_date,max_date,total_hits = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
+            geo,min_date,max_date,total_hits = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_hits
     }
     return jsonify(result)
 

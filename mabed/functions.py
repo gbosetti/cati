@@ -1088,6 +1088,7 @@ class Functions:
             })
 
         if date_range[0] != None and date_range[1] != None:
+            print("\nRANGE!\n", date_range)
             must_clauses.append({
                 "range": {
                     "created_at": {
@@ -1133,7 +1134,7 @@ class Functions:
                 }
             })
 
-        return features,min_date,max_date
+        return features,min_date,max_date,res['hits']['total']
 
     def get_geo_coordinates_date(self,index,session,search_by_label,date_range,word=None):
 
@@ -1199,7 +1200,7 @@ class Functions:
                 }
             })
 
-        return features,min_date,max_date
+        return features,min_date,max_date,res['hits']['total']
 
     def get_geo_coordinates_polygon(self,index, session, search_by_label, coordinates, date_range, word=None):
 
@@ -1274,7 +1275,7 @@ class Functions:
                 }
             })
 
-        return features,min_date,max_date
+        return features,min_date,max_date,res['hits']['total']
 
     def get_geo_coordinates_polygon_date_range(self,index, session, search_by_label, coordinates, date_range, word=None):
 
@@ -1348,7 +1349,7 @@ class Functions:
                 }
             })
 
-        return features,min_date,max_date
+        return features,min_date,max_date,res['hits']['total']
 
     # ==================================================================
     # Sessions

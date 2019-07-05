@@ -169,7 +169,7 @@ class GeoSpatialModule extends SearchModule{
         this.searchSpaceTime(data)
         .then(r => {
             this.update_from_search(r);
-            this.updateMatchingTweetsLabel(r.geo.length);
+            this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
             this.disableLoading("#mapid");
         });
     }
@@ -260,7 +260,7 @@ class GeoSpatialModule extends SearchModule{
                 this.search_geospatial(this.drawnItems, data)
                     .then(r => {
                         this.update_from_search(r);
-                        this.updateMatchingTweetsLabel(r.geo.length);
+                        this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
                         this.disableLoading("#mapid");
                     });
             });
@@ -268,7 +268,7 @@ class GeoSpatialModule extends SearchModule{
                 this.drawnItems.clearLayers();
                 this.search_geospatial(this.drawnItems, data)
                     .then(r => {
-                        this.updateMatchingTweetsLabel(r.geo.length);
+                        this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
                         this.update_from_search(r);
                     });
             });
@@ -297,15 +297,16 @@ class GeoSpatialModule extends SearchModule{
                     });
 
                     // Resolve to disable loading
-                    this.updateMatchingTweetsLabel(response.geo.length);
+                    console.log("GEO", response);
+                    this.updateMatchingTweetsLabel(response.total_hits, response.geo.length);
                     this.disableLoading("#mapid");
                 }
                 else this.showNoTweetsFound()
             });
         });
     }
-    updateMatchingTweetsLabel(numOfTweets){
-        $(".geo_res_num").html(numOfTweets + " ");
+    updateMatchingTweetsLabel(numOfFoundTweets, numOfRetrievedTweets){
+        $(".geo_tweets_results").html(numOfFoundTweets + ' results matching the query (showing ' + numOfRetrievedTweets + ')');
     }
     showNoTweetsFound(){
         $(this.containerSelector).html("Sorry, no geo-localized tweets were found under this criteria.");
@@ -540,9 +541,7 @@ app.views.tweets = Backbone.View.extend({
 
                                         <!-- GEOPOSITIONED TWEETS SECTION -->
                                         <div class="col-12 geopositioned_tweets_results">
-                                            <div class="pl-0 mt-1 mb-2 col-12 geo_tweets_results" style="display: block;">
-                                                <span class="geo_res_num"></span>results matching the query
-                                            </div>
+                                            <div class="pl-0 mt-1 mb-2 col-12 geo_tweets_results" style="display: block;"></div>
                                             <div id="mapid" style="height: 500px; width: 100%; margin-left:auto; margin-right:auto;"></div>
                                             <div id="maps-slider-range-vertical" class="slider-range"></div>
 
