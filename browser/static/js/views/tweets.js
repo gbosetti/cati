@@ -1,28 +1,66 @@
-class GeoSpatialModule{
+class SearchModule{
 
     constructor(containerSelector) {
+        this.spinner;
+    }
+
+    enableLoading(selector){
+
+        var target = document.querySelector(selector);
+        console.log("Enable loading");
+        this.spinner = new Spinner({
+            lines: 13, // The number of lines to draw
+            length: 50, // The length of each line
+            width: 15, // The line thickness
+            radius: 45, // The radius of the inner circle
+            corners: 1, // Corner roundness (0..1)
+            speed: 1, // Rounds per second
+            rotate: 0,
+            color: '#ffffff',
+            className: 'spinner-geo-tweets'
+        }).spin(target);
+    }
+
+    disableLoading(){
+
+        if(this.spinner != undefined){
+            console.log("Disable loading");
+            this.spinner.stop();
+        }
+    }
+}
+
+class GeoSpatialModule extends SearchModule{
+
+    constructor(containerSelector) {
+
+        super();
         this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
         this.tweets = null;
         this.containerSelector = containerSelector;
-
         $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
     }
     search_geospatial(collection, data){
 
-        var data = {
+        let date_range = this.slider.noUiSlider.get();
+        var geo_data = {
             "index": app.session.s_index,
             "session": 'session_'+app.session.s_name,
             "collection": collection.toGeoJSON(),
-            "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value
+            "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value,
+            "word": data.filter(item => {return item.name == "word"})[0].value,
+            "date_min": date_range[0],
+            "date_max": date_range[1]
         };
         return new Promise(function (resolve,reject) {
+
             fetch(app.appURL+"get_geo_polygon", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify(data)
+                body: JSON.stringify(geo_data)
             }).then(response => resolve(response.json()));
         });
     }
@@ -34,6 +72,7 @@ class GeoSpatialModule{
             index: app.session.s_index,
             session: 'session_'+app.session.s_name,
             search_by_label: data.filter(item => {return item.name == "search_by_label"})[0].value,
+            word: data.filter(item => {return item.name == "word"})[0].value,
             collection: collection.toGeoJSON(),
             date_min: date_range[0],
             date_max: date_range[1]
@@ -126,9 +165,13 @@ class GeoSpatialModule{
         return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString()
     }
     sliderUpdate(values, data){
+        this.enableLoading("#mapid");
         this.displayDate(values[0],values[1]);
         this.searchSpaceTime(data)
-        .then(r => this.update_from_search(r));
+        .then(r => {
+            this.update_from_search(r);
+            this.disableLoading("#mapid");
+        });
     }
     displayDate(lowerDate,upperDate){
         let lower = document.getElementById("maps-date-lower");
@@ -162,86 +205,102 @@ class GeoSpatialModule{
     }
     loadTweets(data){
 
-        L.MakiMarkers.accessToken = this.accessToken;
-        this.loadSlider();
-        this.mymap = L.map('mapid');
+        return new Promise((resolve, reject)=>{
 
-        var mapLayer = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-                        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-                        maxZoom: 18,
-                        id: 'mapbox.streets',
-                        accessToken: this.accessToken
-                    }).addTo(this.mymap);
+            L.MakiMarkers.accessToken = this.accessToken;
+            this.loadSlider();
+            this.mymap = L.map('mapid');
 
-        this.drawnItems = new L.geoJSON();
-        this.mymap.addLayer(this.drawnItems);
-        let options = {
-            position: 'topright',
-            draw: {
-                polyline: false,
-                marker: false,
-                layer: false,
-                circlemarker: false,
-                polygon: {
-                    allowIntersection: false,
-                    drawError: {
-                        color: '#e1e100',
-                        message: '<strong> Wrong shape </strong>'
+            var mapLayer = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+                            maxZoom: 18,
+                            id: 'mapbox.streets',
+                            accessToken: this.accessToken
+                        }).addTo(this.mymap);
+
+            this.drawnItems = new L.geoJSON();
+            this.mymap.addLayer(this.drawnItems);
+            let options = {
+                position: 'topright',
+                draw: {
+                    polyline: false,
+                    marker: false,
+                    layer: false,
+                    circlemarker: false,
+                    polygon: {
+                        allowIntersection: false,
+                        drawError: {
+                            color: '#e1e100',
+                            message: '<strong> Wrong shape </strong>'
+                        },
+                        shapeOptions: {
+                            color:'#3be'
+                        }
                     },
-                    shapeOptions: {
-                        color:'#3be'
-                    }
+                    circle: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color:'#3be'
+                        }
+                    },
                 },
-                circle: false,
-                rectangle: {
-                    shapeOptions: {
-                        color:'#3be'
-                    }
-                },
-            },
-            edit: {
-                edit: false,
-                featureGroup: this.drawnItems,
-                remove: true
-            }
-        };
-        let drawControl = new L.Control.Draw( options);
-        this.mymap.addControl(drawControl);
+                edit: {
+                    edit: false,
+                    featureGroup: this.drawnItems,
+                    remove: true
+                }
+            };
+            let drawControl = new L.Control.Draw( options);
+            this.mymap.addControl(drawControl);
 
-        this.mymap.on(L.Draw.Event.CREATED, (e) => {
-            //TODO: support multiple polygons and trigger the search using a button
-            this.drawnItems.clearLayers();
-            this.drawnItems.addLayer(e.layer);
-            this.search_geospatial(this.drawnItems, data)
-                .then(r => this.update_from_search(r));
-        });
-        this.mymap.on(L.Draw.Event.DELETED, (e) => {
-            this.drawnItems.clearLayers();
-            this.search_geospatial(this.drawnItems, data)
-                .then(r => this.update_from_search(r));
-        });
+            this.mymap.on(L.Draw.Event.CREATED, (e) => {
+                //TODO: support multiple polygons and trigger the search using a button
+                this.enableLoading("#mapid");
+                this.drawnItems.clearLayers();
+                this.drawnItems.addLayer(e.layer);
+                this.search_geospatial(this.drawnItems, data)
+                    .then(r => {
+                        this.update_from_search(r);
+                        this.disableLoading("#mapid");
+                    });
+            });
+            this.mymap.on(L.Draw.Event.DELETED, (e) => {
+                this.drawnItems.clearLayers();
+                this.search_geospatial(this.drawnItems, data)
+                    .then(r => this.update_from_search(r));
+            });
 
-        // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
-        var spec_data = { "index": app.session.s_index, "session": 'session_'+app.session.s_name, "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value };
-        $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
+            // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
+            var spec_data = {
+                "index": app.session.s_index,
+                "session": 'session_'+app.session.s_name,
+                "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value,
+                "word": data.filter(item => {return item.name == "word"})[0].value
+            };
+            $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
-            if (response.geo.length > 0){
-                // Update map
-                this.addGeoToMap(response.geo);
-                var markerArray = response.geo.map(pdi => L.marker(pdi.geometry.coordinates));
-                var group = L.featureGroup(markerArray); //.addTo(map);
-                this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
+                this.enableLoading("#mapid");
+                if (response.geo.length > 0){
+                    // Update map
+                    this.addGeoToMap(response.geo);
+                    var markerArray = response.geo.map(pdi => L.marker(pdi.geometry.coordinates));
+                    var group = L.featureGroup(markerArray); //.addTo(map);
+                    this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
 
-                //Update matching tweets query
-                $(".geo_res_num").html(response.geo.length + " ");
+                    // Update matching tweets query
+                    $(".geo_res_num").html(response.geo.length + " ");
 
-                // Update slider
-                this.sliderBounds(response.min_date, response.max_date);
-                this.slider.noUiSlider.on('set', values => {
-                    this.sliderUpdate(values, data);
-                });
-            }
-            else this.showNoTweetsFound()
+                    // Update slider
+                    this.sliderBounds(response.min_date, response.max_date);
+                    this.slider.noUiSlider.on('set', values => {
+                        this.sliderUpdate(values, data);
+                    });
+
+                    // Resolve to disable loading
+                    this.disableLoading("#mapid");
+                }
+                else this.showNoTweetsFound()
+            });
         });
     }
     showNoTweetsFound(){
@@ -338,7 +397,6 @@ app.views.tweets = Backbone.View.extend({
       $('.tweets_results').fadeOut('slow');
       $('.loading_text:visible:last').fadeIn('slow');
 
-      // NOT WORKING$ -->(".tab-pane").html("") //Cleaning each thime the user click on the search button, but not each time he changes the tab
       if(document.querySelector("#search-results-tabs-area").hidden == true)
         this.bigrams.formData = this.getBigramsFormData();
 
@@ -367,8 +425,8 @@ app.views.tweets = Backbone.View.extend({
 
         if(query && query.trim() != ""){ //If the user has entered at least a keyword
             this.requestTweets(data, startingReqTime);
-            this.requestNgrams(data);
             this.loadGeopositionedTweets(data);
+            this.requestNgrams(data);
             this.requestReTweets(data).then(
                 res => {
                     this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
@@ -378,6 +436,7 @@ app.views.tweets = Backbone.View.extend({
         } else { //If the user has entered no keyword
 
             this.hideNotFullSearchSearch();
+            this.loadGeopositionedTweets(data);
             this.requestNgrams(data).then(
                 (res) => { //In case of success
                     this.showResultsWarning();
@@ -386,7 +445,6 @@ app.views.tweets = Backbone.View.extend({
                 (err) => { //In case of failing
                     this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
-            this.loadGeopositionedTweets(data);
             this.requestReTweets(data).then(
                 res => {
                     this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
@@ -395,17 +453,15 @@ app.views.tweets = Backbone.View.extend({
                     this.clearContainer(retweetsContainer);
                     this.showNoRetweetsFound(retweetsContainer);
             });
-            this.requestFullImageClusters(data).then(
+            /*this.requestFullImageClusters(data).then(
                 res => {
-                    //this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
-                    //console.log("FULL IMG", res);
                     $(".collapse-images-title").text("Top 100 image-based clusters");
                     this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last');
                 },
                 err => { //In case of failing
                     this.clearContainer(".imagesClusters");
                     this.showNoRetweetsFound(".imagesClusters");
-            });
+            });*/
         }
         app.views.mabed.prototype.getClassificationStats();
     },

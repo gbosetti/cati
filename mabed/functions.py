@@ -1064,22 +1064,44 @@ class Functions:
     # Geocoordinates
     # ==================================================================
 
-    def get_geo_coordinates(self,index,session,search_by_label="confirmed OR proposed OR negative"):
+    def get_geo_coordinates(self,index,session,date_range,search_by_label="confirmed OR proposed OR negative", word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        if date_range[0] != None and date_range[1] != None:
+            must_clauses.append({
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            })
+
         query = {
             "query": {
                 "bool": {
-                    "must": [
-                        {
-                            "exists": {
-                                "field": "coordinates.coordinates"
-                            }
-                        },
-                        {
-                            "match": {
-                                session: search_by_label
-                            }
-                        }
-                    ]
+                    "must": must_clauses
                 }
             },
             "aggs": {
@@ -1095,6 +1117,7 @@ class Functions:
                 }
             }
         }
+        print(query)
         my_connector = Es_connector(index=index)
         res = my_connector.search(query)
 
@@ -1112,31 +1135,42 @@ class Functions:
 
         return features,min_date,max_date
 
-    def get_geo_coordinates_date(self,index,session,search_by_label,date_range):
+    def get_geo_coordinates_date(self,index,session,search_by_label,date_range,word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+            {
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
         query = {
             "query": {
                 "bool": {
-                    "must":[
-                        {
-                            "exists": {
-                                "field": "coordinates.coordinates"
-                            }
-                        },
-                        {
-                            "match": {
-                                session: search_by_label
-                            }
-                        },
-                        {
-                            "range": {
-                                "created_at": {
-                                    "gte": date_range[0],
-                                    "lte": date_range[1],
-                                    "format": "epoch_millis"
-                                }
-                            }
-                        }
-                    ],
+                    "must": must_clauses,
                 },
             },
             "aggs": {
@@ -1167,22 +1201,44 @@ class Functions:
 
         return features,min_date,max_date
 
-    def get_geo_coordinates_polygon(self,index, session, search_by_label, coordinates):
+    def get_geo_coordinates_polygon(self,index, session, search_by_label, coordinates, date_range, word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        if date_range[0] != None and date_range[1] != None:
+            must_clauses.append({
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            })
+
         query = {
             "query": {
                 "bool": {
-                    "must": [
-                        {
-                            "exists": {
-                                "field": "coordinates.coordinates"
-                            }
-                        },
-                        {
-                            "match": {
-                                session: search_by_label
-                            }
-                        },
-                    ],
+                    "must": must_clauses,
                     "filter": {
                         "geo_polygon": {
                             "coordinates.coordinates": {
@@ -1190,8 +1246,7 @@ class Functions:
                             }
                         }
                     }
-                },
-
+                }
             },
             "aggs": {
                 "max_date": {
@@ -1221,31 +1276,42 @@ class Functions:
 
         return features,min_date,max_date
 
-    def get_geo_coordinates_polygon_date_range(self,index, session, search_by_label, coordinates,date_range):
+    def get_geo_coordinates_polygon_date_range(self,index, session, search_by_label, coordinates, date_range, word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+            {
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
         query = {
             "query": {
                 "bool": {
-                    "must": [
-                        {
-                            "exists": {
-                                "field": "coordinates.coordinates"
-                            }
-                        },
-                        {
-                            "match": {
-                                session: search_by_label
-                            }
-                        },
-                        {
-                            "range": {
-                                "created_at": {
-                                    "gte": date_range[0],
-                                    "lte": date_range[1],
-                                    "format": "epoch_millis"
-                                }
-                            }
-                        }
-                    ],
+                    "must": must_clauses,
                     "filter": {
                         "geo_polygon": {
                             "coordinates.coordinates": {
