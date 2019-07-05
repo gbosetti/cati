@@ -77,7 +77,6 @@ class GeoSpatialModule extends SearchModule{
             date_min: date_range[0],
             date_max: date_range[1]
         };
-        let res;
         return new Promise(function (resolve,reject) {
             let spaceTimeEndpoint= "get_geo_polygon_date";
             fetch(app.appURL+spaceTimeEndpoint, {
@@ -170,6 +169,7 @@ class GeoSpatialModule extends SearchModule{
         this.searchSpaceTime(data)
         .then(r => {
             this.update_from_search(r);
+            this.updateMatchingTweetsLabel(r.geo.length);
             this.disableLoading("#mapid");
         });
     }
@@ -180,7 +180,6 @@ class GeoSpatialModule extends SearchModule{
         upper.innerText= this.dateFromTimestamp(upperDate);
     }
     sliderBounds(min, max){
-        console.log("RESULTS:", min, max);
         this.slider.noUiSlider.updateOptions({
             range: {
                 'min':min ,
@@ -261,13 +260,17 @@ class GeoSpatialModule extends SearchModule{
                 this.search_geospatial(this.drawnItems, data)
                     .then(r => {
                         this.update_from_search(r);
+                        this.updateMatchingTweetsLabel(r.geo.length);
                         this.disableLoading("#mapid");
                     });
             });
             this.mymap.on(L.Draw.Event.DELETED, (e) => {
                 this.drawnItems.clearLayers();
                 this.search_geospatial(this.drawnItems, data)
-                    .then(r => this.update_from_search(r));
+                    .then(r => {
+                        this.updateMatchingTweetsLabel(r.geo.length);
+                        this.update_from_search(r);
+                    });
             });
 
             // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
@@ -287,9 +290,6 @@ class GeoSpatialModule extends SearchModule{
                     var group = L.featureGroup(markerArray); //.addTo(map);
                     this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
 
-                    // Update matching tweets query
-                    $(".geo_res_num").html(response.geo.length + " ");
-
                     // Update slider
                     this.sliderBounds(response.min_date, response.max_date);
                     this.slider.noUiSlider.on('set', values => {
@@ -297,11 +297,15 @@ class GeoSpatialModule extends SearchModule{
                     });
 
                     // Resolve to disable loading
+                    this.updateMatchingTweetsLabel(response.geo.length);
                     this.disableLoading("#mapid");
                 }
                 else this.showNoTweetsFound()
             });
         });
+    }
+    updateMatchingTweetsLabel(numOfTweets){
+        $(".geo_res_num").html(numOfTweets + " ");
     }
     showNoTweetsFound(){
         $(this.containerSelector).html("Sorry, no geo-localized tweets were found under this criteria.");
@@ -453,7 +457,7 @@ app.views.tweets = Backbone.View.extend({
                     this.clearContainer(retweetsContainer);
                     this.showNoRetweetsFound(retweetsContainer);
             });
-            /*this.requestFullImageClusters(data).then(
+            this.requestFullImageClusters(data).then(
                 res => {
                     $(".collapse-images-title").text("Top 100 image-based clusters");
                     this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last');
@@ -461,7 +465,7 @@ app.views.tweets = Backbone.View.extend({
                 err => { //In case of failing
                     this.clearContainer(".imagesClusters");
                     this.showNoRetweetsFound(".imagesClusters");
-            });*/
+            });
         }
         app.views.mabed.prototype.getClassificationStats();
     },
@@ -1411,9 +1415,7 @@ app.views.tweets = Backbone.View.extend({
             clusterData.push(data[0]);
             clusterData.push(data[1]);
             clusterData.push(data[2]);
-            console.log(clusterId);
             clusterData.push({name: "cid", value: clusterId});
-            console.log(clusterData);
             updateCluster(imageCluster, clusterData);
         };
         //end of new code
