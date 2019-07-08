@@ -153,11 +153,16 @@ def produce_dataset_stats():
 # Get Classification stats
 @app.route('/produce_classification_stats', methods=['GET','POST'])
 def produce_classification_stats():
-    data = request.form
-    #get session and index name
-    return jsonify({
-        "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
-    })
+
+    try:
+        data = request.form
+        #get session and index name
+        return jsonify({
+            "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
+        })
+    except Exception as err:
+        print("Error: ", err)
+        return "Error"
 
 @app.route('/get_elastic_logs', methods=['POST', 'GET'])
 # @cross_origin()
@@ -268,11 +273,13 @@ def search_for_image_clusters():
 def get_geo_coordinates():
     data = request.form
     index = data['index']
-    geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+    date_range = [data.get('date_min', None), data.get('date_max', None)]
+    geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_matching_docs
     }
     return jsonify(result)
 
@@ -281,17 +288,20 @@ def get_geo_polygon():
     data = request.get_json()
     index = data['index']
     features = data['collection']['features']
+    date_range = [data.get('date_min', None), data.get('date_max', None)]
+
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+        geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon(index=index,coordinates= coordinates)
+            geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates_polygon(index=index,session=data["session"], search_by_label=data["search_by_label"], word=data["word"], coordinates=coordinates, date_range=date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_matching_docs
     }
     return jsonify(result)
 
@@ -303,15 +313,16 @@ def get_geo_polygon_date():
     date_range = [data['date_min'], data['date_max']]
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates_date(index=index,date_range=date_range)
+        geo,min_date,max_date,total_hits = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon_date_range(index=index,coordinates= coordinates, date_range = date_range)
+            geo,min_date,max_date,total_hits = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_hits
     }
     return jsonify(result)
 
@@ -1390,6 +1401,11 @@ def available_indexes():
 # 7. Sessions
 # ==================================================================
 
+def get_available_indexes():
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    return config['elastic_search_sources']
+
 # Get Sessions
 @app.route('/sessions', methods=['POST', 'GET'])
 # @cross_origin()
@@ -1397,7 +1413,9 @@ def sessions():
     data = request.form
     # up1 = functions.update_all("mabed_sessions", "session", "s_type", "tweet")
     # up = functions.delete_session("s1")
-    res = functions.get_sessions()
+    available_indexes = get_available_indexes()
+    res = functions.get_sessions(available_indexes=available_indexes)
+    print("available sessions: ", res)
     return jsonify(res['hits']['hits'])
 
 # Add new Session
