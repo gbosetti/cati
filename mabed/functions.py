@@ -1120,7 +1120,7 @@ class Functions:
         }
         print(query)
         my_connector = Es_connector(index=index)
-        res = my_connector.search(query)
+        res = my_connector.search(query, 1000)
 
         min_date = res['aggregations']['min_date']['value']
         max_date = res['aggregations']['max_date']['value']

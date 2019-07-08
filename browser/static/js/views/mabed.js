@@ -10,7 +10,6 @@ app.views.mabed = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
-        console.log("Rendering the doc");
         this.getDatasetInfo();
         await this.setSessionTopBar();
         this.getClassificationStats();
@@ -79,11 +78,10 @@ app.views.mabed = Backbone.View.extend({
         }
         return new Promise(resolve => {
             $.get(app.appURL+'sessions', null, function(response){
-                console.log("sessions res:", response);
                 resolve(response);
             }, 'json');
         }).then(res => {
-            console.log("available sessions:", res);
+            //console.log("available sessions:", res);
             return this.fillAvailableSessions(res,'#session_topbar')
         })
     },
@@ -162,8 +160,7 @@ app.views.mabed = Backbone.View.extend({
         data.push({name: "index", value: app.session.s_index});
 
         $.post( app.appURL+'produce_dataset_stats', data, function(response, status) {
-            console.log( "success" );
-            console.log("Data: ", response, "\nStatus: ", status);
+            //console.log("Data: ", response, "\nStatus: ", status);
 
             //On request retrieval, load the new values and stop the spinner
             document.querySelector('#total_tweets').textContent = response.total_tweets; //"20000";
@@ -222,7 +219,7 @@ app.views.mabed = Backbone.View.extend({
             $.get(app.appURL+'get_backend_logs', function(response){
 
                 response = JSON.parse(response);
-                console.log(response);
+                //console.log(response);
 
                 response.forEach(log => {
                     $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");

@@ -109,12 +109,17 @@ class Es_connector:
     #         print("Got %d Hits:" % res['hits']['total'])
     #     return res
 
-    def search(self, query):
+    def search(self, query, size=None):
+
+        target_size = self.size
+        if size != None:
+            target_size = size
+
         res = self.es.search(
             index=self.index,
             doc_type=self.doc_type,
             body=query,
-            size=self.size,
+            size=target_size,
         )
         return res
 

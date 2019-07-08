@@ -1,14 +1,15 @@
 class SearchModule{
 
     constructor(containerSelector) {
-        this.spinner;
+
+        this.timeoutIds = [];
     }
 
-    enableLoading(selector){
+    enableLoading(){
 
-        var target = document.querySelector(selector);
+        var target = document.querySelector("#mapid");
         console.log("Enable loading");
-        this.spinner = new Spinner({
+        new Spinner({
             lines: 13, // The number of lines to draw
             length: 50, // The length of each line
             width: 15, // The line thickness
@@ -23,10 +24,7 @@ class SearchModule{
 
     disableLoading(){
 
-        if(this.spinner != undefined){
-            console.log("Disable loading");
-            this.spinner.stop();
-        }
+        $(".spinner-geo-tweets").remove();
     }
 }
 
@@ -39,6 +37,7 @@ class GeoSpatialModule extends SearchModule{
         this.tweets = null;
         this.containerSelector = containerSelector;
         $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
+        this.lastZoomAt = null;
     }
     search_geospatial(collection, data){
 
@@ -280,28 +279,72 @@ class GeoSpatialModule extends SearchModule{
                 "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value,
                 "word": data.filter(item => {return item.name == "word"})[0].value
             };
+
+            this.searchGeoLocalizedTweets(spec_data, data).then(()=>{
+
+                this.mymap.on('zoomstart', ()=>{
+                    clearTimeout(this.timeoutID);
+                    //this.lastZoomAt = Date.now();
+                });
+                this.mymap.on('zoomend', ()=>{
+
+                    //console.log(Date.now()-this.lastZoomAt);
+                    this.timeoutID = setTimeout(()=>{
+                        clearTimeout(this.timeoutID);
+                        this.searchGeoLocalizedTweets(spec_data, data, false);
+                    },2000);
+                })
+                //this.mymap.on('zoom', ()=>{ console.log("zoom") });
+
+                /*this.mymap.on('zoomend', ()=>{
+                    this.enableLoading();
+
+                        console.log("ZOOMING + LOADING!");
+                        this.searchGeoLocalizedTweets(spec_data, data).then(()=>{
+                            this.disableLoading();
+                        });
+                });*/
+            });
+        });
+    }
+    setLastZoomAt(val){
+        console.log("Setting: ", val);
+        this.lastZoomAt = val;
+    }
+    getLastZoomAt(){
+        return this.lastZoomAt;
+    }
+    searchGeoLocalizedTweets(spec_data, slider_data, fitBounds = true){
+
+        console.log("searchGeoLocalizedTweets");
+        return new Promise((resolve, reject)=>{
+
             $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
-                this.enableLoading("#mapid");
+                this.enableLoading();
                 if (response.geo.length > 0){
                     // Update map
                     this.addGeoToMap(response.geo);
                     var markerArray = response.geo.map(pdi => L.marker(pdi.geometry.coordinates));
                     var group = L.featureGroup(markerArray); //.addTo(map);
-                    this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
+
+                    if(fitBounds){
+                        this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
+                        console.log("Fitting bounds");
+                    }
 
                     // Update slider
-                    this.sliderBounds(response.min_date, response.max_date);
+                    /*this.sliderBounds(response.min_date, response.max_date);
                     this.slider.noUiSlider.on('set', values => {
-                        this.sliderUpdate(values, data);
-                    });
+                        this.sliderUpdate(values, slider_data);
+                    });*/
 
                     // Resolve to disable loading
-                    console.log("GEO", response);
                     this.updateMatchingTweetsLabel(response.total_hits, response.geo.length);
-                    this.disableLoading("#mapid");
+                    this.disableLoading();
                 }
                 else this.showNoTweetsFound()
+                resolve();
             });
         });
     }
