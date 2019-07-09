@@ -379,8 +379,8 @@ app.views.client = Backbone.View.extend({
             }
             html += template({
                 tid: tweet._id,
-                name: tweet._source.user.name,
-                screen_name: tweet._source.user.screen_name,
+                name: tweet._source.user? "@" + tweet._source.user.name : undefined,
+                screen_name: tweet._source.user? tweet._source.user.screen_name : undefined,
                 created_at: tweet._source.created_at,
                 link: tweet._source.link,
                 text: tweet._source.text,

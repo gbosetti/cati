@@ -1,3 +1,5 @@
+// searchForTweets
+
 class SearchModule{
 
     constructor(containerSelector) {
@@ -330,6 +332,7 @@ class GeoSpatialModule extends SearchModule{
             console.log("SPEC DATA: ", spec_data);
             $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
+                console.log("------------", response);
                 if (response.geo.length > 0){
 
                     // Update map
@@ -363,7 +366,7 @@ class GeoSpatialModule extends SearchModule{
         $(".geo_tweets_results").html(numOfFoundTweets + ' results matching the query (showing ' + numOfRetrievedTweets + ')');
     }
     showNoTweetsFound(){
-        $(this.containerSelector).html("Sorry, no geo-localized tweets were found under this criteria.");
+        $(this.containerSelector).parent().html("Sorry, no geo-localized tweets were found under this criteria.");
     }
 }
 
@@ -464,7 +467,9 @@ app.views.tweets = Backbone.View.extend({
       return false;
     },
     loadGeopositionedTweets: function(data){
-        new GeoSpatialModule("mapid").loadTweets(data);
+        try{
+            new GeoSpatialModule("#mapid").loadTweets(data);
+        }catch(err){console.log(err)}
     },
     searchForTweets: function(){
 
@@ -739,11 +744,12 @@ app.views.tweets = Backbone.View.extend({
     },
     requestNgrams: function(data){
 
-        this.bigrams.lastQueryParams = data;
-        this.updateBigramsFormData(data);
-
         var self = this;
         return new Promise((resolve, reject) => {
+
+            this.bigrams.lastQueryParams = data;
+            this.updateBigramsFormData(data);
+
             var containerSelector = ".ngrams-search-classif:visible:last";
             self.showLoadingMessage(containerSelector, 677);
 
@@ -888,8 +894,8 @@ app.views.tweets = Backbone.View.extend({
 				}
             html += template({
                 tid: tweet._id,
-                          name: tweet._source.user.name,
-                          screen_name: tweet._source.user.screen_name,
+                          name: tweet._source.user? "@" + tweet._source.user.name : undefined,
+                          screen_name: tweet._source.user? tweet._source.user.screen_name : undefined,
                           created_at: tweet._source.created_at,
                           link: tweet._source.link,
                           text:  tweet._source.text,
@@ -1258,9 +1264,9 @@ app.views.tweets = Backbone.View.extend({
     showImageClusters: function(clusters, word,clustersAreaSelector, clusters_stats, eid){
         var cbtn = "", chtml = "", state_btns="";
 
-        console.log("TOP CLUSTERS TO PRESENT (max. in search 100): ", clusters.length);
+        console.log("TOP CLUSTERS TO PRESENT (max. in search 100): ", clusters.length, clusters);
 
-        if(clusters){
+        if(clusters && clusters.length>0){
             $.each(clusters, function(i, cluster){
                 //if(i>=20){return false;}
                 var cbg = "";
