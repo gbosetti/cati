@@ -1543,13 +1543,10 @@ class Functions:
             field_value = field_tuple['key']
             session_name = session_prefix + field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
             logger.clear_logs()
-            if session_name in unique_fields.keys():
-                unique_fields[session_name].attach(field_value)
-            else:
-                unique_fields[session_name] = [field_value]
+            unique_fields[session_name] = field_value
             # create a document in the mabed_session index
 
-        for session_name, field_values in unique_fields.items():
+        for session_name, field_value in unique_fields.items():
             try:
 
                 if not es.indices.exists(index=self.sessions_index):
@@ -1574,12 +1571,9 @@ class Functions:
                 print(e)
                 return False
 
-            print("session_name", session_name)
-            print("field",field)
-            print("field_value", field_value)
-            for field_value in field_values:
-                source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
-                print("script source", source)
+
+            source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
+            print("script source", source)
 
         query = {
             "bool": {
@@ -1595,16 +1589,21 @@ class Functions:
             },
             "query": query
         }
-        print("index: ", index)
-        print("body: ", body)
-        es.update_by_query(index=index, doc_type=doc_type, body=body)
+
+        try:
+            tweets_connector.update_by_query({ "query": query }, source)
+        except Exception as err:
+            print("****ERROR: ", err)
+
         print("finish to create sessions")
         return 3
 
     def create_session_script(self, session_name, field_name, field_value):
-        change_positive = "ctx._source.session_"+session_name+" = 'positive'"
+
+        change_positive = "ctx._source.session_"+session_name+" = 'confirmed'"
         change_negative = "ctx._source.session_"+session_name+" = 'negative'"
-        source = "if (ctx._source." + field_name + " == '" + field_value + "') {" + change_positive + " } else {" + change_negative + "}"
+        # .replace("\"", "").replace("/", "").replace(' ', '_').lower()
+        source = "if (ctx._source." + field_name + " == '" + field_value + "') {" + change_positive + " } else {" + change_negative + "} "
 
         return source
 
