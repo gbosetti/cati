@@ -1540,7 +1540,7 @@ class Functions:
         source = ""
         for field_tuple in fields:
             field_value = field_tuple['key']
-            session_name = field_value.replace(' ', '_').lower()
+            session_name = field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
             logger.clear_logs()
             # create a document in the mabed_session index
             try:
