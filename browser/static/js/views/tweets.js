@@ -162,14 +162,14 @@ class GeoSpatialModule extends SearchModule{
         var aDate = new Date(aStringDate);
         return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString()
     }
-    sliderUpdate(values, data){
-        this.enableLoading("#mapid");
-        this.displayDate(values[0],values[1]);
+    sliderUpdate(extremeDates, data){
+        //this.enableLoading("#mapid");
+        this.displayDate(extremeDates[0],extremeDates[1]);
         this.searchSpaceTime(data)
         .then(r => {
             this.update_from_search(r);
             this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
-            this.disableLoading("#mapid");
+            //this.disableLoading("#mapid");
         });
     }
     displayDate(lowerDate,upperDate){
@@ -178,7 +178,7 @@ class GeoSpatialModule extends SearchModule{
         lower.innerText= this.dateFromTimestamp(lowerDate);
         upper.innerText= this.dateFromTimestamp(upperDate);
     }
-    sliderBounds(min, max){
+    sliderBounds(min, max, skipUpdate = false){
         this.slider.noUiSlider.updateOptions({
             range: {
                 'min':min ,
@@ -187,7 +187,9 @@ class GeoSpatialModule extends SearchModule{
             start:[min,max]
         });
         this.displayDate(min,max);
-        this.slider.noUiSlider.set([min,max]);
+        if (skipUpdate == false){
+            this.slider.noUiSlider.set([min,max]);
+        }
     }
     loadSlider(){
 
@@ -199,6 +201,11 @@ class GeoSpatialModule extends SearchModule{
             orientation: 'horizontal',
             tooltips: false,
             range: { 'min': 0, 'max': 1 }
+        });
+        this.slider.noUiSlider.on('set', values => {
+            //console.log("slider on-set");
+            if(this.slider_data)
+                this.sliderUpdate(values, this.slider_data);
         });
     }
     loadTweets(data){
@@ -286,14 +293,14 @@ class GeoSpatialModule extends SearchModule{
                     clearTimeout(this.timeoutID);
                     //this.lastZoomAt = Date.now();
                 });
-                this.mymap.on('zoomend', ()=>{
+                this.mymap.on('zoomend', (evt)=>{
 
                     //console.log(Date.now()-this.lastZoomAt);
                     this.timeoutID = setTimeout(()=>{
                         clearTimeout(this.timeoutID);
                         this.searchGeoLocalizedTweets(spec_data, data, false);
                     },2000);
-                })
+                });
                 //this.mymap.on('zoom', ()=>{ console.log("zoom") });
 
                 /*this.mymap.on('zoomend', ()=>{
@@ -319,10 +326,12 @@ class GeoSpatialModule extends SearchModule{
         console.log("searchGeoLocalizedTweets");
         return new Promise((resolve, reject)=>{
 
+            this.enableLoading();
+            console.log("SPEC DATA: ", spec_data);
             $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
-                this.enableLoading();
                 if (response.geo.length > 0){
+
                     // Update map
                     this.addGeoToMap(response.geo);
                     var markerArray = response.geo.map(pdi => L.marker(pdi.geometry.coordinates));
@@ -332,14 +341,16 @@ class GeoSpatialModule extends SearchModule{
                         this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
                         console.log("Fitting bounds");
                     }
+                    else{
+                        console.log("BOUNDS:", this.mymap.getBounds());
+
+                    }
 
                     // Update slider
-                    /*this.sliderBounds(response.min_date, response.max_date);
-                    this.slider.noUiSlider.on('set', values => {
-                        this.sliderUpdate(values, slider_data);
-                    });*/
+                    this.slider_data = slider_data;
+                    this.sliderBounds(response.min_date, response.max_date, true);
 
-                    // Resolve to disable loading
+                    // Updating query info section
                     this.updateMatchingTweetsLabel(response.total_hits, response.geo.length);
                     this.disableLoading();
                 }
