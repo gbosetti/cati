@@ -1595,9 +1595,9 @@ class Functions:
         return 3
 
     def create_session_script(self, session_name, field_name, field_value):
-        change_positive = f"ctx._source['session_{session_name}'] = 'positive'"
-        change_negative = f"ctx._source['session_{session_name}'] = 'negative'"
-        source = (f"if (ctx._source.{field_name} == '{field_value}')" "{" f"{change_positive}" " } else {"f"{change_negative}" "}")
+        change_positive = "ctx._source['session_"+session_name+"'] = 'positive'"
+        change_negative = "ctx._source['session_"+session_name+"'] = 'negative'"
+        source = "if (ctx._source." + field_name + " == '" + field_value + "')" + "{" + change_positive + " } else {" + change_negative + "}"
 
         return source
 
