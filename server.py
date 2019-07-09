@@ -1552,8 +1552,9 @@ def create_session_from_multiclassification():
     index = data['index']
     doc_type = data['doc_type']
     field = data['field']
+    session_prefix= data['session_prefix']
     print("Creating new sessions", index, doc_type,field)
-    functions.create_session_from_multiclassification(index,doc_type,field, logger=app.backend_logger)
+    functions.create_session_from_multiclassification(index,doc_type,field,session_prefix=session_prefix, logger=app.backend_logger)
     return jsonify({"value":3})
 # ==================================================================
 # 6. Main

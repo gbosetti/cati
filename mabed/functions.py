@@ -1530,7 +1530,7 @@ class Functions:
     #                 credentials: 'include',
     #                 body: JSON.stringify({index: "africa_labeled", doc_type: 'doc',field: 'event_type'})
     #             })
-    def create_session_from_multiclassification(self, index, doc_type, field, logger):
+    def create_session_from_multiclassification(self, index, doc_type, field, logger, session_prefix=""):
         session_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         tweets_connector = Es_connector(index=index, doc_type="tweet")
         es = Elasticsearch([{'host': tweets_connector.host, 'port': tweets_connector.port}])
@@ -1541,7 +1541,7 @@ class Functions:
         unique_fields = dict()
         for field_tuple in fields:
             field_value = field_tuple['key']
-            session_name = field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
+            session_name = session_prefix + field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
             logger.clear_logs()
             unique_fields[session_name] = field_value
             # create a document in the mabed_session index
