@@ -1575,7 +1575,7 @@ class Functions:
                 return False
 
 
-            source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
+            source = source + self.create_session_script(session_name=session_name, field_name=field, field_values=field_values)
             print("script source", source)
 
         query = {
@@ -1605,7 +1605,7 @@ class Functions:
 
         condition = ""
         for field_value in field_values:
-            condition += "ctx._source." + field_name + " == '" + field_value + "' OR "
+            condition += "ctx._source." + field_name + " == '" + field_value + "' || "
 
         condition = condition[:-3]
 
