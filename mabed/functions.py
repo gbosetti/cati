@@ -1538,11 +1538,15 @@ class Functions:
         fields = tweets_connector.field_values(field_keyword, size=100)
         print(fields)
         source = ""
+        unique_fields = dict()
         for field_tuple in fields:
             field_value = field_tuple['key']
             session_name = field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
             logger.clear_logs()
+            unique_fields[session_name] = field_value
             # create a document in the mabed_session index
+
+        for session_name, field_value in unique_fields.items():
             try:
 
                 if not es.indices.exists(index=self.sessions_index):
