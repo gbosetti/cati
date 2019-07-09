@@ -1543,10 +1543,13 @@ class Functions:
             field_value = field_tuple['key']
             session_name = session_prefix + field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
             logger.clear_logs()
-            unique_fields[session_name] = field_value
+            if session_name in unique_fields.keys():
+                unique_fields[session_name].attach(field_value)
+            else:
+                unique_fields[session_name] = [field_value]
             # create a document in the mabed_session index
 
-        for session_name, field_value in unique_fields.items():
+        for session_name, field_values in unique_fields.items():
             try:
 
                 if not es.indices.exists(index=self.sessions_index):
@@ -1574,9 +1577,9 @@ class Functions:
             print("session_name", session_name)
             print("field",field)
             print("field_value", field_value)
-
-            source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
-            print("script source", source)
+            for field_value in field_values:
+                source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
+                print("script source", source)
 
         query = {
             "bool": {
