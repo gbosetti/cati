@@ -1543,10 +1543,13 @@ class Functions:
             field_value = field_tuple['key']
             session_name = session_prefix + field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
             logger.clear_logs()
-            unique_fields[session_name] = field_value
+            if session_name in unique_fields:
+                unique_fields[session_name].append(field_value)
+            else:
+                unique_fields[session_name] = [field_value]
             # create a document in the mabed_session index
 
-        for session_name, field_value in unique_fields.items():
+        for session_name, field_values in unique_fields.items():
             try:
 
                 if not es.indices.exists(index=self.sessions_index):
@@ -1598,12 +1601,19 @@ class Functions:
         print("finish to create sessions")
         return 3
 
-    def create_session_script(self, session_name, field_name, field_value):
+    def create_session_script(self, session_name, field_name, field_values):
+
+        condition = ""
+        for field_value in field_values:
+            condition += "ctx._source." + field_name + " == '" + field_value + "' OR "
+
+        condition = condition[:-3]
+
 
         change_positive = "ctx._source.session_"+session_name+" = 'confirmed'"
         change_negative = "ctx._source.session_"+session_name+" = 'negative'"
         # .replace("\"", "").replace("/", "").replace(' ', '_').lower()
-        source = "if (ctx._source." + field_name + " == '" + field_value + "') {" + change_positive + " } else {" + change_negative + "} "
+        source = "if ("+condition+") {" + change_positive + " } else {" + change_negative + "} "
 
         return source
 
