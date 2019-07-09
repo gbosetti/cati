@@ -22,6 +22,9 @@ from classification.active_learning import ActiveLearning
 from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.ngram_based_classifier import NgramBasedClasifier
 
+# rest
+from flask_restful import Resource, Api, reqparse
+
 
 # mabed
 from mabed.functions import Functions
@@ -30,6 +33,9 @@ app = Flask(__name__, static_folder='browser/static', template_folder='browser/t
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 app.backend_logger = BackendLogger()
+
+# restful api
+api = Api(app)
 
 functions = Functions()
 SELF = "'self'"
@@ -214,6 +220,7 @@ def detect_events():
         res = True
 
     print("END OF DETECTION")
+    print(events["impact_data"])
     return jsonify({"result": res, "events":events})
 
 
@@ -280,6 +287,37 @@ def get_geo_coordinates():
         "min_date":min_date,
         "max_date": max_date,
         "total_hits": total_matching_docs
+    }
+    return jsonify(result)
+
+
+class Maps(Resource):
+    def get(self, index_name, session_name):
+        # return the tweets for the index with only the given session and in the geospatial tweets in a geoJson format
+        args = parser.parse_args()
+        startDate = args['startDate']
+        endDate = args['endDate']
+        geo,_,_ = functions.get_geo_coordinates(index=index_name)
+        #TODO : add parameters to the query, place, date, label and keyword
+        return {'geo': geo, "date": startDate, "endDate": endDate}
+
+
+parser = reqparse.RequestParser()
+parser.add_argument('startDate')
+parser.add_argument('endDate')
+parser.add_argument('endDate')
+api.add_resource(Maps, '/maps/<string:index_name>/<string:session_name>', endpoint="/maps")
+
+# Get all tweets with places
+@app.route('/get_geo_places', methods=['POST'])
+def get_geo_places():
+    data = request.form
+    index = data['index']
+    geo,min_date,max_date = functions.get_geo_places(index=index)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date
     }
     return jsonify(result)
 
@@ -809,7 +847,11 @@ def event_image():
     image = functions.get_event_image(index, main_term, related_terms, s_name)
     res = False
     if image:
-        image = image['hits']['hits'][0]['_source']
+        try:
+            image = image['hits']['hits'][0]['_source']
+        except IndexError as ie:
+            print("query:",data)
+            print("image:",image)
         res = True
     return jsonify({"result":res, "image": image})
 
@@ -1504,6 +1546,16 @@ def get_session_results():
     return jsonify({"result": status, "body": res})
 
 
+@app.route('/create_session_from_multiclassification', methods=['POST'])
+def create_session_from_multiclassification():
+    data = request.form
+    index = data['index']
+    doc_type = data['doc_type']
+    field = data['field']
+    session_prefix= data['session_prefix']
+    print("Creating new sessions", index, doc_type,field)
+    functions.create_session_from_multiclassification(index,doc_type,field,session_prefix=session_prefix, logger=app.backend_logger)
+    return jsonify({"value":3})
 # ==================================================================
 # 6. Main
 # ==================================================================
