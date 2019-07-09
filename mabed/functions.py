@@ -100,7 +100,6 @@ class Functions:
     def get_tweets_by_str_ids(self, index="", id_strs=""):
 
         my_connector = Es_connector(index=index, doc_type="tweet")
-        print("IDS: ", id_strs)
         res = my_connector.search({
             "query": {
                 "match": {
@@ -507,7 +506,6 @@ class Functions:
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = self.get_retated_terms(main_term, related_terms)
-        print("get_event_tweets", terms)
 
         query = {
             "sort": [
@@ -988,7 +986,6 @@ class Functions:
             res = my_connector.search(q)
         except RequestError as re:
             print("Failed to get event cluster state: ",q)
-            print(re)
         clusters = res['aggregations']['group_by_cluster']['buckets']
         data = self.get_current_session_data(index)
 
@@ -1005,7 +1002,6 @@ class Functions:
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
-        print("index for CLUSTERS: ", index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
@@ -1121,7 +1117,6 @@ class Functions:
                 }
             }
         }
-        print(query)
         my_connector = Es_connector(index=index)
         res = my_connector.search(query, 1000)
 
@@ -1164,7 +1159,6 @@ class Functions:
         ]
 
         if word != None and word.strip() != "":
-            print("\nWORD!\n")
             must_clauses.append({
                 "match": {
                     "text": word
@@ -1221,7 +1215,6 @@ class Functions:
         ]
 
         if word != None and word.strip() != "":
-            print("\nWORD!\n")
             must_clauses.append({
                 "match": {
                     "text": word
@@ -1536,7 +1529,6 @@ class Functions:
         es = Elasticsearch([{'host': tweets_connector.host, 'port': tweets_connector.port}])
         field_keyword = field + ".keyword"
         fields = tweets_connector.field_values(field_keyword, size=100)
-        print(fields)
         source = ""
         unique_fields = dict()
         for field_tuple in fields:
@@ -1642,12 +1634,10 @@ class Functions:
                     "s_type": "tweet"
                 })
                 # Adding the session's field in the existing dataset
-                print('connecting to index:',index)
                 tweets_connector = Es_connector(index=index, doc_type=doc_type)
                 self.fix_read_only_allow_delete(index, tweets_connector)
 
                 kwargs["logger"].add_log("Starting with the labeling of the session:"+ name +" tweet to 'confirmed'")
-                print('setting session value to confirmed')
                 source = "ctx._source['session_" + name + "'] = 'confirmed'"
                 query = {
                     "bool": {
@@ -1665,12 +1655,9 @@ class Functions:
                     },
                     "query": query
                 }
-                print("index: ",index)
-                print("body: ",body)
                 es.update_by_query(index=index, doc_type=doc_type, body=body)
                 kwargs["logger"].add_log("Starting with the labeling of the session:"+ name +" tweet to 'negative'")
 
-                print('changing values')
                 source= "ctx._source['session_" + name + "'] = 'negative'"
                 query = {
                     "bool":{
@@ -1688,11 +1675,9 @@ class Functions:
                     },
                     "query": query
                 }
-                print("index: ",index)
-                print("body: ",body)
                 es.update_by_query(index=index, doc_type=doc_type, body=body)
             else:
-                print(session)
+
                 print("============================================================================")
                 kwargs["logger"].add_log("There are no documents in the selected index.")
                 return False
@@ -1896,8 +1881,6 @@ class Functions:
             }
         }
 
-        print(query)
-
         my_connector = Es_connector(index=kwargs["index"])
         res = my_connector.search(query)
         return res['hits']['total']
@@ -2088,7 +2071,6 @@ class Functions:
                 }
             }
         }
-        print(query)
         res = my_connector.count(query)
         return res['count']
 
@@ -2259,11 +2241,7 @@ class Functions:
         #         "I love building chatbots python",
         #         "they chat amagingly well",
         #         "So we have saved the model and its ready for implementation. Lets play with it"]
-        print("=============================================================")
-        print("=============================================================")
-        print(tweet)
-        print("-------------")
-        print("-------------")
+
 
         tagged_data = [TaggedDocument(words=word_tokenize(_d.lower()), tags=[str(i)]) for i, _d in enumerate(data)]
 

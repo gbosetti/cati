@@ -194,7 +194,6 @@ def detect_events():
 
     data = request.form
     target_index = data['index']
-    print("\n\nTARGET INDEX:", target_index)
     k = int(data['top_events'])
     maf = float(data['min_absolute_frequency'])
     mrf = float(data['max_relative_frequency'])
@@ -219,8 +218,6 @@ def detect_events():
     else:
         res = True
 
-    print("END OF DETECTION")
-    print(events["impact_data"])
     return jsonify({"result": res, "events":events})
 
 
@@ -372,7 +369,6 @@ def get_geo_polygon_date():
 def get_image_folder():
     data = request.form
     folder_name = functions.get_image_folder(data["index"])
-    print("folder: ", folder_name)
     return folder_name
 
 
@@ -436,8 +432,6 @@ def event_ngrams_with_higher_ocurrence():
     target_terms = functions.get_retated_terms(main_term, related_terms)
     results_size = request.form.get('top-bubbles-to-display', 20)
     n_size = request.form.get('n-grams-to-generate', '2')
-
-    print("-SESSION:", data['session'])
 
     matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
                                                             label=data['search_by_label'], results_size=results_size,
@@ -544,8 +538,6 @@ def tweets_filter():
 # @cross_origin()
 def tweets_scroll():
     data = request.form
-
-    print(data)
     tweets= functions.get_tweets_scroll(index=data['index'], sid=data['sid'], scroll_size=int(data['scroll_size']))
     return jsonify({"tweets": tweets})
 
@@ -606,7 +598,6 @@ def train_model():
     model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
         num_questions=num_questions, remove_stopwords=False)
 
-    print("Strategy: ", sampling_strategy)
     if (sampling_strategy == "closer_to_hyperplane"):
          questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
                                                                       X_unlabeled, categories, num_questions)
@@ -919,7 +910,6 @@ def mark_tweet():
     session = data['session']
     tid = data['tid']
     val = data['val']
-    print(request.form)
     functions.set_tweet_state(index, session, tid, val)
     return jsonify(data)
 
@@ -1173,12 +1163,6 @@ def get_sse():
     # newKeywords = functions.process_range_tweets(index, start_ms, end_ms, words, 20)
 
     # newKeywords = [('couleurs', 0.9541982412338257), ('cette…', 0.9535157084465027), ('consultation', 0.9513106346130371), ('tgvmax', 0.9512830972671509), ('lyonmag', 0.9508819580078125), ('vous…', 0.9507380127906799), ('sublime', 0.9503788948059082), ('le_progres', 0.9499937891960144), ('vue', 0.9492042660713196), ('oliviermontels', 0.9490641355514526), ('sport2job', 0.9481754899024963), ('lyonnai…', 0.9481167197227478), ('hauteurs', 0.9463335275650024), ('illuminations', 0.9462761282920837), ('familial', 0.9458074569702148), ('fdl2017…', 0.945579469203949), ('leprogreslyon', 0.9455731511116028), ('weekend', 0.9454441070556641), ('pensant', 0.9449157118797302), ('radioscoopinfos', 0.9441419839859009)]
-    print("---------------")
-    print("newKeywords")
-    print(newKeywords)
-    print("related_terms")
-    print(related_terms)
-    print("---------------")
     sse2 = []
     for i in range(0, 40):
         temp_terms = []
@@ -1424,7 +1408,6 @@ def available_indexes():
     res = []
     for source in config['elastic_search_sources']:
         res.append(source['index'])
-    print("Available indexes:", res)
     return jsonify(res);
 
 # @app.route('/get_app_url', methods=['GET'])
@@ -1457,7 +1440,6 @@ def sessions():
     # up = functions.delete_session("s1")
     available_indexes = get_available_indexes()
     res = functions.get_sessions(available_indexes=available_indexes)
-    print("available sessions: ", res)
     return jsonify(res['hits']['hits'])
 
 # Add new Session
@@ -1553,7 +1535,6 @@ def create_session_from_multiclassification():
     doc_type = data['doc_type']
     field = data['field']
     session_prefix= data['session_prefix']
-    print("Creating new sessions", index, doc_type,field)
     functions.create_session_from_multiclassification(index,doc_type,field,session_prefix=session_prefix, logger=app.backend_logger)
     return jsonify({"value":3})
 # ==================================================================
