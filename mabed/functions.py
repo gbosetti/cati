@@ -1571,9 +1571,6 @@ class Functions:
                 print(e)
                 return False
 
-            print("session_name", session_name)
-            print("field",field)
-            print("field_value", field_value)
 
             source = source + self.create_session_script(session_name=session_name, field_name=field, field_value=field_value)
             print("script source", source)
@@ -1592,16 +1589,21 @@ class Functions:
             },
             "query": query
         }
-        print("index: ", index)
-        print("body: ", body)
-        es.update_by_query(index=index, doc_type=doc_type, body=body)
+
+        try:
+            tweets_connector.update_by_query({ "query": query }, source)
+        except Exception as err:
+            print("****ERROR: ", err)
+
         print("finish to create sessions")
         return 3
 
     def create_session_script(self, session_name, field_name, field_value):
-        change_positive = "ctx._source.session_"+session_name+" = 'positive'"
+
+        change_positive = "ctx._source.session_"+session_name+" = 'confirmed'"
         change_negative = "ctx._source.session_"+session_name+" = 'negative'"
-        source = "if (ctx._source." + field_name + " == '" + field_value + "') {" + change_positive + " } else {" + change_negative + "}"
+        # .replace("\"", "").replace("/", "").replace(' ', '_').lower()
+        source = "if (ctx._source." + field_name + " == '" + field_value + "') {" + change_positive + " } else {" + change_negative + "} "
 
         return source
 
