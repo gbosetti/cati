@@ -869,7 +869,7 @@ class Functions:
 
         try:
             for es_sources in config['elastic_search_sources']:
-                if es_sources['index'] == index:
+                if es_sources['index'] == index and 'image_duplicates' in es_sources:
                     with open(es_sources['image_duplicates']) as file:
                         return json.load(file)
             return
