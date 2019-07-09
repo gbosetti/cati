@@ -159,11 +159,16 @@ def produce_dataset_stats():
 # Get Classification stats
 @app.route('/produce_classification_stats', methods=['GET','POST'])
 def produce_classification_stats():
-    data = request.form
-    #get session and index name
-    return jsonify({
-        "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
-    })
+
+    try:
+        data = request.form
+        #get session and index name
+        return jsonify({
+            "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
+        })
+    except Exception as err:
+        print("Error: ", err)
+        return "Error"
 
 @app.route('/get_elastic_logs', methods=['POST', 'GET'])
 # @cross_origin()
@@ -275,11 +280,13 @@ def search_for_image_clusters():
 def get_geo_coordinates():
     data = request.form
     index = data['index']
-    geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+    date_range = [data.get('date_min', None), data.get('date_max', None)]
+    geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_matching_docs
     }
     return jsonify(result)
 
@@ -319,17 +326,20 @@ def get_geo_polygon():
     data = request.get_json()
     index = data['index']
     features = data['collection']['features']
+    date_range = [data.get('date_min', None), data.get('date_max', None)]
+
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates(index=index)
+        geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon(index=index,coordinates= coordinates)
+            geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates_polygon(index=index,session=data["session"], search_by_label=data["search_by_label"], word=data["word"], coordinates=coordinates, date_range=date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_matching_docs
     }
     return jsonify(result)
 
@@ -341,15 +351,16 @@ def get_geo_polygon_date():
     date_range = [data['date_min'], data['date_max']]
     #TODO: this checking can be done on the front
     if len(features) == 0:
-        geo,min_date,max_date = functions.get_geo_coordinates_date(index=index,date_range=date_range)
+        geo,min_date,max_date,total_hits = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
     if len(features) == 1:
         if features[0]['geometry']['type'] == "Polygon":
             coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date = functions.get_geo_coordinates_polygon_date_range(index=index,coordinates= coordinates, date_range = date_range)
+            geo,min_date,max_date,total_hits = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
     result = {
         "geo":geo,
         "min_date":min_date,
-        "max_date": max_date
+        "max_date": max_date,
+        "total_hits": total_hits
     }
     return jsonify(result)
 
@@ -482,12 +493,14 @@ def top_retweets():
 # @cross_origin()
 def generate_ngrams_for_index():
     data = request.form
-    preproc = PreProcessor()
+    #preproc = PreProcessor()
     propName = data['to_property']
+
+    print("Generating ngrams for index: ", data['index'])
 
     start_time = datetime.datetime.now()
     print("Starting at: ", start_time)
-    preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+    #preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
     res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
     return jsonify(res)
@@ -560,7 +573,7 @@ def download_al_init_data():
     if(True==download_data): #This just downloads, then add code to copy to tmp_data
        classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
                              gt_session=data["gt_session"], text_field=data["text_field"],
-                             is_field_array=data["is_field_array"], debug_limit=debug_limit)
+                             debug_limit=debug_limit)
 
     return jsonify(True)
 
@@ -1430,6 +1443,11 @@ def available_indexes():
 # 7. Sessions
 # ==================================================================
 
+def get_available_indexes():
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    return config['elastic_search_sources']
+
 # Get Sessions
 @app.route('/sessions', methods=['POST', 'GET'])
 # @cross_origin()
@@ -1437,7 +1455,9 @@ def sessions():
     data = request.form
     # up1 = functions.update_all("mabed_sessions", "session", "s_type", "tweet")
     # up = functions.delete_session("s1")
-    res = functions.get_sessions()
+    available_indexes = get_available_indexes()
+    res = functions.get_sessions(available_indexes=available_indexes)
+    print("available sessions: ", res)
     return jsonify(res['hits']['hits'])
 
 # Add new Session

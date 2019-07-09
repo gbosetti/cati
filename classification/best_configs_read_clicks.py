@@ -21,11 +21,11 @@ def read_file(path):
     return json.loads(textual_logs)
 
 
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments_2015_moving_repeated\\logs_01\\"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\foot_2015_selected\\logs_07\\"
 
 # Get the logs of the only file for HYP
-filename = "session_lyon2015_test_01_OUR_500__cnf0.8_ret0.0_bgr0.2_mda0.005_smss[500]"
-initial_clicks=7
+filename = "session_2015_football_05_OUR_500__cnf0.0_ret0.4_bgr0.6_mda0.005_smss[500]"
+initial_clicks=16
 target_loops=[10,20,50,100]
 file_content = read_file(logs_path + filename + ".txt")
 logs = [line for line in file_content if 'loop' in line]

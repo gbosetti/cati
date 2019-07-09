@@ -10,7 +10,6 @@ app.views.mabed = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
-        console.log("Rendering the doc");
         this.getDatasetInfo();
         await this.setSessionTopBar();
         this.getClassificationStats();
@@ -77,14 +76,44 @@ app.views.mabed = Backbone.View.extend({
         }else{
             console.log("The current session is "+app.session.s_name);
         }
-        let self =this;
         return new Promise(resolve => {
             $.get(app.appURL+'sessions', null, function(response){
                 resolve(response);
             }, 'json');
-        }).then(value => {
-            return app.views.settings.prototype.handleSessions(value,'#session_topbar')
+        }).then(res => {
+            //console.log("available sessions:", res);
+            return this.fillAvailableSessions(res,'#session_topbar')
         })
+    },
+    fillAvailableSessions(response,componentSelector){
+        return new Promise(resolve => {
+            let html = "";
+            let sessions = [];
+            response.forEach((element,index) => {
+                if(index == 0 && app.session_id == null){
+                    app.session_id = element._id;
+                    app.session = element._source;
+                    localStorage.removeItem('session_id');
+                    localStorage.removeItem('session');
+                    localStorage.setItem('session_id', element._id);
+                    localStorage.setItem('session', JSON.stringify(element._source));
+                }
+                sessions.push([element._source.s_name, element._id]);
+            });
+            sessions.sort((a,b) => (a[0]>b[0])? 1:-1);
+            for(sessionTuple of sessions){
+                if(sessionTuple[1]===app.session_id){
+                    html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }else{
+                    html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }
+            }
+            resolve(html);
+        }).then(value => {
+            $(componentSelector).html(value);
+        }).then( value => {
+            return app.views.settings.prototype.show_seesion_info();
+        });
     },
     switchSession: function(){
         //e.preventDefault();
@@ -131,8 +160,7 @@ app.views.mabed = Backbone.View.extend({
         data.push({name: "index", value: app.session.s_index});
 
         $.post( app.appURL+'produce_dataset_stats', data, function(response, status) {
-            console.log( "success" );
-            console.log("Data: ", response, "\nStatus: ", status);
+            //console.log("Data: ", response, "\nStatus: ", status);
 
             //On request retrieval, load the new values and stop the spinner
             document.querySelector('#total_tweets').textContent = response.total_tweets; //"20000";
@@ -191,7 +219,7 @@ app.views.mabed = Backbone.View.extend({
             $.get(app.appURL+'get_backend_logs', function(response){
 
                 response = JSON.parse(response);
-                console.log(response);
+                //console.log(response);
 
                 response.forEach(log => {
                     $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");

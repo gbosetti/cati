@@ -3,6 +3,7 @@ from datetime import datetime
 from mabed.es_connector import Es_connector
 from BackendLogger import BackendLogger
 import os
+import time
 
 class ActiveLearningNoUi:
 
@@ -15,6 +16,9 @@ class ActiveLearningNoUi:
         self.backend_logger = BackendLogger(logs_path)
 
         self.classifier = ActiveLearning()
+
+        if kwargs.get("sampler", None) != None:
+            self.classifier.set_sampling_strategy(kwargs["sampler"])
 
     def clean_logs(self, **kwargs):
 
@@ -60,104 +64,28 @@ class ActiveLearningNoUi:
         # print(json.dumps(kwargs["questions"], indent=4, sort_keys=True))
         return kwargs["questions"], wrong_labels
 
-    def get_duplicated_answers(self, **kwargs):
-
-        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
-        duplicated_docs=[]
-
-        # NOT WORKING PROPERLY. TRY GETTING THE DUPLICATES FROM THE MATRIX
-        splitted_questions = []
-        target_bigrams = []
-        for question in kwargs["questions"]:
-
-            splitted_questions.append(question)
-            if(len(splitted_questions)>99):
-                matching_docs = self.process_duplicated_answers(my_connector, splitted_questions)
-                duplicated_docs += matching_docs
-                splitted_questions=[] # re init
-
-        if len(splitted_questions)>0:
-            matching_docs = self.process_duplicated_answers(my_connector, splitted_questions)
-            duplicated_docs += matching_docs
-
-        return duplicated_docs
-
-    def process_duplicated_answers(self, my_connector, splitted_questions):
-
-        duplicated_docs = []
-        concatenated_ids = self.join_ids(splitted_questions)
-        matching_bigrams = my_connector.search({
-            "query": {
-                "match": {
-                    "id_str": concatenated_ids
-                }
-            }
-        })
-
-        for doc_bigrams in matching_bigrams["hits"]["hits"]:
-
-            bigrams = doc_bigrams["_source"]["2grams"]
-            bigrams_matches = []
-            for bigram in bigrams:
-                bigrams_matches.append({"match": {"2grams.keyword": bigram}})
-
-            docs_with_noise = my_connector.search({
-                "query": {
-                    "bool": {
-                        "must": bigrams_matches
-                    }
-                }
-            })
-
-            # print("\nMatching: ", bigrams)
-            if len(docs_with_noise["hits"]["hits"]) > 1:
-
-                # print("\nMatching: ", bigrams)
-                for tweet in docs_with_noise["hits"]["hits"]:
-
-                    if len(bigrams) == len(tweet["_source"]["2grams"]):
-                        # print(tweet["_source"]["2grams"])
-                        # current_bgram = ' '.join(tweet["_source"]["2grams"])
-                        label = [doc for doc in splitted_questions if
-                                 doc_bigrams["_source"]["id_str"] == doc["str_id"]][0]["label"]
-                        duplicated_docs.append({
-                            "filename": tweet["_source"]["id_str"],
-                            "2grams": tweet["_source"]["2grams"],
-                            "label": label
-                        })
-
-        return duplicated_docs
-
     def loop(self, **kwargs):
 
         # Building the model and getting the questions
-        model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = self.classifier.build_model(num_questions=kwargs["num_questions"], remove_stopwords=False)
+        self.classifier.build_model(remove_stopwords=False)
 
-        if (kwargs["sampling_strategy"] == "closer_to_hyperplane"):
-            questions = self.classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test, X_unlabeled, categories, kwargs["num_questions"])
-        elif (kwargs["sampling_strategy"] == "closer_to_hyperplane_bigrams_rt"):
-            questions = self.classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
-                                                                               X_unlabeled, categories, kwargs["num_questions"],
-                                                                               max_samples_to_sort=kwargs["max_samples_to_sort"],
-                                                                               index=kwargs["index"], session=kwargs["session"], text_field=kwargs["text_field"],
-                                                                               cnf_weight=kwargs["cnf_weight"], ret_weight=kwargs["ret_weight"], bgr_weight=kwargs["bgr_weight"])
+        questions = self.classifier.get_samples(kwargs["num_questions"])
 
         # Asking the user (gt_dataset) to answer the questions
         answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=self.classifier)
 
         # Injecting the answers in the training set, and re-training the model
         self.classifier.move_answers_to_training_set(answers)
-        self.classifier.remove_matching_answers_from_test_set(answers)
+        #self.classifier.move
+        #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
+        # self.classifier.remove_matching_answers_from_test_set(answers)
 
-        # self training
-        duplicated_answers = self.get_duplicated_answers(questions=answers, **kwargs)
-        self.classifier.move_answers_to_training_set(duplicated_answers)
-        self.classifier.remove_matching_answers_from_test_set(duplicated_answers)
+        self.classifier.post_sampling() #In case you want, e.g., to move duplicated content
 
         # Present visualization to the user, so he can explore the proposed classification
         # ...
 
-        return scores, wrong_pred_answers
+        return self.classifier.scores, wrong_pred_answers
 
     def download_data(self, **kwargs):
 
@@ -167,24 +95,100 @@ class ActiveLearningNoUi:
             self.backend_logger.add_raw_log('{ "start_downloading": "' + str(datetime.now()) + '"} \n')
 
             self.classifier.download_training_data(index=kwargs["index"], session=kwargs["session"],
-                                              field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                              field=kwargs["text_field"],
                                               debug_limit=kwargs["debug_limit"])
             self.classifier.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
-                                                  field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                                  field=kwargs["text_field"],
                                                   debug_limit=kwargs["debug_limit"])
             self.classifier.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
-                                             field=kwargs["text_field"], is_field_array=kwargs["is_field_array"],
+                                             field=kwargs["text_field"],
                                              debug_limit=kwargs["debug_limit"])
+
+    def clear_temporary_labels(self, index, session):
+
+        Es_connector(index=index).update_by_query({
+            "query": {
+                "exists" : { "field" : session + "_tmp" }  # e.g. session_lyon2015_test_01_tmp
+            }
+        }, "ctx._source.remove('" + session + "_tmp')")
+
+    def split_list(self, alist, wanted_parts=1):
+        length = len(alist)
+        return [alist[i * length // wanted_parts: (i + 1) * length // wanted_parts]
+                for i in range(wanted_parts)]
+
+    def delete_temporary_labels(self, index, session, docs):
+
+        matching_ids = set()
+        for doc in docs:
+            doc_id = os.path.basename(doc["filename"]).split(".")[0]
+            matching_ids.add(doc_id)
+
+        parts = len(matching_ids) / 1000
+        if int(parts) != parts:
+            parts = int(parts) + 1
+        else:
+            parts = int(parts)
+
+        paginated_ids = self.split_list(list(matching_ids), parts)
+
+        print("Deleting temp vars")
+
+        for page_ids in paginated_ids:
+
+            matching_ids = []
+            for doc_id in page_ids:
+                matching_ids.append({"match": {"id_str": doc_id}})
+
+            try:
+                query = {
+                    "query": {
+                        "bool": {
+                            "should": matching_ids,
+                            "minimum_should_match": 1
+                        }
+                    }
+                }
+                Es_connector(index=index).update_by_query(query, "ctx._source.remove('" + session + "_tmp')")
+                #time.sleep(1)
+            except Exception as e:
+                print(e)
+        #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
+        #     return [],[]
+
+    def add_temporary_labels(self, index, session, duplicated_ids):
+
+        parts = len(duplicated_ids)/1000
+        if int(parts) != parts:
+            parts = int(parts) + 1
+        else: parts = int(parts)
+
+        paginated_ids = self.split_list(duplicated_ids, parts)
+
+        for page_ids in paginated_ids:
+
+            matching_ids = []
+            for id in page_ids:
+                matching_ids.append({"match": {"id_str": id}})
+
+            Es_connector(index=index).update_by_query({
+                "query": {
+                  "bool": {
+                    "should": matching_ids,
+                    "minimum_should_match": 1
+                  }
+                }
+            }, "ctx._source." + session + "_tmp = 'unlabeled'")
 
     def run(self, **kwargs):
 
+        #try:
         diff_accuracy = None
         start_time = datetime.now()
         accuracy = 0
         prev_accuracy = 0
         # stage_scores = []
 
-        loop_index = 0
         looping_clicks = 0
         self.backend_logger.clear_logs()  # Just in case there is a file with the same name
 
@@ -192,12 +196,19 @@ class ActiveLearningNoUi:
         self.classifier.clone_original_files()
         self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
+        #Temporarily label them
+        #self.clear_temporary_labels(kwargs["index"], kwargs["session"])
+        self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
+        #time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
+        #self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
+
         #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
         loop_index = 0
         while loop_index in range(100):  # and accuracy<1:
 
             print("\n---------------------------------")
             loop_index+=1
+            self.classifier.loop_index = loop_index
             scores, wrong_pred_answers = self.loop(**kwargs)
             looping_clicks += wrong_pred_answers
 
@@ -220,7 +231,7 @@ class ActiveLearningNoUi:
         self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
 
 
-
-
-
-
+            #except Exception as e:
+            #    print(e)
+        #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
+        #     return [],[]

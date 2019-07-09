@@ -1,4 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
+from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
 import argparse
 import itertools
 import os
@@ -60,17 +61,11 @@ parser.add_argument("-tf",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
                     default="2grams")
 
-parser.add_argument("-tfa",
-                    "--is_field_array",
-                    dest="is_field_array",
-                    help="Is the document field a String or an array of strings?",
-                    default=True)
-
 parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
                     dest="selected_max_samples_to_sort",
                     help="The list of max number of sorted documents (according to their distance to the hyperplane) to score, as well as the maximum number of retweets and bigrams to consider for the scoring. E.g. [100, 500]",
-                    default=[500])
+                    default=[100])
 
 parser.add_argument("-cr",
                     "--clear_results",
@@ -84,11 +79,30 @@ parser.add_argument("-sc",
                     help="The combinations of weights that you want to use. Write it as a string. E.g. '[[0.9, 0.0, 0.1], [0.9, 0.1, 0.0]]' If it is not set, all the permutations of the multiples of 0.1 from 0 to 1 are used instead.",
                     default=None)
 
-parser.add_argument("-sh",
-                    "--skip_hyperplane",
-                    dest="skip_hyperplane",
-                    help="If True, it skips the processing with the uncertainty distance method. Default is False.",
+parser.add_argument("-sm",
+                    "--sampling_methods",
+                    dest="sampling_methods",
+                    help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler",
                     default=False)
+
+parser.add_argument("-sp",
+                    "--similarity_percentages",
+                    dest="similarity_percentages",
+                    help="A number followed by the % symbol. XX%. If you specify different percentages separate them with comma (not spaces)",
+                    default="75%")
+
+parser.add_argument("-cl",
+                    "--confident_loops",
+                    dest="confident_loops",
+                    help="A number indicating at which amount of loops a similar document should be considered confident to move. If you specify different percentages separate them with comma (not spaces)",
+                    default="2")
+
+parser.add_argument("-tmc",
+                    "--target_min_confidence",
+                    dest="target_min_confidence",
+                    help="A number between 0 and 1 indicating the minimum confidence on the predicted label to consider adding a document into the duplicated docs collection",
+                    default="0.35")
+
 
 def to_boolean(str_param):
     if isinstance(str_param, bool):
@@ -105,10 +119,11 @@ if args.index is None or args.session is None or args.gt_session is None:
 
 download_files = to_boolean(args.download_files)
 debug_limit = to_boolean(args.debug_limit)
-is_field_array = to_boolean(args.is_field_array)
 clear_results = to_boolean(args.clear_results)
-skip_hyperplane = to_boolean(args.skip_hyperplane)
-
+sampling_methods = args.sampling_methods.split(',')
+similarity_percentages = args.similarity_percentages.split(',')
+confident_loops = args.confident_loops.split(',')
+target_min_confidence = float(args.target_min_confidence)
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -140,6 +155,7 @@ else:
 def delete_folder(path):
     if os.path.exists(path):
         #os.remove(path)
+        print("Deleting folder: ", path)
         shutil.rmtree(path)
 
 if clear_results:
@@ -153,36 +169,69 @@ if download_files:
     learner = ActiveLearningNoUi(logs_filename="download.txt")
     learner.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
-                    text_field=args.text_field, is_field_array=is_field_array)
+                    text_field=args.text_field)
     learner.clean_logs()
 
 #  Running the algorythm multiple times
 for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
-    if skip_hyperplane is False:
-        print("\nRunning hyperplane strategy\n")
-        logs_filename = args.session + "_HYP_" + str(max_samples_to_sort) + "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
-        learner = ActiveLearningNoUi(logs_filename=logs_filename)
+    if 'UncertaintySampler' in sampling_methods:
 
-        learner.run(sampling_strategy="closer_to_hyperplane", index=args.index, session=args.session,
-                    gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
+        print("\nRunning hyperplane strategy\n")
+        logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
+        sampler = UncertaintySampler()
+        learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+        learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                    text_field=args.text_field)
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
-    for weights in selected_combinations:
+    if 'BigramsRetweetsSampler' in sampling_methods:
+        for weights in selected_combinations:
 
-        print("Looping with weights: ", weights)
+            print("Looping with weights: ", weights)
+            logs_filename = args.session + "_OUR" + \
+                            "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
+                            "_smss" + str(max_samples_to_sort) + ".txt"
+            sampler = BigramsRetweetsSampler(max_samples_to_sort=max_samples_to_sort, index=args.index, session=args.session,
+                text_field=args.text_field, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2])
+            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
 
-        logs_filename = args.session + "_OUR_" + str(max_samples_to_sort) + "_" + \
-                        "_cnf" + str(weights[0]) + "_ret" + str(weights[1]) + "_bgr" + str(weights[2]) +\
-                        "_mda" + str(args.min_diff_accuracy) + "_smss" + str(args.selected_max_samples_to_sort) + ".txt"
-        learner = ActiveLearningNoUi(logs_filename=logs_filename)
+            learner.run(index=args.index, session=args.session, num_questions=args.num_questions,
+                        gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
+                        text_field=args.text_field)
 
-        learner.run(sampling_strategy="closer_to_hyperplane_bigrams_rt", index=args.index, session=args.session,
-                    gt_session=args.gt_session, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2],
-                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field, is_field_array=is_field_array, max_samples_to_sort=max_samples_to_sort)
+    if 'MoveDuplicatedDocsSampler' in sampling_methods:
 
+        print("\nRunning the MoveDuplicatedDocsSampler strategy\n")
 
+        for similarity_percentage in similarity_percentages:
 
+            print("Looping with percentages: ", similarity_percentage)
+            logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
+            sampler = MoveDuplicatedDocsSampler(index=args.index, session=args.session,
+                    text_field=args.text_field, similarity_percentage=similarity_percentage)
+            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+            learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                        min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                        text_field=args.text_field)
+
+    if 'ConsecutiveDeferredMovDuplicatedDocsSampler' in sampling_methods:
+
+        print("\nRunning the ConsecutiveDeferredMovDuplicatedDocsSampler strategy\n")
+
+        for similarity_percentage in similarity_percentages:
+            for confident_loop in confident_loops:
+
+                confident_loop = int(confident_loop)
+
+                print("Looping with percentages: ", similarity_percentage)
+                logs_filename = args.session + "_DDS" + "_loops_" + str("%02d" % (confident_loop,)) + "_smss" + str(max_samples_to_sort) + ".txt"
+                sampler = ConsecutiveDeferredMovDuplicatedDocsSampler(index=args.index, session=args.session,
+                        text_field=args.text_field, similarity_percentage=similarity_percentage,
+                        confident_loop=confident_loop, target_min_confidence=target_min_confidence)
+                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                            text_field=args.text_field)

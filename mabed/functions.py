@@ -1,3 +1,4 @@
+
 # coding: utf-8
 
 import timeit
@@ -178,6 +179,8 @@ class Functions:
             # }
             # }
             return '...'
+
+
 
     def top_retweets(self, **kwargs):
 
@@ -1064,13 +1067,47 @@ class Functions:
     # Geocoordinates
     # ==================================================================
 
-    def get_geo_coordinates(self,index):
-        query = {
-            "query": {
+    def get_geo_coordinates(self,index,session,date_range,search_by_label="confirmed OR proposed OR negative", word=None):
+
+        must_clauses = [
+            {
                 "exists": {
                     "field": "coordinates.coordinates"
                 }
             },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        if date_range[0] != None and date_range[1] != None:
+            print("\nRANGE!\n", date_range)
+            must_clauses.append({
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            })
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": must_clauses
+                }
+            },
             "aggs": {
                 "max_date": {
                     "max": {
@@ -1084,29 +1121,135 @@ class Functions:
                 }
             }
         }
-        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        print(query)
+        my_connector = Es_connector(index=index)
+        res = my_connector.search(query, 1000)
+
         min_date = res['aggregations']['min_date']['value']
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append(self.tweet_coordiantes_geojson(tweet))
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
 
+        return features,min_date,max_date,res['hits']['total']
 
-        return self.as_geojson(features),min_date,max_date
+    def get_geo_coordinates_date(self,index,session,search_by_label,date_range,word=None):
 
-    def as_geojson(self,features):
-
-        return {
-            "type": "FeatureCollection",
-            "features": features
-        }
-
-
-    def get_geo_places(self,index):
-        query = {
-            "query": {
+        must_clauses = [
+            {
                 "exists": {
-                    "field": "place.bounding_box"
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+            {
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                },
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date,res['hits']['total']
+
+    def get_geo_coordinates_polygon(self,index, session, search_by_label, coordinates, date_range, word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+        ]
+
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        if date_range[0] != None and date_range[1] != None:
+            must_clauses.append({
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            })
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                    "filter": {
+                        "geo_polygon": {
+                            "coordinates.coordinates": {
+                                "points": coordinates[:-1]
+                            }
+                        }
+                    }
                 }
             },
             "aggs": {
@@ -1127,93 +1270,52 @@ class Functions:
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append(self.tweet_place_geojson(tweet))
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
 
-        return self.as_geojson(features),min_date,max_date
+        return features,min_date,max_date,res['hits']['total']
 
-    def get_geo_coordinates_date(self,index,date_range):
-        query = {
-            "query": {
-                "bool": {
-                    "must":[
-                        {
-                            "exists": {
-                                "field": "coordinates.coordinates"
-                            }
-                        },
-                        {
-                            "range": {
-                                "created_at": {
-                                    "gte": date_range[0],
-                                    "lte": date_range[1],
-                                    "format": "epoch_millis"
-                                }
-                            }
-                        }
-                    ],
-                },
+    def get_geo_coordinates_polygon_date_range(self,index, session, search_by_label, coordinates, date_range, word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
             },
-            "aggs": {
-                "max_date": {
-                    "max": {
-                        "field": "created_at"
-                    }
-                },
-                "min_date": {
-                    "min": {
-                        "field": "created_at"
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+            {
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
                     }
                 }
             }
-        }
-        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
-        min_date = res['aggregations']['min_date']['value']
-        max_date = res['aggregations']['max_date']['value']
-        features = []
-        for tweet in res['hits']['hits']:
-            features.append(self.tweet_coordiantes_geojson(tweet))
+        ]
 
-        return self.as_geojson(features),min_date,max_date
+        if word != None and word.strip() != "":
+            print("\nWORD!\n")
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
 
-# Put the tweets containing geospatial data inside a FeatureCollection
-    def tweets_as_geojson(self, res):
-        feature = []
-        for tweet in res['hits']['hits']:
-            if 'coordinates' in tweet['_source']:
-                feature.append(self.tweet_coordiantes_geojson(tweet))
-            elif ['place'] in tweet['_source']:
-                feature.append(self.tweet_place_geojson(tweet))
-
-        return feature
-
-    def tweet_place_geojson(self,tweet):
-        return {
-            "type": "Feature",
-            "geometry": tweet['_source']['place']['bounding_box'],
-            "properties": {
-                "tweet": tweet['_source']
-            }
-        }
-
-    def tweet_coordiantes_geojson(self,tweet):
-        return {
-            "type": "Feature",
-            "geometry": tweet['_source']['coordinates'],
-            "properties": {
-                "tweet": tweet['_source']
-            }
-        }
-
-
-    def get_geo_coordinates_polygon(self,index, coordinates):
         query = {
             "query": {
                 "bool": {
-                    "must": {
-                        "exists": {
-                            "field": "coordinates.coordinates"
-                        }
-                    },
+                    "must": must_clauses,
                     "filter": {
                         "geo_polygon": {
                             "coordinates.coordinates": {
@@ -1242,71 +1344,38 @@ class Functions:
         max_date = res['aggregations']['max_date']['value']
         features = []
         for tweet in res['hits']['hits']:
-            features.append(self.tweet_coordiantes_geojson(tweet))
-        return features,min_date,max_date
-
-    def get_geo_coordinates_polygon_date_range(self,index, coordinates,date_range):
-        query = {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "exists": {
-                                "field": "coordinates.coordinates"
-                            }
-                        },
-                        {
-                            "range": {
-                                "created_at": {
-                                    "gte": date_range[0],
-                                    "lte": date_range[1],
-                                    "format": "epoch_millis"
-                                }
-                            }
-                        }
-                    ],
-                    "filter": {
-                        "geo_polygon": {
-                            "coordinates.coordinates": {
-                                "points": coordinates[:-1]
-                            }
-                        }
-                    }
-                },
-
-            },
-            "aggs": {
-                "max_date": {
-                    "max": {
-                        "field": "created_at"
-                    }
-                },
-                "min_date": {
-                    "min": {
-                        "field": "created_at"
-                    }
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
                 }
-            }
-        }
-        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
-        min_date = res['aggregations']['min_date']['value']
-        max_date = res['aggregations']['max_date']['value']
-        features = []
-        for tweet in res['hits']['hits']:
-            features.append(self.tweet_coordiantes_geojson(tweet))
+            })
 
-        return features,min_date,max_date
+        return features,min_date,max_date,res['hits']['total']
 
     # ==================================================================
     # Sessions
     # ==================================================================
 
     # Get all sessions
-    def get_sessions(self):
+    def get_sessions(self, available_indexes=[]):
+
+        if len(available_indexes)==0:
+            return {'hits': {'hits': []}}
+
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+        index_matching = []
+        for index in available_indexes:
+            index_matching.append({"match":{"s_index": index["index"]}})
+
         query = {
             "query": {
-                "match_all": {}
+                "bool":{
+                   "should":index_matching,
+                   "minimum_should_match":1
+                }
             }
         }
 
@@ -1413,7 +1482,7 @@ class Functions:
         })
 
     # Add new session
-    def add_session(self, name, index,**kwargs):
+    def add_session(self, name, index, **kwargs):
 
         try:
             my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)

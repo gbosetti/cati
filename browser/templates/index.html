@@ -11,7 +11,7 @@
 		<link rel="icon" href="static/images/favicon.ico">
 		<link rel="stylesheet" type="text/css" href="static/css/mabed.css" />
 		<link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css"/>
-		<link title="timeline-styles" rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+		<link title="timeline-styles" rel="stylesheet" href="static/css/vendor/timeline.css">
 		<!-- <link title="timeline-styles" rel="stylesheet" href="static/plugins/timeline/timeline.css"> -->
 		<link rel="stylesheet" href="static/plugins/d3/nv.d3.css">
 		<link rel="stylesheet" type="text/css" href="static/css/main.css"/>
@@ -25,11 +25,9 @@
 		<link rel="stylesheet" type="text/css" href="static/css/spin.css">
 		<link rel="stylesheet" type="text/css" href="static/plugins/nouislider/nouislider.min.css"/>
 		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
-		<!--<link rel="stylesheet" type="text/css" href="static/css/leaflet.css" />
-		<link rel="stylesheet" type="text/css" href="static/css/leaflet.draw.css"> -->
-		<link rel="stylesheet" type="text/css" href="static/node_modules/leaflet/dist/leaflet.css" />
-		<link rel="stylesheet" type="text/css" href="static/node_modules/leaflet-draw/dist/leaflet.draw.css">
-
+		<link rel="stylesheet" type="text/css" href="static/css/leaflet.css" />
+		<link rel="stylesheet" type="text/css" href="static/css/leaflet.draw.css">
+		<link rel="stylesheet" type="text/css" href="static/css/vendor/spin.css">
 	</head>
 	<body>
 		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -51,9 +49,6 @@
 						</li>
 						<li class="nav-item" id="nav-tweets">
 							<a class="nav-link" href="#tweets">Tweets Search</a>
-						</li>
-						<li class="nav-item" id="nav-map">
-							<a class="nav-link" href="#maps">Tweets Map</a>
 						</li>
 						<!--<li class="nav-item" id="nav-beta2">
 							<a class="nav-link" href="#beta2">Event-detection Model</a>
@@ -289,7 +284,7 @@
 			          <div class="container">
 			              <div class="row">
 			                <ul id="classification-strategies-tabs" class="nav nav-tabs nav-justified" style="width:100%">
-			                    <li class="nav-item active"><a class="nav-link active" 	href="#clusted-based-active-learning" data-toggle="tab">Uncertainty Sampling</a></li>
+			                    <li class="nav-item active"><a class="nav-link active show" 	href="#clusted-based-active-learning" data-toggle="tab" on-pane-load="initializeUncertaintySampling">Uncertainty Sampling</a></li>
 			                    <li class="nav-item"><a class="nav-link" 				href="#extended-uncertainty-sampling" data-toggle="tab" on-pane-load="initializeExtendedUncertaintySampling">Extended Uncertainty Sampling</a></li> <!--href="#density-weighted-al" data-toggle="tab"-->
 			                    <!--<li class="nav-item"><a class="nav-link" href="#3b" data-toggle="tab">Strategy 3</a></li>
 			                    <li class="nav-item"><a class="nav-link" href="#4b" data-toggle="tab">Strategy 4</a></li>-->
@@ -311,23 +306,44 @@
 			                                                <h3>About</h3>
 
 			                                                <div>
-			                                                    <p>
+			                                                    <p>		<!--  -->
 																		Under this strategy, you will be presented with a small set of tweets that you have to manually classify as <span class="badge badge-success" style="font-weight: inherit;">positive</span> or <span class="badge badge-danger" style="font-weight: inherit;">negative</span>.
 			                                                   			Then, our algorithm will try to learn from your choices and will suggest an automatic classification. If you agree with the classification, you can use it. Otherwise you can repeat the steps through different stages until you get an acceptable result.
 																</p>
 
 			                                                    <div class="card-body mx-auto" style="max-width: 400px;">
+
+																	<!-- NUMBER OF QUERY SAMPLES -->
 			                                                        <div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">How many tweets are you willing to classify by default for each stage?</label>
+			                                                            <label for="num-tweet-questions" class="col-form-label font-weight-bold">How many tweets are you willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
 			                                                        </div>
 
-			                                                        <!--<div class="form-group">
-			                                                            <label for="num-tweet-questions" class="col-form-label">Remove stopwords from the tweets?</label>
-			                                                            <div>
-			                                                                <input id="remove-stopwords-al" type="checkbox" data-toggle="toggle" data-on="Yes" data-off="No">
-			                                                            </div>
-			                                                        </div>-->
+																	<!-- TEST DOCUMENTS -->
+																	<div class="form-group">
+
+																		<label for="num-tweet-questions" class="col-form-label font-weight-bold">Test documents:</label>
+
+																	  	<!-- USE THE ALREADY CLASSIFIED DATA % -->
+																		<div class="form-check">
+																			<input class="form-check-input" type="radio" name="testSubset" id="testSubsetPercentage" value="option1" disabled>
+																			<span class="form-check-label" for="testSubsetPercentage">
+																			  Use the a percentage of the current session:
+																			  <input class="form-control" type="number" value="20" id="test-subset-percentage" min="1" max="99">
+																			</span>
+																		</div>
+
+																		<!-- USE ANOTHER SESSION -->
+																		<div class="form-check">
+																			<input class="form-check-input" type="radio" name="testSubset" id="testSubsetExternalSession" value="option1" checked>
+																			<span class="form-check-label" for="testSubsetExternalSession">
+																			Use the following session:
+																			<select class="form-control" id="test-subset-external-session"></select>
+																			</span>
+																		</div>
+
+																	</div>
+
 			                                                    </div>
 			                                                </div>
 			                                            </div>
@@ -566,52 +582,6 @@
 			  </div>
 			</div>
 		</script>
-        <!--  MAPS -->
-    <!-- TODO: fix grid so slider is touching the map -->
-		<script type="text/template" id ="tpl-map">
-            <div class="row">
-				<div class="row col">
-					<div class="col-4 d-flex justify-content-center">
-						<div class="align-self-center p-2">
-							Date
-						</div>
-					</div>
-				</div>
-				<div class="row col">
-					<div class="col-8 d-flex justify-content-center">
-						<div class="align-self-center p-2">
-							Tweets
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="row">
-				<div class="row col">
-					<div class="col-4 d-flex justify-content-center">
-                        <div id="maps-slider-range-vertical" class="slider-range"></div>
-					</div>
-				</div>
-				<div class="row col">
-					<div class="col-8 border">
-						<div id="mapid" style="height: 500px; width: 100%;  margin-left:auto; margin-right:auto;"></div>
-					</div>
-				</div>
-            </div>
-            <div class="row">
-				<div class="row col-4 justify-content-center">
-					<div class="align-self-center p-2">
-						From: <span id="maps-date-lower"></span>
-					</div>
-					<div class="align-self-center p-2">
-                        To: <span id="maps-date-upper"></span>
-					</div>
-				</div>
-				<div class="row col-8 justify-content-center">
-					<button class="btn btn-default" id="showClassificationOnMap">Show Sessions classification</button>
-				</div>
-			</div>
-
-        </script>
 		<script type="text/template" id="tpl-page-tweets">
 
             <!-- SEARCH FORM -->
@@ -1237,20 +1207,15 @@
 			  </div>
 			</div>
 		</script>
-		<script src="static/js/vendor/leaflet-src.js" ></script>
-		<script src="static/js/vendor/Leaflet.MakiMarkers.js"></script>
-		<script src="static/js/vendor/leaflet.draw.js"></script>
-		<!--
-		<script src="static/node_modules/leaflet/dist/leaflet-src.js" ></script>
-		<script src="static/js/vendor/leaflet.js"></script>
-		<script src="static/node_modules/leaflet/dist/leaflet-src.js" ></script>
-		<script src="static/node_modules/leaflet-draw/dist/leaflet.draw.js"></script>
-		-->
-		<script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
-		<script src="https://unpkg.com/popper.js/dist/umd/popper.min.js"></script>
+		<script src="static/js/vendor/leaflet/leaflet-src.js" ></script>
+		<script src="static/js/vendor/leaflet/Leaflet.MakiMarkers.js"></script>
+		<script src="static/js/vendor/leaflet/leaflet.draw.js"></script>
+
+		<script src="static/js/vendor/timeline.js"></script>
+		<script src="static/js/vendor/popper.min.js"></script>
 		<script src="static/js/vendor/jquery-1.10.2.min.js"></script>
 		<script src="static/js/vendor/bootstrap.min.js"></script>
-		<script src="https://underscorejs.org/underscore-min.js"></script>
+		<script src="static/js/vendor/underscore-min.js"></script>
 		<script src="static/js/vendor/backbone.js"></script>
 		<script src="static/js/vendor/jquery-confirm.min.js"></script>
 		<script src="static/plugins/canvasjs/canvasjs.min.js"></script>
@@ -1261,7 +1226,6 @@
 		<script src="static/js/views/home.js"></script>
 		<script src="static/js/views/client.js"></script>
 		<script src="static/js/views/settings.js"></script>
-		<script src="static/js/views/maps.js"></script>
 		<script src="static/js/views/mabed.js"></script>
 		<script src="static/js/views/visualizations/BubbleChart.js"></script>
 		<script src="static/js/views/visualizations/BarChart.js"></script>
@@ -1280,6 +1244,7 @@
 		<script src="static/js/vendor/bootstrap4-toggle.min.js"></script>
 		<script src="static/js/vendor/plotly-latest.min.js"></script>
 		<script src="static/plugins/nouislider/nouislider.js"></script>
+		<script src="static/js/vendor/spin.min.js"></script>
 		<script>
 			window.onload = function() {
 			  app.init();
