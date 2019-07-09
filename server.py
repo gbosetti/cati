@@ -1548,7 +1548,7 @@ def get_session_results():
 
 @app.route('/create_session_from_multiclassification', methods=['POST'])
 def create_session_from_multiclassification():
-    data = request.get_json()
+    data = request.form
     index = data['index']
     doc_type = data['doc_type']
     field = data['field']
