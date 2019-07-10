@@ -827,7 +827,8 @@ app.views.tweets = Backbone.View.extend({
             this.updateBigramsFormData(data);
 
             var containerSelector = ".ngrams-search-classif";
-            self.showLoadingMessage(containerSelector, 677);
+            //self.showLoadingMessage(containerSelector, 677); ...
+            new SearchModule(containerSelector,"spinner-ngrams").enableLoading();
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
                 //check if there are any ngrams
@@ -836,9 +837,11 @@ app.views.tweets = Backbone.View.extend({
                 }else {
                     self.showNgramsClassification(response.classiffication, response.ngrams, containerSelector, 500, self.bigrams);
                 }
+                new SearchModule(containerSelector,"spinner-ngrams").disableLoading();
                 resolve(response)
 
             }, 'json').fail(function(err){
+                new SearchModule(containerSelector,"spinner-ngrams").disableLoading();
                 self.clearNgramsGraph();
                 self.cnxError(err);
                 reject(err)
