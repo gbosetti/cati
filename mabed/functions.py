@@ -858,10 +858,11 @@ class Functions:
             return
 
         except IOError as err:
-            print("The image-duplicated file was not found.", err)
+            print("The images folder was not found.", err)
             return
 
     def get_current_session_data(self, index):
+        # no image duplicates for news and war data sets
 
         with open('config.json') as f:
             config = json.load(f)
