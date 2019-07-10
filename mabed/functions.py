@@ -1065,74 +1065,78 @@ class Functions:
 
     def get_geo_coordinates(self,index,session,date_range,search_by_label="confirmed OR proposed OR negative", word=None):
 
-        must_clauses = [
-            {
-                "exists": {
-                    "field": "coordinates.coordinates"
-                }
-            },
-            {
-                "match": {
-                    session: search_by_label
-                }
-            }
-        ]
-
-        if word != None and word.strip() != "":
-            print("\nWORD!\n")
-            must_clauses.append({
-                "match": {
-                    "text": word
-                }
-            })
-
-        if date_range[0] != None and date_range[1] != None:
-            print("\nRANGE!\n", date_range)
-            must_clauses.append({
-                "range": {
-                    "created_at": {
-                        "gte": date_range[0],
-                        "lte": date_range[1],
-                        "format": "epoch_millis"
-                    }
-                }
-            })
-
-        query = {
-            "query": {
-                "bool": {
-                    "must": must_clauses
-                }
-            },
-            "aggs": {
-                "max_date": {
-                    "max": {
-                        "field": "created_at"
+        try:
+            must_clauses = [
+                {
+                    "exists": {
+                        "field": "coordinates.coordinates"
                     }
                 },
-                "min_date": {
-                    "min": {
-                        "field": "created_at"
+                {
+                    "match": {
+                        session: search_by_label
+                    }
+                }
+            ]
+
+            if word != None and word.strip() != "":
+                must_clauses.append({
+                    "match": {
+                        "text": word
+                    }
+                })
+
+            if date_range[0] != None and date_range[1] != None:
+                print("\nRANGE!\n", date_range)
+                must_clauses.append({
+                    "range": {
+                        "created_at": {
+                            "gte": date_range[0],
+                            "lte": date_range[1],
+                            "format": "epoch_millis"
+                        }
+                    }
+                })
+
+            query = {
+                "query": {
+                    "bool": {
+                        "must": must_clauses
+                    }
+                },
+                "aggs": {
+                    "max_date": {
+                        "max": {
+                            "field": "created_at"
+                        }
+                    },
+                    "min_date": {
+                        "min": {
+                            "field": "created_at"
+                        }
                     }
                 }
             }
-        }
-        my_connector = Es_connector(index=index)
-        res = my_connector.search(query, 1000)
+            my_connector = Es_connector(index=index)
+            res = my_connector.search(query, 1000)
 
-        min_date = res['aggregations']['min_date']['value']
-        max_date = res['aggregations']['max_date']['value']
-        features = []
-        for tweet in res['hits']['hits']:
-            features.append({
-                "type": "Feature",
-                "geometry": tweet['_source']['coordinates'],
-                "properties": {
-                    "tweet": tweet['_source']
-                }
-            })
+            min_date = res['aggregations']['min_date']['value']
+            max_date = res['aggregations']['max_date']['value']
+            features = []
+            for tweet in res['hits']['hits']:
+                features.append({
+                    "type": "Feature",
+                    "geometry": tweet['_source']['coordinates'],
+                    "properties": {
+                        "tweet": tweet['_source']
+                    }
+                })
 
-        return features,min_date,max_date,res['hits']['total']
+            return features,min_date,max_date,res['hits']['total']
+
+        except RequestError as e:  # This is the correct syntax
+            print(e)
+            return [],None,None,0
 
     def get_geo_coordinates_date(self,index,session,search_by_label,date_range,word=None):
 
@@ -1298,7 +1302,6 @@ class Functions:
         ]
 
         if word != None and word.strip() != "":
-            print("\nWORD!\n")
             must_clauses.append({
                 "match": {
                     "text": word

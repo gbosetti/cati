@@ -76,10 +76,17 @@ app.views.mabed = Backbone.View.extend({
         }else{
             console.log("The current session is "+app.session.s_name);
         }
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             $.get(app.appURL+'sessions', null, function(response){
                 resolve(response);
-            }, 'json');
+            }, 'json').fail(function(response) {
+
+                console.log(response);
+                alert("Sorry, there was a problem with the sessions you are trying to retrieve. We will try to clean your local data, in case this error remains, you may have no sessions registered in the cati_sessions index (you can create them from the settings page).");
+                localStorage.clear();
+                sessionStorage.clear();
+                //document.location.reload(true);
+            });
         }).then(res => {
             //console.log("available sessions:", res);
             return this.fillAvailableSessions(res,'#session_topbar')

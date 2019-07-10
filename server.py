@@ -342,24 +342,35 @@ def get_geo_polygon():
 
 @app.route('/get_geo_polygon_date', methods=['POST'])
 def get_geo_polygon_date():
-    data = request.get_json()
-    index = data['index']
-    features = data['collection']['features']
-    date_range = [data['date_min'], data['date_max']]
-    #TODO: this checking can be done on the front
-    if len(features) == 0:
-        geo,min_date,max_date,total_hits = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
-    if len(features) == 1:
-        if features[0]['geometry']['type'] == "Polygon":
-            coordinates = features[0]['geometry']['coordinates'][0]
-            geo,min_date,max_date,total_hits = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
-    result = {
-        "geo":geo,
-        "min_date":min_date,
-        "max_date": max_date,
-        "total_hits": total_hits
-    }
-    return jsonify(result)
+
+    try:
+        data = request.get_json()
+        index = data['index']
+        features = data['collection']['features']
+        date_range = [data['date_min'], data['date_max']]
+        #TODO: this checking can be done on the front
+        if len(features) == 0:
+            geo,min_date,max_date,total_hits = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
+        if len(features) == 1:
+            if features[0]['geometry']['type'] == "Polygon":
+                coordinates = features[0]['geometry']['coordinates'][0]
+                geo,min_date,max_date,total_hits = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
+        result = {
+            "geo":geo,
+            "min_date":min_date,
+            "max_date": max_date,
+            "total_hits": total_hits
+        }
+        return jsonify(result)
+
+    except Exception as e:  # This is the correct syntax
+        print(e)
+        return {
+            "geo":[],
+            "min_date":None,
+            "max_date": None,
+            "total_hits": 0
+        }
 
 
 

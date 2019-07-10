@@ -2,15 +2,19 @@
 
 class SearchModule{
 
-    constructor(containerSelector) {
+    constructor(containerSelector, spinnerClassName) {
 
-        this.timeoutIds = [];
+        this.containerSelector = containerSelector;
+        this.spinnerClassName = spinnerClassName || 'spinner-default';
     }
 
     enableLoading(){
 
-        var target = document.querySelector("#mapid");
-        console.log("Enable loading");
+        //console.log("Enabling loading at: ",this.containerSelector);
+        var target = document.querySelector(this.containerSelector);
+            target.style["min-height"] = "500px";
+
+        var spinnerColor = '#677079'; //this.hasLightBackground($(target).css("background-color"))? '#677079': '#ffffff';
         new Spinner({
             lines: 13, // The number of lines to draw
             length: 50, // The length of each line
@@ -19,14 +23,19 @@ class SearchModule{
             corners: 1, // Corner roundness (0..1)
             speed: 1, // Rounds per second
             rotate: 0,
-            color: '#ffffff',
-            className: 'spinner-geo-tweets'
+            color: spinnerColor,
+            className: this.spinnerClassName
         }).spin(target);
     }
 
     disableLoading(){
 
-        $(".spinner-geo-tweets").remove();
+        document.querySelector(this.containerSelector).style["min-height"] = "0px";
+        $(this.containerSelector + " ." + this.spinnerClassName).remove();
+    }
+
+    loadTweets(data){
+        // subclass responsibility
     }
 }
 
@@ -34,10 +43,9 @@ class GeoSpatialModule extends SearchModule{
 
     constructor(containerSelector) {
 
-        super();
+        super(containerSelector);
         this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
         this.tweets = null;
-        this.containerSelector = containerSelector;
         $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
         this.lastZoomAt = null;
     }
@@ -103,7 +111,6 @@ class GeoSpatialModule extends SearchModule{
     }
     onTweetStatusClicked(evt){
         var annotation = $(evt.target).data("status");
-        console.log("Annotation: ", annotation);
         //TODO: POST TO THE SERVER
         $(".leaflet-popup-close-button")[0].click();
     }
@@ -131,7 +138,6 @@ class GeoSpatialModule extends SearchModule{
         return (e) => (this.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
     }
     colorUser(tweet,collection){
-        console.log("tweets",this.tweets,'heh');
         collection.eachLayer(l => {
             if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
                 //l._icon.src = "static/images/pin-m+b00.png"
@@ -212,6 +218,7 @@ class GeoSpatialModule extends SearchModule{
     }
     loadTweets(data){
 
+
         return new Promise((resolve, reject)=>{
 
             L.MakiMarkers.accessToken = this.accessToken;
@@ -262,7 +269,7 @@ class GeoSpatialModule extends SearchModule{
 
             this.mymap.on(L.Draw.Event.CREATED, (e) => {
                 //TODO: support multiple polygons and trigger the search using a button
-                this.enableLoading("#mapid");
+                this.enableLoading();
                 this.drawnItems.clearLayers();
                 this.drawnItems.addLayer(e.layer);
                 this.search_geospatial(this.drawnItems, data)
@@ -317,7 +324,6 @@ class GeoSpatialModule extends SearchModule{
         });
     }
     setLastZoomAt(val){
-        console.log("Setting: ", val);
         this.lastZoomAt = val;
     }
     getLastZoomAt(){
@@ -329,10 +335,9 @@ class GeoSpatialModule extends SearchModule{
         return new Promise((resolve, reject)=>{
 
             this.enableLoading();
-            console.log("SPEC DATA: ", spec_data);
+            //console.log("SPEC DATA: ", spec_data);
             $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
-                console.log("------------", response);
                 if (response.geo.length > 0){
 
                     // Update map
@@ -346,12 +351,15 @@ class GeoSpatialModule extends SearchModule{
                     }
                     else{
                         console.log("BOUNDS:", this.mymap.getBounds());
-
                     }
 
                     // Update slider
                     this.slider_data = slider_data;
-                    this.sliderBounds(response.min_date, response.max_date, true);
+
+                    if(response.min_date == response.max_date){
+                        $(".maps-slider-area").html("");
+                    }
+                    else this.sliderBounds(response.min_date, response.max_date, true);
 
                     // Updating query info section
                     this.updateMatchingTweetsLabel(response.total_hits, response.geo.length);
@@ -367,6 +375,84 @@ class GeoSpatialModule extends SearchModule{
     }
     showNoTweetsFound(){
         $(this.containerSelector).parent().html("Sorry, no geo-localized tweets were found under this criteria.");
+    }
+}
+
+class TopRetweetsModule extends SearchModule{
+
+    constructor(containerSelector, client) {
+
+        super(containerSelector);
+        this.client = client;
+    }
+
+    loadTweets(data){
+
+        this.enableLoading();
+
+        var query = data.filter(item => {return item.name == "word"})[0].value;
+        if(query && query.trim() != ""){ //If the user has entered at least a keyword
+
+            this.requestReTweets(data).then(
+                res => {
+                    this.presentRetweets(res.aggregations.top_text.buckets, this.containerSelector);
+                    this.disableLoading();
+                },
+                err => { //In case of failing
+                    this.clearContainer(this.containerSelector);
+                    this.showNoRetweetsFound(this.containerSelector);
+                    this.disableLoading();
+                }
+            );
+        }
+        else{
+            this.requestReTweets(data).then(
+                res => {
+                    this.presentRetweets(res.aggregations.top_text.buckets, this.containerSelector);
+                    this.disableLoading();
+                },
+                err => { //In case of failing
+                    this.clearContainer(this.containerSelector);
+                    this.showNoRetweetsFound(this.containerSelector);
+                    this.disableLoading();
+            });
+        }
+    }
+
+    presentRetweets(res, selector){
+
+        var repeated_tweets = res.filter(elem => elem.doc_count > 1); //Sometimes the bockets are conformed by just 1 tweet
+
+        if(repeated_tweets.length>0){
+            $(".top-retweets-header").text("Top " + repeated_tweets.length + " retweets");
+
+            var html = this.client.get_retweets_html(repeated_tweets);
+            try{
+                $(selector).html(html);
+            }catch(err){console.log(err)}
+        }
+        else{
+            $(this.containerSelector).html("");
+            this.showNoRetweetsFound(this.containerSelector);
+            this.disableLoading();
+        }
+    }
+
+    showNoRetweetsFound(containerSelector){
+        $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
+    }
+
+    requestReTweets(data){
+
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'top_retweets', data, (response) => {
+                resolve(response);
+            }, 'json').fail((err)=>{
+                console.log("ERROR", err);
+                this.client.cnxError(err);
+                reject(err)
+            });
+        });
     }
 }
 
@@ -392,7 +478,7 @@ app.views.tweets = Backbone.View.extend({
             formData: []
         };
 
-        this.render();
+        //this.render();
 
         //this.updatingSearchDatesRange();
         var handler = _.bind(this.render, this);
@@ -467,6 +553,7 @@ app.views.tweets = Backbone.View.extend({
       return false;
     },
     loadGeopositionedTweets: function(data){
+        console.log("loadGeopositionedTweets");
         try{
             new GeoSpatialModule("#mapid").loadTweets(data);
         }catch(err){console.log(err)}
@@ -478,29 +565,27 @@ app.views.tweets = Backbone.View.extend({
         $('.loading_text:visible:last').fadeIn('slow');
         var tabData = this.getCurrentSearchTabData("#search-results-tabs li.active a");
         this.renderAccordionInTab(tabData.target, tabData.label);
-        var retweetsContainer=".top_retweets_results:last";
+        var retweetsContainer=".top_retweets_results";
 
         var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
-            .concat([{name: "retweets_number", value: 100}, {name: "image_clusters_limit", value:100}]);
+            .concat([{name: "retweets_number", value: 20}, {name: "image_clusters_limit", value:20}]);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
 
 
         if(query && query.trim() != ""){ //If the user has entered at least a keyword
+
             this.requestTweets(data, startingReqTime);
             this.loadGeopositionedTweets(data);
+            this.loadRetweets(data, retweetsContainer);
             this.requestNgrams(data);
-            this.requestReTweets(data).then(
-                res => {
-                    this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
-                }
-            );
 
         } else { //If the user has entered no keyword
 
             this.hideNotFullSearchSearch();
             this.loadGeopositionedTweets(data);
+            this.loadRetweets(data, retweetsContainer);
             this.requestNgrams(data).then(
                 (res) => { //In case of success
                     this.showResultsWarning();
@@ -509,32 +594,21 @@ app.views.tweets = Backbone.View.extend({
                 (err) => { //In case of failing
                     this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
-            this.requestReTweets(data).then(
-                res => {
-                    this.presentRetweets(res.aggregations.top_text.buckets, retweetsContainer);
-                },
-                err => { //In case of failing
-                    this.clearContainer(retweetsContainer);
-                    this.showNoRetweetsFound(retweetsContainer);
-            });
             this.requestFullImageClusters(data).then(
                 res => {
-                    $(".collapse-images-title").text("Top 100 image-based clusters");
+                    $(".collapse-images-title").text("Top " + res.clusters.length + " image-based clusters");
                     this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last');
                 },
                 err => { //In case of failing
                     this.clearContainer(".imagesClusters");
-                    this.showNoRetweetsFound(".imagesClusters");
+                    this.showNoTweetsFound(".imagesClusters");
             });
         }
         app.views.mabed.prototype.getClassificationStats();
     },
-    presentRetweets(res, selector){
-
-        var html = this.get_retweets_html(res.filter(elem => elem.doc_count > 1));
-        try{
-            $(selector).html(html);
-        }catch(err){console.log(err)}
+    loadRetweets(data, retweetsContainer){
+        console.log("loadRetweets");
+        new TopRetweetsModule(retweetsContainer, this).loadTweets(data);
     },
     hideNotFullSearchSearch: function(){
 
@@ -602,14 +676,17 @@ app.views.tweets = Backbone.View.extend({
                                         <div class="col-12 geopositioned_tweets_results">
                                             <div class="pl-0 mt-1 mb-2 col-12 geo_tweets_results" style="display: block;"></div>
                                             <div id="mapid" style="height: 500px; width: 100%; margin-left:auto; margin-right:auto;"></div>
-                                            <div id="maps-slider-range-vertical" class="slider-range"></div>
 
-                                            <div class="row pt-3">
-                                                <div class="col-md-6 text-left">
-                                                    <b>From:</b> <span id="maps-date-lower"></span>
-                                                </div>
-                                                <div class="col-md-6 text-right">
-                                                    <b>To:</b> <span id="maps-date-upper"></span>
+                                            <div class="maps-slider-area">
+                                                <div id="maps-slider-range-vertical" class="slider-range"></div>
+
+                                                <div class="row pt-3 ">
+                                                    <div class="col-md-6 text-left">
+                                                        <b>From:</b> <span id="maps-date-lower"></span>
+                                                    </div>
+                                                    <div class="col-md-6 text-right">
+                                                        <b>To:</b> <span id="maps-date-upper"></span>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -644,7 +721,7 @@ app.views.tweets = Backbone.View.extend({
                                 <div class="card">
                                   <div class="card-header"><a class="card-link collapse-images-title" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
                                   <div id="collapseImages" class="collapse show collapseImages">
-                                    <div class="card-body">
+                                    <div class="card-body image-clusters-container">
 
                                         <!-- IMAGE CLUSTERS RESULTS -->
                                         <div class="col-12 pix-margin-top-10 images-clusters-container">
@@ -656,7 +733,7 @@ app.views.tweets = Backbone.View.extend({
                                 </div>
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseRetweets">Top 100 retweets</a></div>
+                                  <div class="card-header"><a class="card-link top-retweets-header" data-toggle="collapse" href="#collapseRetweets">Top retweets</a></div>
                                   <div id="collapseRetweets" class="collapse show collapseRetweets">
                                     <div class="card-body">
 
@@ -711,15 +788,23 @@ app.views.tweets = Backbone.View.extend({
     requestTweets: function(data, startingReqTime){
 
         //First clean the previous results
-        $('.imagesClusters:visible:last').html("");
-        this.showLoadingMessage('.imagesClusters:visible:last', 400);
+        var imageClustersSelector = '.imagesClusters';
+        $(imageClustersSelector).html("");
 
-        $('.individual_tweets_result:visible:last').html("");
-        this.showLoadingMessage('.individual_tweets_result:visible:last', 400);
+        new SearchModule(".image-clusters-container","spinner-images").enableLoading();
+        new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
+
+        var individualTweetsSelector = '.individual_tweets_result';
+        $(individualTweetsSelector).html("");
+        this.showLoadingMessage(individualTweetsSelector, 400);
 
         var self = this;
         $.post(app.appURL+'search_for_tweets', data, function(response){
             self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
+
+            new SearchModule(".image-clusters-container","spinner-images").disableLoading();
+            new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+
         }, 'json').fail(this.cnxError);
     },
     requestFullImageClusters: function(data){
@@ -732,25 +817,16 @@ app.views.tweets = Backbone.View.extend({
             });
         });
     },
-    requestReTweets: function(data){
-        return new Promise((resolve, reject) => {
-            $.post(app.appURL+'top_retweets', data, (response) => {
-                resolve(response);
-            }, 'json').fail((err)=>{
-                this.cnxError(err);
-                reject(err)
-            });
-        });
-    },
     requestNgrams: function(data){
 
         var self = this;
+        console.log("requestNgrams");
         return new Promise((resolve, reject) => {
 
             this.bigrams.lastQueryParams = data;
             this.updateBigramsFormData(data);
 
-            var containerSelector = ".ngrams-search-classif:visible:last";
+            var containerSelector = ".ngrams-search-classif";
             self.showLoadingMessage(containerSelector, 677);
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
@@ -775,7 +851,7 @@ app.views.tweets = Backbone.View.extend({
     clearNgramsGraph: function(){
         this.clearContainer(".bigrams-graph-area:visible");
     },
-    showNoRetweetsFound: function(containerSelector){
+    showNoTweetsFound: function(containerSelector){
         $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
     },
     showNoBigramsFound: function(containerSelector){
@@ -789,19 +865,7 @@ app.views.tweets = Backbone.View.extend({
     },
     showLoadingMessage: function(containerSelector, height){
 
-        $(containerSelector).html("");
-        var spinner = $('<i class="fa fa-spinner fa-spin" style="font-size: 7em; color: Dodgerblue;"></i>')[0];
-
-        var spinnerFrame = document.createElement("div");
-            spinnerFrame.className = "card-columns";
-            spinnerFrame.style.width = "120px";
-            spinnerFrame.style.margin = "0 auto";
-            if(height)
-                spinnerFrame.style.height = height + "px";
-            spinnerFrame.style["padding-top"] = "150px";
-            spinnerFrame.appendChild(spinner);
-
-        $(containerSelector).append(spinnerFrame);
+        new SearchModule(containerSelector).enableLoading();
     },
     cnxError: function(err) {
         $('.loading_text:visible:last').fadeOut('slow');
