@@ -174,15 +174,14 @@ app.views.settings = Backbone.View.extend({
                     },
                 },
                 onContentReady: function () {
-                    var last_percentage = 0;
                     var askForLogs = setInterval(function(){
 
                         $.get(app.appURL+'get_current_backend_logs', function(response){
-                            //$('#logs').val(response.logs.reverse().join("\r\n"));
 
-                            if(last_percentage <= response.percentage){
+                            last_percentage = $("#ngrams-re-generation").css("width");
+                            last_percentage = last_percentage.substring(0,last_percentage.length-2);
 
-                                last_percentage = response.percentage;
+                            if(last_percentage < response.percentage){
 
                                 $("#ngrams-re-generation").css("width", response.percentage + "%");
                                 $("#ngrams-re-generation").text(response.percentage + "%");
