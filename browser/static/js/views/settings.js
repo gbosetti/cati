@@ -178,20 +178,20 @@ app.views.settings = Backbone.View.extend({
 
                         $.get(app.appURL+'get_current_backend_logs', function(response){
 
-                            last_percentage = $("#ngrams-re-generation").css("width");
-                            last_percentage = last_percentage.substring(0,last_percentage.length-2);
+                            //last_percentage = $("#ngrams-re-generation").css("width");
+                            //last_percentage = last_percentage.substring(0,last_percentage.length-2);
+                            //console.log(last_percentage);
 
-                            if(last_percentage < response.percentage){
+                            //if(last_percentage < response.percentage){
+                            $("#ngrams-re-generation").css("width", response.percentage + "%");
+                            $("#ngrams-re-generation").text(response.percentage + "%");
 
-                                $("#ngrams-re-generation").css("width", response.percentage + "%");
-                                $("#ngrams-re-generation").text(response.percentage + "%");
-
-                                if(response && response.percentage >= 100){
-                                    clearInterval(askForLogs);
-                                }
+                            if(response && response.percentage >= 100){
+                                clearInterval(askForLogs);
                             }
+                            //}
                         }, 'json');
-                    }, 5000);
+                    }, 10000);
                 },
             });
         });

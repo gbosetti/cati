@@ -7,6 +7,8 @@ from collections import Counter
 from mabed.es_connector import Es_connector
 from nltk.tokenize import TweetTokenizer
 import re
+import json
+from elasticsearch_dsl import UpdateByQuery
 
 
 class NgramBasedClasifier:
@@ -316,15 +318,80 @@ class NgramBasedClasifier:
 
         length = int(kwargs.get('length', 2))
 
+        tweets_to_update = []  # So the URL doesn't get too large
         for tweet in tweets:
             try:
                 clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
                 ngrams = list(self.get_n_grams(clean_text, length))
+
+                tweets_to_update.append({
+                    "_ngrams": self.format_single_tweet_ngrams(ngrams),
+                    "_id": tweet["_id"]
+                })
+
+                # for prop in tweet["_source"]:
+                #     if tweet["_source"][prop] == None:
+                #         tweet["_source"][prop] = "None"
                 full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
                 self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
 
             except Exception as e:
                 print('Error: ' + str(e))
+
+        # cnn = Es_connector(index=kwargs["index"])
+
+        # script_source = "for (int i = 0; i < docs.length; ++i) { if(docs[i]['_id'] == ctx._id){ ctx._source['" + kwargs[
+        #     "prop"] + "'] = docs[i]['_ngrams']; break; }}"
+        # ubq = UpdateByQuery(using=cnn.es, index=cnn.index).script(source=script_source)
+
+        # for i in range(0, len(tweets_to_update), 5):
+        #
+        #     tweets_chunk = tweets_to_update[i:i + 5]
+        #     str_tweets = str(tweets_chunk).replace("None", "\'None\'").replace("\'", "\"")
+        #     tweet_ids = [ { "match": {"_id": tweet["_id"]}} for tweet in tweets_chunk]
+        #
+        #     query = {"query": {"bool": {"should": tweet_ids, "minimum_should_match": "1"}}}
+        #     ubq.update_from_dict(query).params(docs=tweets_chunk)
+        #     ubq.execute()
+
+            # Es_connector(index=kwargs["index"]).update_by_query(
+            #     {"query": {"bool":{"should": tweet_ids, "minimum_should_match":"1" }}},
+            #     "for (int i = 0; i < docs.length; ++i) { if(docs[i]['_id'] == ctx._id){ ctx._source['" +
+            #     kwargs["prop"] + "'] = docs[i]['_ngrams']; break; }}",
+            #     tweets_chunk
+            # )
+
+            # # "params": { "docs": tweets_chunk }
+            # q = {
+            #   "script": {
+            #     "inline": "def tweets = " + str_tweets + "; for (int i = 0; i < params.docs.length; ++i) { if(params.docs[i]['_id'] == ctx._id){ ctx._source['" + kwargs["prop"] + "'] = params.docs[i]['_ngrams']; break; }}",
+            #     "lang": "painless"
+            #   },
+            #   "query": {
+            #     "bool":{
+            #        "should":tweet_ids,
+            #        "minimum_should_match":"1"
+            #     }
+            #   }
+            # }
+            # print("...")
+            # cnn.es.update_by_query(body=q, doc_type='tweet', index=kwargs["index"]) #, params={ "docs": tweets_chunk })
+            # def tweets = " + str_tweets + ";
+
+            # ubq = UpdateByQuery(index=cnn.es.index).using(cnn.es).script(
+            #     source="for (int i = 0; i < params.docs.length; ++i) { if(params.docs[i]['_id'] == ctx._id){ ctx._source['" + kwargs["prop"] + "'] = params.docs[i]['_ngrams']; break; }}",
+            #     params={ "docs": str_tweets }
+            # )
+            # response = ubq.execute()
+
+            # ubq = UpdateByQuery(index=cnn.es.index).using(cnn.es).script(
+            #     source="def tweets = " + str_tweets + "; for (int i = 0; i < params.docs.length; ++i) { if(params.docs[i]['_id'] == ctx._id){ ctx._source['" +
+            #            kwargs["prop"] + "'] = params.docs[i]['_ngrams']; break; }}"
+            # )
+            # response = ubq.execute()
+
+
+
 
     def remove_emojis(self, string):
         emoji_pattern = re.compile("["
@@ -358,10 +425,8 @@ class NgramBasedClasifier:
 
             # Analyse and process page by page
             i = 0
-            processed = 0
-
-            # if total>0:
-            #     self.gerenate_ngrams_for_tweets(res["results"], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+            total_scrolls = int(total/scroll_size)
+            processed_scrolls = 0
 
             while scroll_size > 0:
                 tweets = res["results"]
@@ -370,8 +435,10 @@ class NgramBasedClasifier:
                 i += 1
                 res = my_connector.loop_paginatedSearch(sid, scroll_size)
                 scroll_size = res["scroll_size"]
-                processed += scroll_size
-                self.current_thread_percentage = round(processed * 100 / total, 2)
+                processed_scrolls += 1
+
+                self.current_thread_percentage = round(processed_scrolls * 100 / total_scrolls, 2)
+
                 print("Completed: ", self.current_thread_percentage, "%")
 
             # Clean it at the end so the clien knows when to end asking for more logs
@@ -425,13 +492,33 @@ class NgramBasedClasifier:
     def updatePropertyValue(self, **kwargs):
 
         tweet = kwargs["tweet"]
+        # cnn = Es_connector(index=kwargs["index"]);
+        #
+        # q = {
+        #     "script": {
+        #         "inline": "ctx._source." + kwargs["property_name"] + " = params.value",
+        #         "lang": "painless",
+        #         "params": {
+        #             "value": str(kwargs["property_value"])
+        #         }
+        #     },
+        #     "query": {
+        #         "match": {
+        #             "_id": tweet["_id"]
+        #         }
+        #     }
+        # }
+        #
+        # cnn.es.update_by_query(body=q, doc_type='tweet', index=kwargs["index"])
+
         Es_connector(index=kwargs["index"]).es.update(
             index=kwargs["index"],
             doc_type="tweet",
             id=tweet["_id"],
             body={"doc": {
                 kwargs["property_name"]: kwargs["property_value"]
-            }}
+            }},
+            retry_on_conflict=5
         )
 
     def get_stopwords_for_langs(self, langs):
