@@ -28,43 +28,45 @@ app.views.mabed = Backbone.View.extend({
 
             $.post(app.appURL + 'produce_classification_stats', data, function (response, status) {
                 console.log("Updating classification stats: ", response);
-                let total_confirmed = 0;
-                let total_negative = 0;
-                let total_proposed = 0;
 
-                for (let stat of response.classification_stats) {
-                    if (stat.key === 'confirmed') {
-                        total_confirmed = stat.doc_count;
-                    } else if (stat.key === 'negative') {
+                try{
+                    let total_confirmed = 0;
+                    let total_negative = 0;
+                    let total_proposed = 0;
 
-                        total_negative = stat.doc_count;
-                    } else if (stat.key === 'proposed') {
+                    for (let stat of response.classification_stats) {
+                        if (stat.key === 'confirmed') {
+                            total_confirmed = stat.doc_count;
+                        } else if (stat.key === 'negative') {
 
-                        total_proposed = stat.doc_count;
+                            total_negative = stat.doc_count;
+                        } else if (stat.key === 'proposed') {
+
+                            total_proposed = stat.doc_count;
+                        }
                     }
+                    let total = total_confirmed+total_negative+total_proposed;
+
+                    app["lastStats"] = {
+                        total: total,
+                        total_confirmed: total_confirmed,
+                        total_negative: total_negative,
+                        total_proposed: total_proposed
+                    };
+
+                    if(total == 0)
+                        proposed_width = "100";
+                    else proposed_width = Math.trunc(1000*total_proposed/total)/10.0;
+
+                    document.querySelector('#classification_confirmed').textContent = "Confirmed (" + total_confirmed + ")";
+                    document.querySelector('#classification_confirmed').setAttribute("style", "width: "+Math.trunc(1000*total_confirmed/total)/10.0+"%");
+                    document.querySelector('#classification_negative').textContent = "Negative (" + total_negative + ")";
+                    document.querySelector('#classification_negative').setAttribute("style", "width: "+Math.trunc(1000*total_negative/total)/10.0+"%");
+                    document.querySelector('#classification_proposed').textContent = "Proposed (" + total_proposed + ")";
+                    document.querySelector('#classification_proposed').setAttribute("style", "width: "+ proposed_width +"%");
+                    document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+" , Negative: "+total_negative+", Unlabeled : "+total_proposed);
                 }
-                let total = total_confirmed+total_negative+total_proposed;
-
-                app["lastStats"] = {
-                    total: total,
-                    total_confirmed: total_confirmed,
-                    total_negative: total_negative,
-                    total_proposed: total_proposed
-                };
-
-                if(total == 0)
-                    proposed_width = "100";
-                else proposed_width = Math.trunc(1000*total_proposed/total)/10.0;
-
-                document.querySelector('#classification_confirmed').textContent = "Confirmed (" + total_confirmed + ")";
-                document.querySelector('#classification_confirmed').setAttribute("style", "width: "+Math.trunc(1000*total_confirmed/total)/10.0+"%");
-                document.querySelector('#classification_negative').textContent = "Negative (" + total_negative + ")";
-                document.querySelector('#classification_negative').setAttribute("style", "width: "+Math.trunc(1000*total_negative/total)/10.0+"%");
-                document.querySelector('#classification_proposed').textContent = "Proposed (" + total_proposed + ")";
-                document.querySelector('#classification_proposed').setAttribute("style", "width: "+ proposed_width +"%");
-
-                document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+
-                    " , Negative: "+total_negative+", Unlabeled : "+total_proposed);
+                catch(err){ console.log(err); }
             }).fail(function (err) {
                 console.log(err);
             });

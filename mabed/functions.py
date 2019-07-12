@@ -250,14 +250,28 @@ class Functions:
                      }
                  }}
             )
-            return res['aggregations']['classification_status']['buckets']
-        except RequestError:
-            return {
-                [
-                    {'key': 'proposed', 'doc_count': '0'},
-                    {'key': 'positive', 'doc_count': '0'},
-                    {'key': 'negative', 'doc_count': '0'}
-                ]}
+            buckets = res['aggregations']['classification_status']['buckets']
+
+            if len(buckets) > 0:
+                return buckets
+
+            print("GET " + index + "/_search ", { "query": { "match_all": {}}})
+            total_docs = my_connector.search({ "query": { "match_all": {}}})
+            return [
+                {'key': 'proposed', 'doc_count': str(total_docs["hits"]["total"]) },
+                {'key': 'positive', 'doc_count': '0'},
+                {'key': 'negative', 'doc_count': '0' }
+            ]
+
+
+        except Exception as err:
+
+            print("Error: ", err)
+            return [
+                {'key': 'proposed', 'doc_count': '0'},
+                {'key': 'positive', 'doc_count': '0'},
+                {'key': 'negative', 'doc_count': '0'}
+            ]
 
     # ==================================================================
     # Event Detection

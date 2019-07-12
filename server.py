@@ -160,15 +160,12 @@ def produce_dataset_stats():
 @app.route('/produce_classification_stats', methods=['GET','POST'])
 def produce_classification_stats():
 
-    try:
-        data = request.form
-        #get session and index name
-        return jsonify({
-            "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
-        })
-    except Exception as err:
-        print("Error: ", err)
-        return "Error"
+    data = request.form
+    #get session and index name
+    stats = functions.get_classification_stats(index=data['index'], session_name=data['session'])
+    return jsonify({
+        "classification_stats" : stats
+    })
 
 @app.route('/get_elastic_logs', methods=['POST', 'GET'])
 # @cross_origin()
