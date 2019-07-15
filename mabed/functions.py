@@ -808,9 +808,8 @@ class Functions:
                 }
             }
 
-        if limit == None:
-            limit = 9999
-
+        #if limit == None:
+        #    limit = 9999
         res = my_connector.search({
             "size": 1,
             "query": query,
@@ -818,11 +817,13 @@ class Functions:
                 "group_by_cluster": {
                     "terms": {
                         "field": "imagesCluster",
-                        "size": limit
+                        # "size": limit
                     }
                 }
             }
         })
+
+
         clusters = res['aggregations']['group_by_cluster']['buckets']
         data = self.get_current_session_data(index)
 

@@ -437,7 +437,7 @@ class NgramBasedClasifier:
                 scroll_size = res["scroll_size"]
                 processed_scrolls += 1
 
-                self.current_thread_percentage = round(processed_scrolls * 100 / total_scrolls, 2)
+                self.current_thread_percentage = round(processed_scrolls * 100 / total_scrolls, 0)
 
                 print("Completed: ", self.current_thread_percentage, "%")
 

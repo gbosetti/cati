@@ -257,7 +257,7 @@ def search_for_tweets():
     last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
-    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
+    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "total_clusters": 0, "keywords": data['word'] })
 
 
 # Get Just image clusters
@@ -265,9 +265,10 @@ def search_for_tweets():
 # @cross_origin()
 def search_for_image_clusters():
     data = request.form
-    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label'], limit=data['image_clusters_limit'])
+    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label']) #, limit=data['image_clusters_limit'])
+    filtered_clusters = clusters[0:data['image_clusters_limit']]
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
-    return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
+    return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'], "total_clusters": len(clusters)})
 
 # Get all tweets with coordinates
 @app.route('/get_geo_coordinates', methods=['POST'])

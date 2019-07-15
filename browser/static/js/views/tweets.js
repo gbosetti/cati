@@ -424,10 +424,12 @@ class TopRetweetsModule extends SearchModule{
         var repeated_tweets = res.filter(elem => elem.doc_count > 1); //Sometimes the bockets are conformed by just 1 tweet
 
         if(repeated_tweets.length>0){
-            $(".top-retweets-header").text("Top " + repeated_tweets.length + " retweets");
 
-            var html = this.client.get_retweets_html(repeated_tweets);
             try{
+                $(".top-retweets-header").text("Top " + repeated_tweets.length + " retweets");
+
+                var html = this.client.get_retweets_html(repeated_tweets);
+
                 $(selector).html(html);
             }catch(err){console.log(err)}
         }
@@ -596,8 +598,7 @@ app.views.tweets = Backbone.View.extend({
             });
             this.requestFullImageClusters(data).then(
                 res => {
-                    $(".collapse-images-title").text("Top " + res.clusters.length + " image-based clusters");
-                    this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last');
+                    this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last', undefined, undefined, res.total_clusters);
                 },
                 err => { //In case of failing
                     this.clearContainer(".imagesClusters");
@@ -674,7 +675,7 @@ app.views.tweets = Backbone.View.extend({
 
                                         <!-- GEOPOSITIONED TWEETS SECTION -->
                                         <div class="col-12 geopositioned_tweets_results">
-                                            <div class="pl-0 mt-1 mb-2 col-12 geo_tweets_results" style="display: block;"></div>
+                                            <div class="pl-0 mt-1 mb-2 col-12 tweets_results_label geo_tweets_results" style="display: block;"></div>
                                             <div id="mapid" style="height: 500px; width: 100%; margin-left:auto; margin-right:auto;"></div>
 
                                             <div class="maps-slider-area">
@@ -719,9 +720,11 @@ app.views.tweets = Backbone.View.extend({
                                 </div>
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link collapse-images-title" data-toggle="collapse" href="#collapseImages">Results grouped by image cluster</a></div>
+                                  <div class="card-header"><a class="card-link collapse-images-title" data-toggle="collapse" href="#collapseImages">Top image-based clusters</a></div>
                                   <div id="collapseImages" class="collapse show collapseImages">
                                     <div class="card-body image-clusters-container">
+
+                                        <div class="collapse-images-matching tweets_results_label pl-0 mt-1 mb-2 col-12"></div>
 
                                         <!-- IMAGE CLUSTERS RESULTS -->
                                         <div class="col-12 pix-margin-top-10 images-clusters-container">
@@ -1117,7 +1120,7 @@ app.views.tweets = Backbone.View.extend({
     },
     displayPaginatedResults: function(response, t0, word, label){
         var html = this.get_tweets_html(response, '', 'scroll_tweets');
-        this.showImageClusters(response.clusters, undefined, '.imagesClusters:visible:last', response.clusters_stats);
+        this.showImageClusters(response.clusters, undefined, '.imagesClusters:visible:last', response.clusters_stats, undefined, response.total_clusters);
         this.showIndividualTweets(html, t0);
         this.showResultsStats(response.tweets.total, t0, response.keywords);
     },
@@ -1328,12 +1331,19 @@ app.views.tweets = Backbone.View.extend({
         }
         else this.showNoTweetsFound('.individual_tweets_result:visible:last');
     },
-    showImageClusters: function(clusters, word,clustersAreaSelector, clusters_stats, eid){
+    showImageClusters: function(clusters, word,clustersAreaSelector, clusters_stats, eid, total_clusters){
         var cbtn = "", chtml = "", state_btns="";
 
         console.log("TOP CLUSTERS TO PRESENT (max. in search 100): ", clusters.length, clusters);
 
         if(clusters && clusters.length>0){
+            $(".collapse-images-title").text("Top " + clusters.length + " image-based clusters");
+
+            if(total_clusters){
+                $(".collapse-images-matching").html('<div class="pl-0 mt-1 mb-2 col-12 image_clusters_results" style="display: block;">' +
+                   total_clusters + ' results matching the query (showing ' + clusters.length + ')</div>');
+            }
+
             $.each(clusters, function(i, cluster){
                 //if(i>=20){return false;}
                 var cbg = "";
