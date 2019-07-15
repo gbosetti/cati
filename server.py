@@ -22,6 +22,9 @@ from classification.active_learning import ActiveLearning
 from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.ngram_based_classifier import NgramBasedClasifier
 
+# rest
+from flask_restful import Resource, Api, reqparse
+
 
 # mabed
 from mabed.functions import Functions
@@ -30,6 +33,9 @@ app = Flask(__name__, static_folder='browser/static', template_folder='browser/t
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
 app.config['FLASK_SECRET'] = 'Hey Hey Kids, secure me!'
 app.backend_logger = BackendLogger()
+
+# restful api
+api = Api(app)
 
 functions = Functions()
 SELF = "'self'"
@@ -52,12 +58,18 @@ for source in config['elastic_search_sources']:
 
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
-classifier = ActiveLearning()
+classifier = ActiveLearning(download_folder_name="tmp_data")
+
+al_path = os.path.join(os.getcwd(), "classification", "logs", "current_al_status.json")
+if not os.path.exists(os.path.dirname(al_path)):
+    os.makedirs(os.path.dirname(al_path))
+
+al_backend_logger = BackendLogger(al_path)
+app.loop_index = 0
 
 # ==================================================================
 # 1. Tests and Debug
 # ==================================================================
-
 # Enable CORS
 # cors = CORS(app)
 # app.config['CORS_HEADERS'] = 'Content-Type'
@@ -147,10 +159,12 @@ def produce_dataset_stats():
 # Get Classification stats
 @app.route('/produce_classification_stats', methods=['GET','POST'])
 def produce_classification_stats():
+
     data = request.form
     #get session and index name
+    stats = functions.get_classification_stats(index=data['index'], session_name=data['session'])
     return jsonify({
-        "classification_stats" : functions.get_classification_stats(index=data['index'], session_name=data['session'])
+        "classification_stats" : stats
     })
 
 @app.route('/get_elastic_logs', methods=['POST', 'GET'])
@@ -176,7 +190,7 @@ def get_backend_logs():
 def detect_events():
 
     data = request.form
-    index = data['index']
+    target_index = data['index']
     k = int(data['top_events'])
     maf = float(data['min_absolute_frequency'])
     mrf = float(data['max_relative_frequency'])
@@ -190,16 +204,17 @@ def detect_events():
     events=""
     res = False
     if filter=="all":
-        events = functions.event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=app.backend_logger)
+        events = functions.event_descriptions(target_index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=app.backend_logger)
     elif filter == "proposedconfirmed":
         filter = ["proposed","confirmed"]
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=app.backend_logger)
+        events = functions.filtered_event_descriptions(target_index, k, maf, mrf, tsl, p, theta, sigma, session, filter, cluster, logger=app.backend_logger)
     else:
-        events = functions.filtered_event_descriptions(index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster, logger=app.backend_logger)
+        events = functions.filtered_event_descriptions(target_index, k, maf, mrf, tsl, p, theta, sigma, session, [filter], cluster, logger=app.backend_logger)
     if not events:
         events = "No Result!"
     else:
         res = True
+
     return jsonify({"result": res, "events":events})
 
 
@@ -242,7 +257,7 @@ def search_for_tweets():
     last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
-    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
+    return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "total_clusters": 0, "keywords": data['word'] })
 
 
 # Get Just image clusters
@@ -250,9 +265,111 @@ def search_for_tweets():
 # @cross_origin()
 def search_for_image_clusters():
     data = request.form
-    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label'], limit=data['image_clusters_limit'])
+    clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label']) #, limit=data['image_clusters_limit'])
+    filtered_clusters = clusters[0:data['image_clusters_limit']]
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
-    return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'] })
+    return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'], "total_clusters": len(clusters)})
+
+# Get all tweets with coordinates
+@app.route('/get_geo_coordinates', methods=['POST'])
+def get_geo_coordinates():
+    data = request.form
+    index = data['index']
+    date_range = [data.get('date_min', None), data.get('date_max', None)]
+    geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date,
+        "total_hits": total_matching_docs
+    }
+    return jsonify(result)
+
+
+class Maps(Resource):
+    def get(self, index_name, session_name):
+        # return the tweets for the index with only the given session and in the geospatial tweets in a geoJson format
+        args = parser.parse_args()
+        startDate = args['startDate']
+        endDate = args['endDate']
+        geo,_,_ = functions.get_geo_coordinates(index=index_name)
+        #TODO : add parameters to the query, place, date, label and keyword
+        return {'geo': geo, "date": startDate, "endDate": endDate}
+
+
+parser = reqparse.RequestParser()
+parser.add_argument('startDate')
+parser.add_argument('endDate')
+parser.add_argument('endDate')
+api.add_resource(Maps, '/maps/<string:index_name>/<string:session_name>', endpoint="/maps")
+
+# Get all tweets with places
+@app.route('/get_geo_places', methods=['POST'])
+def get_geo_places():
+    data = request.form
+    index = data['index']
+    geo,min_date,max_date = functions.get_geo_places(index=index)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date
+    }
+    return jsonify(result)
+
+@app.route('/get_geo_polygon', methods=['POST'])
+def get_geo_polygon():
+    data = request.get_json()
+    index = data['index']
+    features = data['collection']['features']
+    date_range = [data.get('date_min', None), data.get('date_max', None)]
+
+    #TODO: this checking can be done on the front
+    if len(features) == 0:
+        geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates(index=index, session=data["session"], search_by_label=data["search_by_label"], date_range=date_range)
+    if len(features) == 1:
+        if features[0]['geometry']['type'] == "Polygon":
+            coordinates = features[0]['geometry']['coordinates'][0]
+            geo,min_date,max_date,total_matching_docs = functions.get_geo_coordinates_polygon(index=index,session=data["session"], search_by_label=data["search_by_label"], word=data["word"], coordinates=coordinates, date_range=date_range)
+    result = {
+        "geo":geo,
+        "min_date":min_date,
+        "max_date": max_date,
+        "total_hits": total_matching_docs
+    }
+    return jsonify(result)
+
+@app.route('/get_geo_polygon_date', methods=['POST'])
+def get_geo_polygon_date():
+
+    try:
+        data = request.get_json()
+        index = data['index']
+        features = data['collection']['features']
+        date_range = [data['date_min'], data['date_max']]
+        #TODO: this checking can be done on the front
+        if len(features) == 0:
+            geo,min_date,max_date,total_hits = functions.get_geo_coordinates_date(index=index, session=data["session"], search_by_label=data["search_by_label"], word=data["word"], date_range=date_range)
+        if len(features) == 1:
+            if features[0]['geometry']['type'] == "Polygon":
+                coordinates = features[0]['geometry']['coordinates'][0]
+                geo,min_date,max_date,total_hits = functions.get_geo_coordinates_polygon_date_range(index=index, session=data["session"], word=data["word"], search_by_label=data["search_by_label"], coordinates=coordinates, date_range = date_range)
+        result = {
+            "geo":geo,
+            "min_date":min_date,
+            "max_date": max_date,
+            "total_hits": total_hits
+        }
+        return jsonify(result)
+
+    except Exception as e:  # This is the correct syntax
+        print(e)
+        return {
+            "geo":[],
+            "min_date":None,
+            "max_date": None,
+            "total_hits": 0
+        }
+
 
 
 # Get Tweets
@@ -261,7 +378,6 @@ def search_for_image_clusters():
 def get_image_folder():
     data = request.form
     folder_name = functions.get_image_folder(data["index"])
-    print("folder: ", folder_name)
     return folder_name
 
 
@@ -326,8 +442,6 @@ def event_ngrams_with_higher_ocurrence():
     results_size = request.form.get('top-bubbles-to-display', 20)
     n_size = request.form.get('n-grams-to-generate', '2')
 
-    print("-SESSION:", data['session'])
-
     matching_ngrams = ngram_classifier.get_ngrams_for_event(index=data['index'], session=data['session'],
                                                             label=data['search_by_label'], results_size=results_size,
                                                             n_size=n_size, target_terms=target_terms)
@@ -382,12 +496,14 @@ def top_retweets():
 # @cross_origin()
 def generate_ngrams_for_index():
     data = request.form
-    preproc = PreProcessor()
+    #preproc = PreProcessor()
     propName = data['to_property']
+
+    print("Generating ngrams for index: ", data['index'])
 
     start_time = datetime.datetime.now()
     print("Starting at: ", start_time)
-    preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
+    #preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
     res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
     return jsonify(res)
@@ -431,8 +547,6 @@ def tweets_filter():
 # @cross_origin()
 def tweets_scroll():
     data = request.form
-
-    print(data)
     tweets= functions.get_tweets_scroll(index=data['index'], sid=data['sid'], scroll_size=int(data['scroll_size']))
     return jsonify({"tweets": tweets})
 
@@ -447,101 +561,121 @@ def to_boolean(str_param):
     else:
         return False
 
-@app.route('/start_learning', methods=['POST'])
+@app.route('/download_al_init_data', methods=['POST'])
 # @cross_origin()
-def start_learning():
+def download_al_init_data():
     data = request.form
-    num_questions = int(data["num_questions"])
-    max_samples_to_sort = int(data["max_samples_to_sort"])
-    sampling_strategy = "closer_to_hyperplane"
     download_data = to_boolean(data["download_data"])
     debug_limit = to_boolean(data["debug_limit"])
+
+    classifier.clean_directories()
 
     # download
     if(True==download_data): #This just downloads, then add code to copy to tmp_data
        classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
                              gt_session=data["gt_session"], text_field=data["text_field"],
-                             is_field_array=data["is_field_array"], debug_limit=debug_limit)
+                             debug_limit=debug_limit)
+
+    return jsonify(True)
+
+
+@app.route('/save_classification', methods=['POST'])
+def save_classification():
+    data = request.form
+    classifier.save_classification(index=data["index"], session=data["session"]);
+    return jsonify(True)
+
+
+@app.route('/clear_al_logs', methods=['POST'])
+def clear_al_logs():
+    al_backend_logger.clear_logs()
+    app.loop_index = 0
+    return jsonify(True)
+
+
+@app.route('/train_model', methods=['POST'])
+# @cross_origin()
+def train_model():
+    data = request.form
+    num_questions = int(data["num_questions"])
+    max_samples_to_sort = int(data["max_samples_to_sort"])
+    sampling_strategy = "closer_to_hyperplane"
+    index = data["index"]
+    session = data["session"]
 
     # Building the model and getting the questions
     model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
         num_questions=num_questions, remove_stopwords=False)
 
-    # if (sampling_strategy == "closer_to_hyperplane"):
-    #     questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
-    #                                                                  X_unlabeled, categories, num_questions)
-    #if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
-    questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
-                                                                        X_unlabeled, categories,
-                                                                        num_questions,
-                                                                        max_samples_to_sort=max_samples_to_sort,
-                                                                        index=data["index"],
-                                                                        session=data["session"],
-                                                                        text_field=False,
-                                                                        cnf_weight=1,
-                                                                        ret_weight=0,
-                                                                        bgr_weight=0)
+    if (sampling_strategy == "closer_to_hyperplane"):
+         questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
+                                                                      X_unlabeled, categories, num_questions)
+    if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
+        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
+                                                                       X_unlabeled, categories,
+                                                                       num_questions,
+                                                                       max_samples_to_sort=max_samples_to_sort,
+                                                                       index=index,
+                                                                       session=session,
+                                                                       text_field=False,
+                                                                       cnf_weight=1,
+                                                                       ret_weight=0,
+                                                                       bgr_weight=0)
 
-    # # Asking the user (gt_dataset) to answer the questions
-    # answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions,
-    #                                                gt_session=kwargs["gt_session"], classifier=self.classifier)
-    #
-    # # Injecting the answers in the training set, and re-training the model
-    # self.classifier.move_answers_to_training_set(answers)
-    # self.classifier.remove_matching_answers_from_test_set(answers)
-    #
-    # # Present visualization to the user, so he can explore the proposed classification
-    # # ...
-    #
-    # return scores, wrong_pred_answers
-    # return {questions: jsonify(questions), scores: scores}
+    al_backend_logger.add_raw_log('{ "loop": ' + str(app.loop_index) +
+                                    ', "datetime": "' + str(datetime.datetime.now()) +
+                                    '", "accuracy": ' + str(scores["accuracy"]) +
+                                    ', "precision": ' + str(scores["precision"]) + ' } \n')
+    app.loop_index += 1
+
     return jsonify({"questions": questions, "scores": scores})
 
 
+@app.route('/save_user_answers', methods=['POST'])
+def save_user_answers():
+    data = request.form
+    answers = json.loads(data['answers'])
+
+    classifier.move_answers_to_training_set(answers)
+    classifier.remove_matching_answers_from_test_set(answers)
+
+    return jsonify(True)
 
 
 @app.route('/suggest_classification', methods=['POST'])
 def suggest_classification():
     data = request.form
-    questions = json.loads(data['questions'])
-    scores = json.loads(data['scores'])
-    # classifier.move_answers_to_training_set(answers)
-    # classifier.remove_matching_answers_from_test_set(answers)
-    # RE-TRAIN THE MODEL
-    # model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
-    #    num_questions=num_questions, remove_stopwords=False)
 
-    #high_pos_ids, high_neg_ids, low_pos_ids, low_neg_ids = classifier.get_full_queries_ids()
-    positives, negatives = classifier.get_classified_queries_ids()
+    target_min_score = float(data.get('target_min_score', '0'))
+    target_max_score = float(data.get('target_max_score', '1'))
+
+    positives, negatives = classifier.get_classified_queries_ids(target_min_score=target_min_score, target_max_score=target_max_score)
     return jsonify({
        "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
-                                                  ids=positives,
-                                                  n_size="2", results_size=data["results_size"]),
+                                                  ids=positives, n_size="2", results_size=data["results_size"]),
        "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
-                                                  ids=negatives,
-                                                  n_size="2", results_size=data["results_size"])
+                                                  ids=negatives, n_size="2", results_size=data["results_size"]),
+       "total_pos": functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=positives),
+       "total_neg": functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=negatives)
     })
-    # return jsonify({
-    #     "high": {
-    #         "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_pos_ids,
-    #                                                    n_size="2", results_size=data["results_size"]),
-    #         "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=high_neg_ids,
-    #                                                    n_size="2", results_size=data["results_size"])
-    #     },
-    #     "low": {
-    #         "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_pos_ids,
-    #                                                    n_size="2", results_size=data["results_size"]),
-    #         "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"], ids=low_neg_ids,
-    #                                                    n_size="2", results_size=data["results_size"])
-    #     }
-    # })
-
-    #return jsonify(classifier.suggest_classification(labeled_questions=questions, index=data['index']))
 
 @app.route('/get_tweets_by_str_ids', methods=['POST'])
 def get_tweets_by_str_ids():
     data = request.form
     return jsonify(functions.get_tweets_by_str_ids(index=data['index'], id_strs=data["id_strs"]))
+
+
+@app.route('/get_results_from_al_logs', methods=['POST'])
+def get_results_from_al_logs():
+    data = request.form
+
+    hyp_results = []
+    #session_files = [f for f in os.scandir(os.path.dirname(al_path)) if not f.is_dir()]  # and "_OUR_" in f.name]
+    logs = classifier.read_file(al_path)  # session_files[0].path)
+    loops_values, accuracies, precision = classifier.process_results(logs)
+    hyp_results.append({"loops": loops_values, "accuracies": accuracies, "precisions": precision})
+
+    return jsonify(hyp_results)  # classifier.get_results_from_al_logs())
 
 
 @app.route('/most_frequent_n_grams', methods=['POST'])
@@ -713,7 +847,11 @@ def event_image():
     image = functions.get_event_image(index, main_term, related_terms, s_name)
     res = False
     if image:
-        image = image['hits']['hits'][0]['_source']
+        try:
+            image = image['hits']['hits'][0]['_source']
+        except IndexError as ie:
+            print("query:",data)
+            print("image:",image)
         res = True
     return jsonify({"result":res, "image": image})
 
@@ -781,7 +919,6 @@ def mark_tweet():
     session = data['session']
     tid = data['tid']
     val = data['val']
-    print(request.form)
     functions.set_tweet_state(index, session, tid, val)
     return jsonify(data)
 
@@ -1035,12 +1172,6 @@ def get_sse():
     # newKeywords = functions.process_range_tweets(index, start_ms, end_ms, words, 20)
 
     # newKeywords = [('couleurs', 0.9541982412338257), ('cette…', 0.9535157084465027), ('consultation', 0.9513106346130371), ('tgvmax', 0.9512830972671509), ('lyonmag', 0.9508819580078125), ('vous…', 0.9507380127906799), ('sublime', 0.9503788948059082), ('le_progres', 0.9499937891960144), ('vue', 0.9492042660713196), ('oliviermontels', 0.9490641355514526), ('sport2job', 0.9481754899024963), ('lyonnai…', 0.9481167197227478), ('hauteurs', 0.9463335275650024), ('illuminations', 0.9462761282920837), ('familial', 0.9458074569702148), ('fdl2017…', 0.945579469203949), ('leprogreslyon', 0.9455731511116028), ('weekend', 0.9454441070556641), ('pensant', 0.9449157118797302), ('radioscoopinfos', 0.9441419839859009)]
-    print("---------------")
-    print("newKeywords")
-    print(newKeywords)
-    print("related_terms")
-    print(related_terms)
-    print("---------------")
     sse2 = []
     for i in range(0, 40):
         temp_terms = []
@@ -1304,6 +1435,11 @@ def available_indexes():
 # 7. Sessions
 # ==================================================================
 
+def get_available_indexes():
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    return config['elastic_search_sources']
+
 # Get Sessions
 @app.route('/sessions', methods=['POST', 'GET'])
 # @cross_origin()
@@ -1311,7 +1447,8 @@ def sessions():
     data = request.form
     # up1 = functions.update_all("mabed_sessions", "session", "s_type", "tweet")
     # up = functions.delete_session("s1")
-    res = functions.get_sessions()
+    available_indexes = get_available_indexes()
+    res = functions.get_sessions(available_indexes=available_indexes)
     return jsonify(res['hits']['hits'])
 
 # Add new Session
@@ -1400,6 +1537,15 @@ def get_session_results():
     return jsonify({"result": status, "body": res})
 
 
+@app.route('/create_session_from_multiclassification', methods=['POST'])
+def create_session_from_multiclassification():
+    data = request.form
+    index = data['index']
+    doc_type = data['doc_type']
+    field = data['field']
+    session_prefix= data['session_prefix']
+    functions.create_session_from_multiclassification(index,doc_type,field,session_prefix=session_prefix, logger=app.backend_logger)
+    return jsonify({"value":3})
 # ==================================================================
 # 6. Main
 # ==================================================================

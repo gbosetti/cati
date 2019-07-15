@@ -8,7 +8,7 @@ class MultiPieChart{
     this.width = width;
     this.height = height;
     this.radius = Math.min(width, height) / 2;
-    //this.zoomAndMoveEnabled = true;
+    this.zoomAndMoveEnabled = true;
   }
 
   createLayout(data){
@@ -31,10 +31,10 @@ class MultiPieChart{
       .attr("width", width)
       .attr("height", height)
       .attr("class", "bubble")
-      //.call(d3.behavior.zoom().on("zoom", (evt) => {
-      //	svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
-      //}))
-      .append("g").attr("id", "draggable-area");
+      .call(d3.behavior.zoom().on("zoom", (evt) => {
+      	svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+      }))
+      .append("g"); //.attr("id", "draggable-area");
 
       return svg;
   }
@@ -70,7 +70,6 @@ while (word = words.pop()) {
   }
 
 	draw(data){
-
 	    $(this.domSelector).html="";
         var layout = this.createLayout(data);
         var svg = this.createSvg(this.width, this.height);
@@ -88,7 +87,12 @@ while (word = words.pop()) {
       })
     );
     nodes.enter().append("g").attr("class", "node").attr("transform", function(d) {
-    	return "translate(" + d.x + "," + d.y + ")";
+
+        var x_axis = isNaN(d.x)? 0 : d.x;
+        var y_axis = isNaN(d.y)? 0 : d.y;
+        //console.log("INFO:", x_axis + "," + y_axis);
+
+    	return "translate(" + x_axis + "," + y_axis + ")";
     });
 
     return nodes;

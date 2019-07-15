@@ -28,7 +28,7 @@ class BackendLogger:
         print(message)
 
     def clear_logs(self):
-        #self.logs = []
+        print("Removing ", self.filename)
         if os.path.isfile(self.filename):
             os.remove(self.filename)
 
@@ -47,6 +47,6 @@ class BackendLogger:
             return logs
 
         except IOError as err:
-            print(self.filename + ": the file was not found.", err)
+            # print(self.filename + ": the file was not found.", err)
             return '[]'
 

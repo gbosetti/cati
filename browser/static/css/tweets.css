@@ -2,6 +2,16 @@
     padding-bottom: 5em;
 }
 
+.tweets_results_label {
+    color: #aaa;
+    font-size: 15px;
+}
+
+a.timeline_btn.options_btn_clear {
+    color: #9E9E9E !important;
+    border-color: #9E9E9E;
+}
+
 .ui-dialog { z-index: 2147483647 !important }
 
 .search-accordion .card .card-header {

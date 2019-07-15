@@ -1,5 +1,6 @@
 app.views.classification = Backbone.View.extend({
     template: _.template($("#tpl-classify-tweets").html()),
+    //lsampleQueriesTemplate: _.template($("#tpl-classify-tweets").html()), //This way we have the template without any post change
     initialize: function() {
         var handler = _.bind(this.render, this);
 
@@ -18,31 +19,206 @@ app.views.classification = Backbone.View.extend({
         this.$el.html(html);
         this.delegateEvents();
         this.initializeSpinner();
+        this.isProcessStarted=false;
 
-        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', function () {
-            $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
-            $( this ).parent( 'li' ).addClass( 'active' );
+        //var tplSamplingStage = '<div class="carousel-item validation-stage">' + $(".sampling-stage").html() + "</div>";
+        /*this._tplSamplingStage: $(".sampling-stage").html();
+        this._tplValidationStage: $(".validation-stage").html();*/
+        $( "#carouselExampleIndicators" ).on( "click", ".keep-training-btn", function() {
+            //console.log("\n\nnew template", tplSamplingStage);
+            //$('.carousel-item').removeClass('active');
+            //$('.carousel-inner').append(tplSamplingStage);
+            //$('.sampling-stage').addClass('active');
+            $('.carousel').carousel(1);
         });
 
         document.querySelector("#start-automatic-learning").addEventListener("click", () => {
-
-            var numQuestions = document.querySelector("#num-tweet-questions").value;
-            this.requestTweetsForLearningStage(numQuestions);
+            this.numSampleQueries = document.querySelector("#num-tweet-questions").value;
         });
 
-        /*document.querySelector("#to-learning-stage").addEventListener("click", () => {
-            document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-        });*/
+        document.querySelector(".to-al-validation-stage").addEventListener("click", () => {
+            this.lastLoadedQuestions = this.getQuestionsFromUI();
+        });
 
-        document.querySelector("#to-al-validation-stage").addEventListener("click", () => {
-            this.suggestClassification();
+        document.querySelector(".save-al-changes").addEventListener("click", ()=>{
+
+            var jc = this.createLoadingPopup();
+            this.saveClassification().then(()=>{
+                jc.close();
+            });
+        });
+
+        $('#carouselExampleIndicators').on('slide.bs.carousel', (evt) => {
+
+            $(".tweet-questions").html("");
+            $("#classif-graph-area").html("");
+        });
+
+        $('#carouselExampleIndicators').on('slid.bs.carousel', (evt) => {
+
+            if (evt.to == 1){
+                this.loadSamplingStage().then(()=>{
+                    this.spinner.remove();
+                });
+            }
+            else if (evt.to == 2){
+                this.loadValidationStage().then(()=>{
+                    this.spinner.remove();
+                });
+            }
         });
 
         //$("#remove-stopwords-al").bootstrapToggle();
         app.views.mabed.prototype.getClassificationStats();
+
+        this.initializeSamplingStrategyTab();
         //app.views.mabed.prototype.setSessionTopBar();
 
         return this;
+    },
+    createLoadingPopup: function(){
+
+        barHtml = 'The duration of this process will depend on <br>the number of documents you classified.' +
+			'<div class=" jconfirm-box jconfirm-hilight-shake jconfirm-type-default  jconfirm-type-animated loading" role="dialog"></div>';
+
+        var jc = $.confirm({
+            title:"Saving the classification state",
+            columnClass: 'extra-large',
+            content: barHtml,
+            buttons: {
+                cancel: {
+                    text: 'OK',
+                    btnClass: 'btn-cancel'
+                }
+            }
+        });
+        return jc;
+    },
+    saveClassification: function(){
+        return new Promise((resolve, reject)=>{
+
+            var data = this.getTrainingConfig();
+            $.post(app.appURL+'save_classification', data, response => {
+
+                app.views.mabed.prototype.getClassificationStats();
+                $(".carousel").carousel(0);
+                resolve();
+            }, 'json');
+        });
+    },
+    getTrainingConfig: function(){
+
+        var sampling_strategy = $('.nav-link.active').attr("href")=="#clusted-based-active-learning"? "closer_to_hyperplane" : "closer_to_hyperplane_bigrams_rt";
+
+        return [
+            {name: "index", value: app.session.s_index},
+            {name: "session", value: "session_" + app.session.s_name},
+            {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
+            {name: "num_questions", value: this.numSampleQueries },  // do the TODOs like in this way
+            {name: "max_samples_to_sort", value:500}, //TODO
+            {name: "text_field", value:"2grams"}, //TODO
+            {name: "debug_limit", value:false}, //TODO
+            {name: "download_data", value:true},
+            {name: "sampling_strategy", value:sampling_strategy}
+        ];
+    },
+    fillWithAvailableSessions: function(selectSelector){
+        $.get(app.appURL+'available_indexes', function (response) {
+
+            //clear index list
+            document.querySelector(selectSelector).innerHTML = "";
+
+            //add fields
+            for(let i = 0; i< response.length; i++){
+                let index_name = response[i];
+                let option = document.createElement('option');
+                option.setAttribute('value',index_name);
+                option.appendChild(document.createTextNode(index_name));
+                document.querySelector(selectSelector).appendChild(option);
+           }
+        },'json');
+    },
+    loadSamplingStage: function(){
+
+        $(".tweet-questions")[0].parentElement.appendChild(this.spinner);
+
+        var data = this.getTrainingConfig();
+
+        if(this.isProcessStarted){
+            console.log("Re-training");
+            return this.trainModel(data);
+        }
+        else{
+            console.log("First training");
+            return new Promise((resolve, reject)=>{
+                this.clear_al_logs();
+                this.download_al_init_data(data).then(()=>{
+                    this.isProcessStarted = true;
+                    this.trainModel(data).then(()=>{
+                        resolve();
+                    });
+                });
+            });
+        }
+    },
+    loadValidationStage: function(){
+
+        $("#classif-graph-area").append(this.spinner);
+        return new Promise((resolve, reject)=>{
+            this.saveUserAnswers().then(()=>{
+                this.trainModel(this.getTrainingConfig()).then(()=>{
+                    this.suggestClassification().then(()=>{
+                        resolve();
+                    });
+                });
+            });
+        });
+    },
+    saveUserAnswers: function(){
+
+        return new Promise((resolve, reject)=>{
+
+            var data = [{name: "answers", value: JSON.stringify(this.lastLoadedQuestions)}];
+            $.post(app.appURL+'save_user_answers', data, response => { resolve() }, 'json');
+        });
+    },
+    initializeSamplingStrategyTab: function(){
+
+        $( '#classification-strategies-tabs .nav-item a' ).on( 'click', (elem) => {
+            $( '#classification-strategies-tabs' ).find( 'li.active' ).removeClass( 'active' );
+            $( elem ).parent( 'li' ).addClass( 'active' );
+            $('.popover-dismiss').popover({ html: true});
+            this.isProcessStarted=false; //Restart the process
+            $(".carousel").carousel(0); //Restart the carousel
+            this.initializeSamplingMethod();
+        });
+        this.initializeSamplingMethod();
+    },
+    initializeSamplingMethod: function(){
+
+        setTimeout(()=>{
+
+            var loadingMethod = $('.nav-link.show').attr("on-pane-load"); // e.g. initializeExtendedUncertaintySampling
+            console.log("loading method: ", loadingMethod);
+            if(loadingMethod)
+                this[loadingMethod]();
+
+        }, 1000);
+    },
+    initializeUncertaintySampling: function(){
+
+        this.fillWithAvailableSessions("#test-subset-external-session");
+    },
+    initializeExtendedUncertaintySampling: function(){
+
+        $("#configs").html("");
+        var configs = [[0.0, 0.0, 1.0], [0.0, 0.2, 0.8], [0.0, 0.4, 0.6], [0.0, 0.6, 0.4], [0.0, 0.8, 0.2], [0.0, 1.0, 0.0], [0.2, 0.0, 0.8], [0.2, 0.2, 0.6], [0.2, 0.4, 0.4], [0.2, 0.6, 0.2], [0.2, 0.8, 0.0], [0.4, 0.0, 0.6], [0.4, 0.2, 0.4], [0.4, 0.4, 0.2], [0.4, 0.6, 0.0], [0.6, 0.0, 0.4], [0.6, 0.2, 0.2], [0.6, 0.4, 0.0], [0.8, 0.0, 0.2], [0.8, 0.2, 0.0], [1.0, 0.0, 0.0]];
+        configs.forEach(cfg => {
+            var hyp = parseFloat(cfg[0]) * 100;
+            var dup = parseFloat(cfg[1]) * 100;
+            var bgr = parseFloat(cfg[2]) * 100;
+            $("#configs").append("<option value='"+ cfg.toString() +"'>hyp(" + hyp + ") dup(" + dup + ") bgr(" + bgr + ")</option>");
+        });
     },
     initializeSpinner: function(){
 
@@ -54,21 +230,16 @@ app.views.classification = Backbone.View.extend({
             container.style["min-height"] = "200px";
             container.style["padding-top"] = "3em";
 
-        var spinner = document.createElement("div");
-            spinner.className = "loader"; //new Spinner();
-            //spinner.style.float = "right";
-
-        container.appendChild(spinner);
+        container.appendChild($('<i class="fa fa-spinner fa-spin" style="font-size: 7em; color: Dodgerblue;"></i>')[0]);
         this.spinner = container;
     },
     loadTweetsForLearningStage: function(questions){
 
-        console.log(questions);
-        this.spinner.remove();
         var tweetsHtml = '', ids;
 
         this.getRelatedTweetsToQueries(questions).then(question_rel_tweets => {
 
+            $(".tweet-questions").html(""); //Make sure everything is clear before loading the new questions
             questions.forEach(question => {
 
                 question.bigrams = question.text;
@@ -97,17 +268,25 @@ app.views.classification = Backbone.View.extend({
                                             '</div>';
             })
 
-            $("#tweet-questions").html(tweetsHtml);
+            $(".tweet-questions").html(tweetsHtml);
 
             $(".card .card-body input").each(function() {
                 $(this).bootstrapToggle();
                 this.style.padding = "right";
             });
+        }, (err)=>{
+            console.log("Catch:", err);
         });
     },
     getRelatedTweetsToQueries: function(questions){
 
         return new Promise(function(resolve, reject) {
+
+            if(questions == undefined){
+                console.log("rejecting")
+                reject();
+            }
+
             questions_ids = "";
             questions.forEach(question => {
                 questions_ids += question.str_id + " or ";
@@ -124,30 +303,31 @@ app.views.classification = Backbone.View.extend({
             }, 'json');
         });
     },
-    requestTweetsForLearningStage: function(numQuestions){
+    clear_al_logs: function(data){
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'clear_al_logs', data, response => {
+                resolve();
+            }, 'json');
+        });
+    },
+    download_al_init_data: function(data){
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'download_al_init_data', data, response => {
+                this.last_al_scores = response.scores;
+                this.loadTweetsForLearningStage(response.questions);
+                resolve();
+            }, 'json');
+        });
+    },
+    trainModel: function(data){
 
-        $(".card-columns").html('');
-        document.querySelector("#tweet-questions").parentElement.appendChild(this.spinner);
-        var removeStopwords = false; //document.querySelector("#remove-stopwords-al").checked;
-
-        data = [
-            {name: "index", value: app.session.s_index},
-            {name: "session", value: "session_" + app.session.s_name},
-            {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
-            {name: "num_questions", value: numQuestions },
-            {name: "remove_stopwords", value: removeStopwords },
-            {name: "max_samples_to_sort", value:500}, //TODO
-            {name: "text_field", value:"2grams"}, //TODO
-            {name: "is_field_array", value:false}, //TODO
-            {name: "debug_limit", value:true}, //TODO
-            {name: "download_data", value:false}
-        ];
-
-        $.post(app.appURL+'start_learning', data, response => {
-            console.log(response);
-            this.last_al_scores = response.scores;
-            this.loadTweetsForLearningStage(response.questions);
-        }, 'json');
+        return new Promise((resolve, reject) => {
+            $.post(app.appURL+'train_model', data, response => {
+                this.last_al_scores = response.scores;
+                this.loadTweetsForLearningStage(response.questions);
+                resolve();
+            }, 'json');
+        });
     },
     getQuestionsFromUI: function(){
 
@@ -162,29 +342,122 @@ app.views.classification = Backbone.View.extend({
         });
         return questions;
     },
+    renderALClassificationArea: function(){
+
+        $("#classif-graph-area").html("");
+        $("#classif-graph-area").html(`<div style="padding:5px">
+          <div class="row">
+            <!-- HEADERS -->
+            <div class="row col">
+              <div id="cloud_header_q1" class="col-2 d-flex justify-content-center">
+                <div class="align-self-center p-2">
+                  Score
+                </div>
+              </div>
+              <div id="cloud_header_q1" class="col-5 d-flex justify-content-center">
+                <div class="align-self-center p-2">
+                  Bigrams on positive documents
+                </div>
+              </div>
+              <div id="cloud_header_q2" class="col-5 d-flex justify-content-center">
+                <div class="align-self-center p-2">
+                  Bigrams on negative documents
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <!-- Q1 Q2 -->
+            <div class="row col">
+              <div id="cloud_slider" class="col-2 d-flex justify-content-center">
+                <div id="content" >
+                  <div class="slider-range pips-range-vertical"></div>
+                </div>
+              </div>
+              <div id="cloud_q1" class="col-5 border tag-cloud" style="text-align: center;"></div>
+              <div id="cloud_q2" class="col-5 border tag-cloud" style="text-align: center;"></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="row col-12">
+                <form class="static_box pix-padding-20 white-bg bigrams-controls">
+                  <div class="form-row">
+                    <div class="col-3">
+                      <label>Max bigrams to show</label>
+                      <div class="input-group mb-3">
+                        <input name="top-bubbles-to-display" type="number" class="form-control top-bubbles-to-display" value="20" min="1">
+                        <div class="input-group-append">
+                          <button class="btn btn-default update-quadrants-bigrams"><i class="fa fa-refresh"></i></button>
+                        </div>
+                      </div>
+                     </div>
+                  </div>
+
+                </form>
+              </div>
+          </div>
+        </div>`);
+
+        $('.update-quadrants-bigrams').on("click", (event)=>{
+            this.updateQuadrantsBigrams();
+            event.preventDefault();
+        });
+    },
+    renderQuadrantsBigrams: function(){
+        alert("Render!");
+    },
     suggestClassification: function(){
 
-        var questions = this.getQuestionsFromUI();
+        return new Promise((resolve, reject)=>{
+            this.renderALClassificationArea();
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "session", value: "session_" + app.session.s_name},
+                {name: "scores", value: JSON.stringify(this.last_al_scores)},
+                {name: "results_size", value:"20"}
+            ];
+
+            $.post(app.appURL+'suggest_classification', data, response => {
+
+                this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+                this.drawNgrams("#cloud_q2", response.neg, "negative");
+                this.drawQuadrantsSlider('.pips-range-vertical');
+                this.drawPiechart(response.total_pos, response.total_neg);
+                this.requestResultsEvolutionBarcharts(data).then(res =>{
+                    console.log(res);
+                    this.drawResultsEvolutionScatterplots("classif-graph-area", res);
+                });
+                resolve();
+            }, 'json');
+        });
+    },
+    updateQuadrantsBigrams: function(){
+
+        var sliderValues = $('.pips-range-vertical')[0].noUiSlider.get();
+        console.log(sliderValues);
+
         data = [
             {name: "index", value: app.session.s_index},
             {name: "session", value: "session_" + app.session.s_name},
-            {name: "questions", value: JSON.stringify(questions) },
             {name: "scores", value: JSON.stringify(this.last_al_scores)},
-            {name: "results_size", value:"20"}
+            {name: "results_size", value:$('.top-bubbles-to-display').val()},
+            {name: "target_min_score", value: Math.min(...sliderValues)},
+            {name: "target_max_score", value: Math.max(...sliderValues)}
         ];
 
         $.post(app.appURL+'suggest_classification', data, response => {
-            console.log("RESPONSE", response);
-            this.drawQuadrants( this.formatQuadrantResults(response.pos),
-                                this.formatQuadrantResults(response.neg),
-                                400, 500);
-            this.drawQuadrantsSlider('pips-range-vertical');
-            //this.generateVisualizationsForValidation(response["positiveTweets"], response["negativeTweets"]);
+
+            this.drawNgrams("#cloud_q1", response.pos, "confirmed");
+            this.drawNgrams("#cloud_q2", response.neg, "negative");
+            //this.drawQuadrantsSlider('.pips-range-vertical');
         }, 'json');
     },
     drawQuadrantsSlider: function(selector){
-         noUiSlider.create(document.getElementById(selector), {
-          start: [0.2, 0.5],
+        var slider = document.querySelector(selector);
+         noUiSlider.create(slider, {
+          start: [0.0, 1],
           connect: true,
           direction: 'rtl',  // ltr or rtl
           orientation: 'vertical',
@@ -198,7 +471,9 @@ app.views.classification = Backbone.View.extend({
             stepped: false,
             density: 4
           }
-       })
+       });
+
+        slider.noUiSlider.on('set', () => { this.updateQuadrantsBigrams() });
     },
     fit_to_max: function(collection, max){
 
@@ -207,7 +482,6 @@ app.views.classification = Backbone.View.extend({
         var min_in_coll = Math.min(...sizes);
 
         collection.forEach(elem => {
-
             elem.size = ((elem.size - min_in_coll) / (max_in_coll - min_in_coll)) * max;
         });
 
@@ -220,26 +494,46 @@ app.views.classification = Backbone.View.extend({
         var mapped = res.map(res => { return {"text": res.key , "size": res.doc_count }});
         return this.fit_to_max(mapped, 35);
     },
-    generateVisualizationsForValidation: function(positiveTweets, negativeTweets){
+    drawNgrams: function(containerSelector, ngrams, category){
 
-        $("#classif-graph-area").html("");
-        this.drawQuadrants(positiveTweets, negativeTweets);
-        this.drawBoxplot(positiveTweets, negativeTweets);
-        this.drawPiechart(positiveTweets, negativeTweets);
-        var divHeight = 350;
-        this.drawTagCloud("Most frequent n-grams for <b>positive</b>-labeled tweets", positiveTweets.texts, "positive-labeled-tweets-cloud", divHeight, "positiveTweets");
-        this.drawTagCloud("Most frequent n-grams for <b>negative</b>-labeled tweets", negativeTweets.texts, "negative-labeled-tweets-cloud", divHeight, "negativeTweets");
+        //console.log("drawNgrams",containerSelector, app.session.s_index, app.session.s_name);
+        //var event = app.eventsCollection.get({cid: this.lastNgramsEventId}).toJSON();
+        //imeout(()=>{
+        $(containerSelector).html("");
+        var widget = new BubbleWidget(containerSelector, app.session.s_index, 'session_'+app.session.s_name, 500, "proposed"); //Proposed since the data being classified is the unlabeled, and it doesn't change in Elasticsearch until the end of the process
+        var formatted_ngrams;
 
-        // Store them for user manipulation
-        this.positiveTweets = positiveTweets;
-        this.negativeTweets = negativeTweets;
+        if(category == "confirmed"){
+
+            formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+
+                return [
+                    ngram.key.split(/-+/).join(" "), [
+                        this.filterElemByKey("proposed", ngram.status.buckets), 0, 0
+                    ]
+                ]
+            });
+        } else{
+
+            formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+                return [
+                    ngram.key.split(/-+/).join(" "), [
+                        0, this.filterElemByKey("proposed", ngram.status.buckets), 0
+                    ]
+                ]
+            });
+        }
+
+        formatted_ngrams = formatted_ngrams.filter(elem =>{ return elem[1].reduce((a, b) => a + b)!=0});
+        widget.render(formatted_ngrams);
     },
-    drawQuadrants: function(highPos, highNeg, width, height){
+    filterElemByKey: function(key, collection){
 
-        this.drawD3TagCloud(highPos, "#cloud_q1", width, height);
-        this.drawD3TagCloud(highNeg, "#cloud_q2", width, height);
+        var res = collection.filter(item => {return item.key == key});
+        return (res && res[0] && res[0].doc_count)? res[0]["doc_count"] : 0;
     },
-    drawD3TagCloud: function(data, selector, width, height){
+   /*
+   drawD3TagCloud: function(data, selector, width, height){
 
         $(selector).html("");
         $(selector).css("width", width);
@@ -324,6 +618,7 @@ app.views.classification = Backbone.View.extend({
                 "stemWords": stemWords });
         });
     },
+    */
     retrieveNGrams: function(tweetTexts, nGramsToGenerate, topNgramsToRetrieve, removeStopwords, stemWords){
 
         return new Promise(function(resolve, reject) {
@@ -524,19 +819,90 @@ app.views.classification = Backbone.View.extend({
             }
         });
     },
-    drawPiechart: function(positiveTweets, negativeTweets){
+    drawPiechart: function(sizeOfpositives, sizeOfNegatives){
 
-        $("#classif-graph-area").append(
-            '<h5 class="mt-5" align="center">Tweets by predicted label</h5>' +
-            '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
-         );
+       $("#classif-graph-area").append(
+           '<h5 class="mt-5" align="center">Documents by predicted category</h5>' +
+           '<div id="classification-piechart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+       );
 
-        var data = [{
-            values: [positiveTweets.confidences.length, negativeTweets.confidences.length],
-            labels: ['Positive', 'Negative'],
-            type: 'pie'
-        }];
+       var data = [{
+           values: [sizeOfpositives, sizeOfNegatives],
+           labels: ['Positive', 'Negative'],
+           type: 'pie'
+       }];
 
-        Plotly.newPlot('classification-piechart', data, {});
+       Plotly.newPlot('classification-piechart', data, {});
+    },
+    requestResultsEvolutionBarcharts: function(){
+
+        return new Promise((resolve, reject)=>{
+            var data = [];
+            $.post(app.appURL+'get_results_from_al_logs', data, response => {
+                resolve(response);
+            }, 'json');
+        });
+    },
+    drawResultsEvolutionScatterplots: function(containerId, results){
+
+       $("#"+containerId).append(
+           '<h5 class="mt-5" align="center">Evolution on precision</h5>' +
+           '<div id="precision-barchart" class="classif-visualization graph js-plotly-plot" style="height: 400px; width: 100%; min-width: 500px;"></div>'
+       );
+
+       var title = "---", x_axis_prop="loops", y_axis_prop="accuracies", trace_name="...", x_axis_label="Loops", y_axis_label="Accuracy";
+
+        var data = [];
+        results.forEach(res => {
+
+            data.push({
+                x: res[x_axis_prop],
+                y: res[y_axis_prop],
+                //mode: 'markers',
+                type: 'scatter'
+            })
+        });
+        console.log("Data to draw:", data);
+
+        /*var layout = {
+            title: {
+                text: title,
+                xref: 'paper',
+                x:0
+            },
+            xaxis: {
+                title: {
+                    text: x_axis_label,
+                    font: {
+                        size: 18,
+                        color: '#7f7f7f'
+                    }
+                }
+            },
+            yaxis: {
+                title: {
+                    text: y_axis_label,
+                    font: {
+                        size: 18,
+                        color: '#7f7f7f'
+                    }
+                }
+            }
+        }*/
+
+        var layout = {
+          title:'Data Labels Hover',
+          xaxis: {
+            autotick: false,
+            ticks: 'outside',
+            tick0: 0,
+            dtick: 1,
+            ticklen: 8,
+            tickwidth: 4,
+            tickcolor: '#000'
+          }
+        };
+
+        Plotly.newPlot("precision-barchart", data, layout);
     }
 });

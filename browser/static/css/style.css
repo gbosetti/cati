@@ -9,6 +9,14 @@
   font-style: normal;
 }
 
+.leaflet-draw-toolbar a {
+    background-image: url('../js/vendor/leaflet/spritesheet.png');
+}
+
+.info-hint-icon {
+    margin-right:5px;position:relative;top:2px;
+}
+
 .jconfirm .jconfirm-box div.jconfirm-content-pane::-webkit-scrollbar {
   width: 15px !important;
   padding: 2px !important;

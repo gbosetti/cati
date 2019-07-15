@@ -125,37 +125,6 @@ app.views.settings = Backbone.View.extend({
             //return self.handleSessions(value,'#sessionsList')
         })
     },
-    handleSessions(response,componentSelector){
-        var self = this;
-        return new Promise(resolve => {
-            let html = "";
-            let sessions = [];
-            response.forEach((element,index) => {
-                if(index == 0 && app.session_id == null){
-                    app.session_id = element._id;
-                    app.session = element._source;
-                    localStorage.removeItem('session_id');
-                    localStorage.removeItem('session');
-                    localStorage.setItem('session_id', element._id);
-                    localStorage.setItem('session', JSON.stringify(element._source));
-                }
-                sessions.push([element._source.s_name, element._id]);
-            });
-            sessions.sort((a,b) => (a[0]>b[0])? 1:-1);
-            for(sessionTuple of sessions){
-                if(sessionTuple[1]===app.session_id){
-                    html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
-                }else{
-                    html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
-                }
-            }
-            resolve(html);
-        }).then(value => {
-            $(componentSelector).html(value);
-        }).then( value => {
-            return self.show_seesion_info();
-        });
-    },
     regenerateNgramsWithUserParams: function(evt){
         evt.preventDefault();
         evt.stopImmediatePropagation();
@@ -206,16 +175,23 @@ app.views.settings = Backbone.View.extend({
                 },
                 onContentReady: function () {
                     var askForLogs = setInterval(function(){
+
                         $.get(app.appURL+'get_current_backend_logs', function(response){
-                            //$('#logs').val(response.logs.reverse().join("\r\n"));
+
+                            //last_percentage = $("#ngrams-re-generation").css("width");
+                            //last_percentage = last_percentage.substring(0,last_percentage.length-2);
+                            //console.log(last_percentage);
+
+                            //if(last_percentage < response.percentage){
                             $("#ngrams-re-generation").css("width", response.percentage + "%");
                             $("#ngrams-re-generation").text(response.percentage + "%");
 
                             if(response && response.percentage >= 100){
                                 clearInterval(askForLogs);
                             }
+                            //}
                         }, 'json');
-                    }, 5000);
+                    }, 10000);
                 },
             });
         });
@@ -225,12 +201,9 @@ app.views.settings = Backbone.View.extend({
 
         $.get(app.appURL+'available_indexes', function (response) {
 
-            console.log("Updating selectors", response);
             //clear index list
-            let selector = document.querySelector('#session_index');
-            while (selector.firstChild) {
-                selector.removeChild(selector.firstChild);
-            }
+            document.querySelector('#session_index').innerHTML = "";
+            document.querySelector('#session_index_for_ngrams').innerHTML = "";
 
             //add fields
             for(let i = 0; i< response.length; i++){

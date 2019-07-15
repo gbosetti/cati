@@ -31,6 +31,8 @@ class Es_connector:
         session_timeout = config['default']['sessions_index']['timeout']
         session_index = config['default']['sessions_index']['index']
         session_doc_type = config['default']['sessions_index']['doc_type']
+
+        default_index = None
         for source in config['elastic_search_sources']:
             if source['index'] == default_source:
                 default_host = source['host']
@@ -42,7 +44,7 @@ class Es_connector:
                 default_doc_type = source['doc_type']
 
         available = False
-        if index == default_index:
+        if default_index != None and index == default_index:
             # Define config
             self.host = default_host
             self.port = default_port
@@ -77,6 +79,7 @@ class Es_connector:
         if not available:
             # We can just throw an error instead
             # Or have elastic search throw it
+            print("Index ", index, " not found")
             raise Exception('The "' + index + '" index is not available, please check that it is defined in the config.json file and try again.')
 
         self.size = 500
@@ -106,12 +109,17 @@ class Es_connector:
     #         print("Got %d Hits:" % res['hits']['total'])
     #     return res
 
-    def search(self, query):
+    def search(self, query, size=None):
+
+        target_size = self.size
+        if size != None:
+            target_size = size
+
         res = self.es.search(
             index=self.index,
             doc_type=self.doc_type,
             body=query,
-            size=self.size,
+            size=target_size,
         )
         return res
 
@@ -951,3 +959,22 @@ class Es_connector:
             fields=[field]
         )
         return len(res[(next(iter(res)))]['mappings'])  > 0
+
+    def field_values(self,field, size=10):
+        body = {
+            "aggs": {
+                "field_values": {
+                    "terms": {
+                        "field": field,
+                        "size": size
+                    }
+                }
+            }
+        }
+        data = self.es.search(
+            index=self.index,
+            doc_type=self.doc_type,
+            size=0,
+            body=body
+        )
+        return data["aggregations"]["field_values"]["buckets"]

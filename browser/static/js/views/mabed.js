@@ -10,7 +10,6 @@ app.views.mabed = Backbone.View.extend({
         var html = this.template();
         this.$el.html(html);
         this.delegateEvents();
-        console.log("Rendering the doc");
         this.getDatasetInfo();
         await this.setSessionTopBar();
         this.getClassificationStats();
@@ -29,43 +28,45 @@ app.views.mabed = Backbone.View.extend({
 
             $.post(app.appURL + 'produce_classification_stats', data, function (response, status) {
                 console.log("Updating classification stats: ", response);
-                let total_confirmed = 0;
-                let total_negative = 0;
-                let total_proposed = 0;
 
-                for (let stat of response.classification_stats) {
-                    if (stat.key === 'confirmed') {
-                        total_confirmed = stat.doc_count;
-                    } else if (stat.key === 'negative') {
+                try{
+                    let total_confirmed = 0;
+                    let total_negative = 0;
+                    let total_proposed = 0;
 
-                        total_negative = stat.doc_count;
-                    } else if (stat.key === 'proposed') {
+                    for (let stat of response.classification_stats) {
+                        if (stat.key === 'confirmed') {
+                            total_confirmed = stat.doc_count;
+                        } else if (stat.key === 'negative') {
 
-                        total_proposed = stat.doc_count;
+                            total_negative = stat.doc_count;
+                        } else if (stat.key === 'proposed') {
+
+                            total_proposed = stat.doc_count;
+                        }
                     }
+                    let total = total_confirmed+total_negative+total_proposed;
+
+                    app["lastStats"] = {
+                        total: total,
+                        total_confirmed: total_confirmed,
+                        total_negative: total_negative,
+                        total_proposed: total_proposed
+                    };
+
+                    if(total == 0)
+                        proposed_width = "100";
+                    else proposed_width = Math.trunc(1000*total_proposed/total)/10.0;
+
+                    document.querySelector('#classification_confirmed').textContent = "Confirmed (" + total_confirmed + ")";
+                    document.querySelector('#classification_confirmed').setAttribute("style", "width: "+Math.trunc(1000*total_confirmed/total)/10.0+"%");
+                    document.querySelector('#classification_negative').textContent = "Negative (" + total_negative + ")";
+                    document.querySelector('#classification_negative').setAttribute("style", "width: "+Math.trunc(1000*total_negative/total)/10.0+"%");
+                    document.querySelector('#classification_proposed').textContent = "Proposed (" + total_proposed + ")";
+                    document.querySelector('#classification_proposed').setAttribute("style", "width: "+ proposed_width +"%");
+                    document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+" , Negative: "+total_negative+", Unlabeled : "+total_proposed);
                 }
-                let total = total_confirmed+total_negative+total_proposed;
-
-                app["lastStats"] = {
-                    total: total,
-                    total_confirmed: total_confirmed,
-                    total_negative: total_negative,
-                    total_proposed: total_proposed
-                };
-
-                if(total == 0)
-                    proposed_width = "100";
-                else proposed_width = Math.trunc(1000*total_proposed/total)/10.0;
-
-                document.querySelector('#classification_confirmed').textContent = "Confirmed (" + total_confirmed + ")";
-                document.querySelector('#classification_confirmed').setAttribute("style", "width: "+Math.trunc(1000*total_confirmed/total)/10.0+"%");
-                document.querySelector('#classification_negative').textContent = "Negative (" + total_negative + ")";
-                document.querySelector('#classification_negative').setAttribute("style", "width: "+Math.trunc(1000*total_negative/total)/10.0+"%");
-                document.querySelector('#classification_proposed').textContent = "Proposed (" + total_proposed + ")";
-                document.querySelector('#classification_proposed').setAttribute("style", "width: "+ proposed_width +"%");
-
-                document.querySelector('#progress_classification').setAttribute("title", "Confirmed: "+total_confirmed+
-                    " , Negative: "+total_negative+", Unlabeled : "+total_proposed);
+                catch(err){ console.log(err); }
             }).fail(function (err) {
                 console.log(err);
             });
@@ -77,14 +78,51 @@ app.views.mabed = Backbone.View.extend({
         }else{
             console.log("The current session is "+app.session.s_name);
         }
-        let self =this;
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             $.get(app.appURL+'sessions', null, function(response){
                 resolve(response);
-            }, 'json');
-        }).then(value => {
-            return app.views.settings.prototype.handleSessions(value,'#session_topbar')
+            }, 'json').fail(function(response) {
+
+                console.log(response);
+                alert("Sorry, there was a problem with the sessions you are trying to retrieve. We will try to clean your local data, in case this error remains, you may have no sessions registered in the cati_sessions index (you can create them from the settings page).");
+                localStorage.clear();
+                sessionStorage.clear();
+                //document.location.reload(true);
+            });
+        }).then(res => {
+            //console.log("available sessions:", res);
+            return this.fillAvailableSessions(res,'#session_topbar')
         })
+    },
+    fillAvailableSessions(response,componentSelector){
+        return new Promise(resolve => {
+            let html = "";
+            let sessions = [];
+            response.forEach((element,index) => {
+                if(index == 0 && app.session_id == null){
+                    app.session_id = element._id;
+                    app.session = element._source;
+                    localStorage.removeItem('session_id');
+                    localStorage.removeItem('session');
+                    localStorage.setItem('session_id', element._id);
+                    localStorage.setItem('session', JSON.stringify(element._source));
+                }
+                sessions.push([element._source.s_name, element._id]);
+            });
+            sessions.sort((a,b) => (a[0]>b[0])? 1:-1);
+            for(sessionTuple of sessions){
+                if(sessionTuple[1]===app.session_id){
+                    html+= '<option selected value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }else{
+                    html+= '<option value="'+sessionTuple[1]+'">'+sessionTuple[0]+'</option>';
+                }
+            }
+            resolve(html);
+        }).then(value => {
+            $(componentSelector).html(value);
+        }).then( value => {
+            return app.views.settings.prototype.show_seesion_info();
+        });
     },
     switchSession: function(){
         //e.preventDefault();
@@ -131,8 +169,7 @@ app.views.mabed = Backbone.View.extend({
         data.push({name: "index", value: app.session.s_index});
 
         $.post( app.appURL+'produce_dataset_stats', data, function(response, status) {
-            console.log( "success" );
-            console.log("Data: ", response, "\nStatus: ", status);
+            //console.log("Data: ", response, "\nStatus: ", status);
 
             //On request retrieval, load the new values and stop the spinner
             document.querySelector('#total_tweets').textContent = response.total_tweets; //"20000";
@@ -191,7 +228,7 @@ app.views.mabed = Backbone.View.extend({
             $.get(app.appURL+'get_backend_logs', function(response){
 
                 response = JSON.parse(response);
-                console.log(response);
+                //console.log(response);
 
                 response.forEach(log => {
                     $("#backend_logs").append(new Date(log.timestamp*1000).toLocaleTimeString("en-US") + " - " + log.content + "\n");

@@ -29,7 +29,7 @@ class Corpus:
 
         with open('config.json', 'r') as f:
             config = json.load(f)
-        index = config['default']
+        #index = config['default']
 
         self.size = 0
         self.start_date = '3000-01-01 00:00:00'

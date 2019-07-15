@@ -1,3 +1,4 @@
+
 # coding: utf-8
 
 import timeit
@@ -18,6 +19,8 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import UpdateByQuery
+
+from elasticsearch.client import Elasticsearch as es
 
 __author__ = "Firas Odeh"
 __email__ = "odehfiras@gmail.com"
@@ -97,7 +100,6 @@ class Functions:
     def get_tweets_by_str_ids(self, index="", id_strs=""):
 
         my_connector = Es_connector(index=index, doc_type="tweet")
-        print("IDS: ", id_strs)
         res = my_connector.search({
             "query": {
                 "match": {
@@ -177,6 +179,8 @@ class Functions:
             # }
             return '...'
 
+
+
     def top_retweets(self, **kwargs):
 
         try:
@@ -246,14 +250,28 @@ class Functions:
                      }
                  }}
             )
-            return res['aggregations']['classification_status']['buckets']
-        except RequestError:
-            return {
-                [
-                    {'key': 'proposed', 'doc_count': '0'},
-                    {'key': 'positive', 'doc_count': '0'},
-                    {'key': 'negative', 'doc_count': '0'}
-                ]}
+            buckets = res['aggregations']['classification_status']['buckets']
+
+            if len(buckets) > 0:
+                return buckets
+
+            print("GET " + index + "/_search ", { "query": { "match_all": {}}})
+            total_docs = my_connector.search({ "query": { "match_all": {}}})
+            return [
+                {'key': 'proposed', 'doc_count': str(total_docs["hits"]["total"]) },
+                {'key': 'positive', 'doc_count': '0'},
+                {'key': 'negative', 'doc_count': '0' }
+            ]
+
+
+        except Exception as err:
+
+            print("Error: ", err)
+            return [
+                {'key': 'proposed', 'doc_count': '0'},
+                {'key': 'positive', 'doc_count': '0'},
+                {'key': 'negative', 'doc_count': '0'}
+            ]
 
     # ==================================================================
     # Event Detection
@@ -292,7 +310,7 @@ class Functions:
 
     def event_descriptions(self, index="test3", k=10, maf=10, mrf=0.4, tsl=30, p=10, theta=0.6, sigma=0.6, cluster=2,
                            **kwargs):
-        mabed = self.detect_events(index, k, maf, mrf, tsl, p, theta, sigma, cluster, logger=kwargs["logger"])
+        mabed = self.detect_events(index=index, k=k, maf=maf, mrf=mrf, tsl=tsl, p=p, theta=theta, sigma=sigma, cluster=cluster, logger=kwargs["logger"])
 
         # format data
         event_descriptions = []
@@ -502,7 +520,6 @@ class Functions:
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = self.get_retated_terms(main_term, related_terms)
-        print("get_event_tweets", terms)
 
         query = {
             "sort": [
@@ -791,9 +808,8 @@ class Functions:
                 }
             }
 
-        if limit == None:
-            limit = 9999
-
+        #if limit == None:
+        #    limit = 9999
         res = my_connector.search({
             "size": 1,
             "query": query,
@@ -801,11 +817,13 @@ class Functions:
                 "group_by_cluster": {
                     "terms": {
                         "field": "imagesCluster",
-                        "size": limit
+                        # "size": limit
                     }
                 }
             }
         })
+
+
         clusters = res['aggregations']['group_by_cluster']['buckets']
         data = self.get_current_session_data(index)
 
@@ -856,17 +874,18 @@ class Functions:
             return
 
         except IOError as err:
-            print("The image-duplicated file was not found.", err)
+            print("The images folder was not found.", err)
             return
 
     def get_current_session_data(self, index):
+        # no image duplicates for news and war data sets
 
         with open('config.json') as f:
             config = json.load(f)
 
         try:
             for es_sources in config['elastic_search_sources']:
-                if es_sources['index'] == index:
+                if es_sources['index'] == index and 'image_duplicates' in es_sources:
                     with open(es_sources['image_duplicates']) as file:
                         return json.load(file)
             return
@@ -983,7 +1002,6 @@ class Functions:
             res = my_connector.search(q)
         except RequestError as re:
             print("Failed to get event cluster state: ",q)
-            print(re)
         clusters = res['aggregations']['group_by_cluster']['buckets']
         data = self.get_current_session_data(index)
 
@@ -1000,7 +1018,6 @@ class Functions:
 
     def get_event_clusters(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
-        print("index for CLUSTERS: ", index)
         terms = []
         words = main_term + ' '
         for t in related_terms:
@@ -1059,15 +1076,318 @@ class Functions:
         return clusters
 
     # ==================================================================
+    # Geocoordinates
+    # ==================================================================
+
+    def get_geo_coordinates(self,index,session,date_range,search_by_label="confirmed OR proposed OR negative", word=None):
+
+        try:
+            must_clauses = [
+                {
+                    "exists": {
+                        "field": "coordinates.coordinates"
+                    }
+                },
+                {
+                    "match": {
+                        session: search_by_label
+                    }
+                }
+            ]
+
+            if word != None and word.strip() != "":
+                must_clauses.append({
+                    "match": {
+                        "text": word
+                    }
+                })
+
+            if date_range[0] != None and date_range[1] != None:
+                print("\nRANGE!\n", date_range)
+                must_clauses.append({
+                    "range": {
+                        "created_at": {
+                            "gte": date_range[0],
+                            "lte": date_range[1],
+                            "format": "epoch_millis"
+                        }
+                    }
+                })
+
+            query = {
+                "query": {
+                    "bool": {
+                        "must": must_clauses
+                    }
+                },
+                "aggs": {
+                    "max_date": {
+                        "max": {
+                            "field": "created_at"
+                        }
+                    },
+                    "min_date": {
+                        "min": {
+                            "field": "created_at"
+                        }
+                    }
+                }
+            }
+            my_connector = Es_connector(index=index)
+            res = my_connector.search(query, 1000)
+
+            min_date = res['aggregations']['min_date']['value']
+            max_date = res['aggregations']['max_date']['value']
+            features = []
+            for tweet in res['hits']['hits']:
+                features.append({
+                    "type": "Feature",
+                    "geometry": tweet['_source']['coordinates'],
+                    "properties": {
+                        "tweet": tweet['_source']
+                    }
+                })
+
+            return features,min_date,max_date,res['hits']['total']
+
+        except RequestError as e:  # This is the correct syntax
+            print(e)
+            return [],None,None,0
+
+    def get_geo_coordinates_date(self,index,session,search_by_label,date_range,word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+            {
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                },
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date,res['hits']['total']
+
+    def get_geo_coordinates_polygon(self,index, session, search_by_label, coordinates, date_range, word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+        ]
+
+        if word != None and word.strip() != "":
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        if date_range[0] != None and date_range[1] != None:
+            must_clauses.append({
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            })
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                    "filter": {
+                        "geo_polygon": {
+                            "coordinates.coordinates": {
+                                "points": coordinates[:-1]
+                            }
+                        }
+                    }
+                }
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date,res['hits']['total']
+
+    def get_geo_coordinates_polygon_date_range(self,index, session, search_by_label, coordinates, date_range, word=None):
+
+        must_clauses = [
+            {
+                "exists": {
+                    "field": "coordinates.coordinates"
+                }
+            },
+            {
+                "match": {
+                    session: search_by_label
+                }
+            },
+            {
+                "range": {
+                    "created_at": {
+                        "gte": date_range[0],
+                        "lte": date_range[1],
+                        "format": "epoch_millis"
+                    }
+                }
+            }
+        ]
+
+        if word != None and word.strip() != "":
+            must_clauses.append({
+                "match": {
+                    "text": word
+                }
+            })
+
+        query = {
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                    "filter": {
+                        "geo_polygon": {
+                            "coordinates.coordinates": {
+                                "points": coordinates[:-1]
+                            }
+                        }
+                    }
+                },
+
+            },
+            "aggs": {
+                "max_date": {
+                    "max": {
+                        "field": "created_at"
+                    }
+                },
+                "min_date": {
+                    "min": {
+                        "field": "created_at"
+                    }
+                }
+            }
+        }
+        res =  Es_connector(index=self.sessions_index).es.search(index = index, body =query, size =1021)
+        min_date = res['aggregations']['min_date']['value']
+        max_date = res['aggregations']['max_date']['value']
+        features = []
+        for tweet in res['hits']['hits']:
+            features.append({
+                "type": "Feature",
+                "geometry": tweet['_source']['coordinates'],
+                "properties": {
+                    "tweet": tweet['_source']
+                }
+            })
+
+        return features,min_date,max_date,res['hits']['total']
+
+    # ==================================================================
     # Sessions
     # ==================================================================
 
     # Get all sessions
-    def get_sessions(self):
+    def get_sessions(self, available_indexes=[]):
+
+        if len(available_indexes)==0:
+            return {'hits': {'hits': []}}
+
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+        index_matching = []
+        for index in available_indexes:
+            index_matching.append({"match":{"s_index": index["index"]}})
+
         query = {
             "query": {
-                "match_all": {}
+                "bool":{
+                   "should":index_matching,
+                   "minimum_should_match":1
+                }
             }
         }
 
@@ -1209,6 +1529,177 @@ class Functions:
                 kwargs["logger"].add_log("There are no documents in the selected index.")
                 return False
 
+        except RequestError as e:  # This is the correct syntax
+            print(e)
+            return False
+
+    # to debug :
+    # fetch(app.appURL+'create_session_from_multiclassification', {
+    #                 method: 'POST',
+    #                 headers: {
+    #                     'Content-Type': 'application/json'
+    #                 },
+    #                 credentials: 'include',
+    #                 body: JSON.stringify({index: "africa_labeled", doc_type: 'doc',field: 'event_type'})
+    #             })
+    def create_session_from_multiclassification(self, index, doc_type, field, logger, session_prefix=""):
+        session_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+        tweets_connector = Es_connector(index=index, doc_type="tweet")
+        es = Elasticsearch([{'host': tweets_connector.host, 'port': tweets_connector.port}])
+        field_keyword = field + ".keyword"
+        fields = tweets_connector.field_values(field_keyword, size=100)
+        source = ""
+        unique_fields = dict()
+        for field_tuple in fields:
+            field_value = field_tuple['key']
+            session_name = session_prefix + field_value.replace("\"", "").replace("/", "").replace(' ', '_').lower()
+            logger.clear_logs()
+            if session_name in unique_fields:
+                unique_fields[session_name].append(field_value)
+            else:
+                unique_fields[session_name] = [field_value]
+            # create a document in the mabed_session index
+
+        for session_name, field_values in unique_fields.items():
+            try:
+
+                if not es.indices.exists(index=self.sessions_index):
+                    self.create_mabed_sessions_index(es)
+                    logger.add_log("The existence of the " + self.sessions_index + " index was checked")
+
+                session = self.get_session_by_Name(session_name)
+
+                if session['hits']['total'] == 0:
+                    self.fix_read_only_allow_delete(self.sessions_index,
+                                                    session_connector)  # Just in case we import it and the property isn't there
+                    # Creating the new entry in the mabed_sessions
+                    res = session_connector.post({
+                        "s_name": session_name,
+                        "s_index": index,
+                        "s_type": "tweet"
+                    })
+                else:
+                    logger.add_log("There are no documents in the selected index.")
+
+            except RequestError as e:  # This is the correct syntax
+                print(e)
+                return False
+
+
+            source = source + self.create_session_script(session_name=session_name, field_name=field, field_values=field_values)
+            print("script source", source)
+
+        query = {
+            "bool": {
+                "must": {
+                    "match_all": { }
+                }
+            }
+        }
+        body = {
+            "script": {
+                "source": source,
+                "lang": "painless"
+            },
+            "query": query
+        }
+
+        try:
+            tweets_connector.update_by_query({ "query": query }, source)
+        except Exception as err:
+            print("****ERROR: ", err)
+
+        print("finish to create sessions")
+        return 3
+
+    def create_session_script(self, session_name, field_name, field_values):
+
+        condition = ""
+        for field_value in field_values:
+            condition += "ctx._source." + field_name + " == '" + field_value + "' || "
+
+        condition = condition[:-3]
+
+
+        change_positive = "ctx._source.session_"+session_name+" = 'confirmed'"
+        change_negative = "ctx._source.session_"+session_name+" = 'negative'"
+        # .replace("\"", "").replace("/", "").replace(' ', '_').lower()
+        source = "if ("+condition+") {" + change_positive + " } else {" + change_negative + "} "
+
+        return source
+
+
+    # Add new session
+    def add_multisession(self, name, index, field,field_value,number_fields,doc_type="tweet", **kwargs):
+
+        try:
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+
+            es = Elasticsearch([{'host': my_connector.host, 'port': my_connector.port}])
+
+            if not es.indices.exists(index=self.sessions_index):
+                self.create_mabed_sessions_index(es)
+                kwargs["logger"].add_log("The existence of the " + self.sessions_index + " index was checked")
+
+            my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
+            session = self.get_session_by_Name(name)
+            if session['hits']['total'] == 0:
+                self.fix_read_only_allow_delete(self.sessions_index,
+                                                my_connector)  # Just in case we import it and the property isn't there
+                # Creating the new entry in the mabed_sessions
+                res = my_connector.post({
+                    "s_name": name,
+                    "s_index": index,
+                    "s_type": "tweet"
+                })
+                # Adding the session's field in the existing dataset
+                tweets_connector = Es_connector(index=index, doc_type=doc_type)
+                self.fix_read_only_allow_delete(index, tweets_connector)
+
+                kwargs["logger"].add_log("Starting with the labeling of the session:"+ name +" tweet to 'confirmed'")
+                source = "ctx._source['session_" + name + "'] = 'confirmed'"
+                query = {
+                    "bool": {
+                        "must": {
+                            "match": {
+                                field: field_value
+                            }
+                        }
+                    }
+                }
+                body = {
+                    "script": {
+                        "source": source,
+                        "lang": "painless"
+                    },
+                    "query": query
+                }
+                es.update_by_query(index=index, doc_type=doc_type, body=body)
+                kwargs["logger"].add_log("Starting with the labeling of the session:"+ name +" tweet to 'negative'")
+
+                source= "ctx._source['session_" + name + "'] = 'negative'"
+                query = {
+                    "bool":{
+                        "must_not":{
+                            "match": {
+                                field: field_value
+                            }
+                        }
+                    }
+                }
+                body = {
+                    "script": {
+                        "source": source,
+                        "lang": "painless"
+                    },
+                    "query": query
+                }
+                es.update_by_query(index=index, doc_type=doc_type, body=body)
+            else:
+
+                print("============================================================================")
+                kwargs["logger"].add_log("There are no documents in the selected index.")
+                return False
         except RequestError as e:  # This is the correct syntax
             print(e)
             return False
@@ -1385,6 +1876,33 @@ class Functions:
         }
         res = tweets_connector.update(tid, query)
         return res
+
+    def get_total_tweets_by_ids(self, **kwargs):
+
+        if len(kwargs["ids"])==0:
+            return 0
+
+        ids = ""
+        for id in kwargs["ids"]:
+            ids += id + " or "
+        ids = ids[:-4]
+
+        query = {
+            "size": 0,
+            "query":{
+                "bool": {
+                    "must": [{
+                        "match": {
+                            "id_str": ids
+                        }
+                    }]
+                }
+            }
+        }
+
+        my_connector = Es_connector(index=kwargs["index"])
+        res = my_connector.search(query)
+        return res['hits']['total']
 
     def set_retweets_state(self, **kwargs):
 
@@ -1572,7 +2090,6 @@ class Functions:
                 }
             }
         }
-        print(query)
         res = my_connector.count(query)
         return res['count']
 
@@ -1743,11 +2260,7 @@ class Functions:
         #         "I love building chatbots python",
         #         "they chat amagingly well",
         #         "So we have saved the model and its ready for implementation. Lets play with it"]
-        print("=============================================================")
-        print("=============================================================")
-        print(tweet)
-        print("-------------")
-        print("-------------")
+
 
         tagged_data = [TaggedDocument(words=word_tokenize(_d.lower()), tags=[str(i)]) for i, _d in enumerate(data)]
 
