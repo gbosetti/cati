@@ -264,9 +264,14 @@ def search_for_tweets():
 @app.route('/search_for_image_clusters', methods=['POST'])
 # @cross_origin()
 def search_for_image_clusters():
+
     data = request.form
+    image_clusters_limit = int(data.get('image_clusters_limit', '20'))
+
     clusters = functions.get_clusters(index=data['index'], session=data['session'], label=data['search_by_label']) #, limit=data['image_clusters_limit'])
-    filtered_clusters = clusters[0:data['image_clusters_limit']]
+
+    if len(clusters)>0:
+        filtered_clusters = clusters[0:image_clusters_limit]
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
     return jsonify({"clusters": clusters, "clusters_stats": clusters_stats, "keywords": data['word'], "total_clusters": len(clusters)})
 

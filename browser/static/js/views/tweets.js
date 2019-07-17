@@ -125,11 +125,13 @@ class GeoSpatialModule extends SearchModule{
         this.addGeoToMap(response.geo);
     }
     addGeoToMap(geo){
+        console.log(geo);
         let mapgeo = L.geoJSON(geo, {
             pointToLayer: (g,latlng) => L.marker(latlng,{
                 icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
             })
-        }) .bindPopup( this.popup());
+        }).bindPopup(this.popup());
+        console.log("mapgeo", mapgeo);
         mapgeo.on('popupopen', this.selectTweet(mapgeo));
         mapgeo.addTo(this.mymap);
         this.tweets= mapgeo;
@@ -339,6 +341,8 @@ class GeoSpatialModule extends SearchModule{
             $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
                 if (response.geo.length > 0){
+
+                    console.log("RESPONSE", response);
 
                     // Update map
                     this.addGeoToMap(response.geo);

@@ -1,11 +1,7 @@
 import csv
-import pandas as pd
 
-input_path="D:/IDENUM/data-to-import/passau/enriched_filtered_data_plus.csv"  # enriched_filtered_data_plus
+input_path="D:/IDENUM/data-to-import/passau/enriched_filtered_data_plus.csv"
 output_path="D:/IDENUM/data-to-import/passau/output.csv"
-
-data = pd.read_csv(input_path, engine = 'python', comment='"', sep=',').dropna(subset = ['text'])
-
 chars_to_remove='"\'\n'
 target_props=["user_name", "text_translated_en", "latitude", "longitude", "date"]
 
