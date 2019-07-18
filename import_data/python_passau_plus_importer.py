@@ -1,12 +1,16 @@
 import csv
 import datetime
 from elasticsearch import Elasticsearch
+import argparse
 
-input_path="D:/IDENUM/data-to-import/passau/enriched_filtered_data_plus.csv"
-target_index="geo_passau_plus"
-# target_props=["user_name", "text", "latitude", "longitude", "date"]
 
-input_data=open(input_path, encoding="utf8")
+parser = argparse.ArgumentParser(description="CATI's Active Learning module")
+parser.add_argument("-ip", "--input_path", dest="input_path", help="The path to the csv. E.g. D:/data/data.csv")
+parser.add_argument("-ti", "--target_index", dest="target_index", help="The name of the (already existing) index. E.g. geo_data")
+args = parser.parse_args()
+
+
+input_data=open(args.input_path, encoding="utf8")
 reader=csv.DictReader(input_data)
 csv_columns = reader.fieldnames
 
@@ -37,6 +41,6 @@ for line in reader:
         use_ssl=False
     )
     doc_id = line["id"]
-    client.create(index=target_index, doc_type="tweet", body=document, id=doc_id)
+    client.create(index=args.target_index, doc_type="tweet", body=document, id=doc_id)
 
 input_data.close()
