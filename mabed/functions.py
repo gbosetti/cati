@@ -1133,6 +1133,7 @@ class Functions:
                     }
                 }
             }
+            print(query)
             my_connector = Es_connector(index=index)
             res = my_connector.search(query, 1000)
 

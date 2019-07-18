@@ -3,7 +3,7 @@ import datetime
 from elasticsearch import Elasticsearch
 
 input_path="D:/IDENUM/data-to-import/passau/enriched_filtered_data_plus.csv"
-target_index="geo_passau_plus_2"
+target_index="geo_passau_plus"
 # target_props=["user_name", "text", "latitude", "longitude", "date"]
 
 input_data=open(input_path, encoding="utf8")
@@ -12,18 +12,21 @@ csv_columns = reader.fieldnames
 
 for line in reader:
 
-    #    try:
-
     #Creating the doc
     document = {}
     document["user"] = {"name": line["user_name"]}
     document["text"] = line["text"]
 
     if line["date"]:
-        document["timestamp_ms"] = datetime.datetime.timestamp(datetime.datetime.strptime(line["date"], '%Y-%m-%d %H:%M:%S'))
+        date_as_date = datetime.datetime.strptime(line["date"], '%Y-%m-%d %H:%M:%S')
+        document["timestamp_ms"] = datetime.datetime.timestamp(date_as_date)
+        document["created_at"] = date_as_date.strftime("%a %b %d %H:%M:%S +0000 %Y")
 
     if line["latitude"] and line["longitude"]:
-        document["coordinates"] = {"coordinates": [float(line["latitude"]), float(line["longitude"])]}
+        document["coordinates"] = {
+            "coordinates": [float(line["latitude"]), float(line["longitude"])],
+            "type": "Point"
+        }
 
     # Persistence
     client = Elasticsearch(
@@ -33,20 +36,7 @@ for line in reader:
         timeout=1000,
         use_ssl=False
     )
-
     doc_id = line["id"]
-
     client.create(index=target_index, doc_type="tweet", body=document, id=doc_id)
-        #client.save(index=target_index, validate=True, skip_empty=True, **kwargs)
-
-        # res = client.update(
-        #     index=target_index,
-        #     doc_type="tweet",
-        #     id=doc_id,
-        #     body={"doc": document }
-        # )
-
-    # except Exception as err:
-    #     print("Error: ", err)
 
 input_data.close()
