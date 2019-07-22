@@ -1713,6 +1713,9 @@ class Functions:
 
     # Update session events results
     def update_session_results(self, id, events, impact_data):
+
+        print("update_session_results", self.sessions_index, self.sessions_doc_type)
+        print(id, "-")
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         res = my_connector.update(id, {
             "doc": {

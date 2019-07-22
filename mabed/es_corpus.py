@@ -137,10 +137,15 @@ class Corpus:
         # compute word frequency
         self.global_freq = dok_matrix((len(self.vocabulary), self.time_slice_count), dtype=np.short)
         self.mention_freq = dok_matrix((len(self.vocabulary), self.time_slice_count), dtype=np.short)
+
+        #ACCUM
+        line_counter=0
         for line in self.tweets:
 
-            if self.tweet_count[time_slice] % 300 == 0:
-                kwargs["logger"].add_log("Processing " + str(self.tweet_count[time_slice]) + " tweets")
+            line_counter+=1
+            if line_counter>299:
+                kwargs["logger"].add_log("Processing " + str(line_counter) + " tweets")
+                line_counter=0
 
             date = line['_source']['timestamp_ms']
             date = time.ctime(int(date) / 1000)
