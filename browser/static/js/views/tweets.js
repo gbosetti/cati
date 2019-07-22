@@ -125,13 +125,11 @@ class GeoSpatialModule extends SearchModule{
         this.addGeoToMap(response.geo);
     }
     addGeoToMap(geo){
-        console.log(geo);
         let mapgeo = L.geoJSON(geo, {
             pointToLayer: (g,latlng) => L.marker(latlng,{
                 icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
             })
         }).bindPopup(this.popup());
-        console.log("mapgeo", mapgeo);
         mapgeo.on('popupopen', this.selectTweet(mapgeo));
         mapgeo.addTo(this.mymap);
         this.tweets= mapgeo;
@@ -213,7 +211,6 @@ class GeoSpatialModule extends SearchModule{
             range: { 'min': 0, 'max': 1 }
         });
         this.slider.noUiSlider.on('set', values => {
-            //console.log("slider on-set");
             if(this.slider_data)
                 this.sliderUpdate(values, this.slider_data);
         });
@@ -300,7 +297,8 @@ class GeoSpatialModule extends SearchModule{
 
             this.searchGeoLocalizedTweets(spec_data, data).then(()=>{
 
-                this.mymap.on('zoomstart', ()=>{
+                console.log("Done!")
+                /*this.mymap.on('zoomstart', ()=>{
                     clearTimeout(this.timeoutID);
                     //this.lastZoomAt = Date.now();
                 });
@@ -312,7 +310,7 @@ class GeoSpatialModule extends SearchModule{
                         this.searchGeoLocalizedTweets(spec_data, data, false);
                     },2000);
                 });
-                //this.mymap.on('zoom', ()=>{ console.log("zoom") });
+                //this.mymap.on('zoom', ()=>{ console.log("zoom") });*/
 
                 /*this.mymap.on('zoomend', ()=>{
                     this.enableLoading();
@@ -333,17 +331,12 @@ class GeoSpatialModule extends SearchModule{
     }
     searchGeoLocalizedTweets(spec_data, slider_data, fitBounds = true){
 
-        console.log("searchGeoLocalizedTweets");
         return new Promise((resolve, reject)=>{
 
             this.enableLoading();
-            //console.log("SPEC DATA: ", spec_data);
             $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
 
                 if (response.geo.length > 0){
-
-                    console.log("RESPONSE", response);
-
                     // Update map
                     this.addGeoToMap(response.geo);
                     var markerArray = response.geo.map(pdi => L.marker(pdi.geometry.coordinates));
