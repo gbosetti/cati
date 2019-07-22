@@ -23,7 +23,7 @@ for line in reader:
 
     if line["date"]:
         date_as_date = datetime.datetime.strptime(line["date"], '%Y-%m-%d %H:%M:%S')
-        document["timestamp_ms"] = datetime.datetime.timestamp(date_as_date)
+        document["timestamp_ms"] = str(int(datetime.datetime.timestamp(date_as_date)))
         document["created_at"] = date_as_date.strftime("%a %b %d %H:%M:%S +0000 %Y")
 
     if line["latitude"] and line["longitude"]:

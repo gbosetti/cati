@@ -161,10 +161,16 @@ app.views.client = Backbone.View.extend({
         app.eventsCollection.get_timeline_events().then(data => {
 
             if ($('#timeline-embed').length) {
+
                 timeline = new TL.Timeline('timeline-embed', data, {
                     timenav_height: 260,
                     marker_height_min: 40
                 });
+
+                if(data.events.length==0){
+                    $(".event_results_area").html("");
+                    return;
+                }
                 var s_ev = app.eventsCollection.get({cid: timeline.config.events[0].unique_id}).toJSON();
                 self.currentClusterId = timeline.config.events[0].unique_id;
                 var t0 = performance.now();
@@ -212,7 +218,10 @@ app.views.client = Backbone.View.extend({
         return false;
     },
     load_impact: function (event) {
+
+        if (app.session.impact_data == undefined){ return; }
         if ($('#chartDiv').length) {
+
             $('#chartDiv').fadeOut('slow');
 
             var event_impact = JSON.parse(app.session.impact_data);

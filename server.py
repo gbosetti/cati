@@ -873,13 +873,19 @@ def all_events_images():
         main_term = event['main_term'].replace(",", " ")
         related_terms = event['related_terms']
         image = functions.get_event_image(index, main_term, related_terms, s_name)
-        if image:
+
+        # image_src is the url of the original tweet media. Not the one we retrieved.
+        # image_path is the path to the image we retrieved.
+        if image and len(image['hits']['hits'])>0:
             image_src = image['hits']['hits'][0]['_source']['extended_entities']['media'][0]["media_url"]
-            image_id = image['hits']['hits'][0]['_source']['id_str']
+            image_id = image['hits']['hits'][0]['_source']['id_str'] + "_0"
+            image_subfolder = data["imagesPath"]+"/"
         else:
             image_src = "static/images/img.jpg"
+            image_id = "img"
+            image_subfolder = ""
 
-        images_by_event.append({"cid": event["cid"], "image_id": image_id, "image_src": image_src})
+        images_by_event.append({"cid": event["cid"], "image_id": image_id, "image_src": image_src, "image_subfolder": image_subfolder})
 
     return jsonify(images_by_event)
 

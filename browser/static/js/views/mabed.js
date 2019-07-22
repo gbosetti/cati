@@ -179,11 +179,13 @@ app.views.mabed = Backbone.View.extend({
             document.querySelector('#total_images').textContent = response.total_images;
             document.querySelector('#total_mentions').textContent = response.total_mentions;
             //map key and doc_count to language
-            for (let i=0; i<10;i++){
-                document.querySelector('#lang_'+i).textContent = response.lang_stats[i].key;
-                document.querySelector('#lang_count_'+i).textContent = response.lang_stats[i].doc_count;
-            }
 
+            if(response.lang_stats.length > 0){
+                for (let i=0; i<10;i++){
+                    document.querySelector('#lang_'+i).textContent = response.lang_stats[i].key;
+                    document.querySelector('#lang_count_'+i).textContent = response.lang_stats[i].doc_count;
+                }
+            }
 
         }).fail(function(err) {
             console.log(err)
