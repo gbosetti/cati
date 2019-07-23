@@ -1,15 +1,15 @@
-app.views.events = Backbone.View.extend({
+app.views.review = Backbone.View.extend({
 	template: _.template($("#tpl-page-events").html()),
 	events: {
 		'click .export_tweets': 'export_tweets',
 		'click .tweet_state': 'tweet_state',
 		'click .scroll_tweets': 'scroll_tweets',
-		'click .btn_review': 'review_tweets'
+		'click .btn_review': 'review_tweets',
+		'click .clear_session_annotations': 'clear_session_annotations'
 	},
 	initialize: function() {
 	    this.updateEventImages();
-		this.render();
-		var handler = _.bind(this.render, this);
+		//var handler = _.bind(this.render, this);
 	},
 	updateEventImages: function(){
 
@@ -34,10 +34,13 @@ app.views.events = Backbone.View.extend({
 		var html = this.template({});
 		this.$el.html(html);
 		this.delegateEvents();
-        app.views.mabed.prototype.getClassificationStats();
-        //app.views.mabed.prototype.setSessionTopBar();
+        this.updateSessionData();
 
 		return this;
+	},
+	updateSessionData: function(){
+	    app.views.mabed.prototype.setSessionTopBar();
+        app.views.mabed.prototype.getClassificationStats();
 	},
 	export_tweets: function(e){
 	    try{
@@ -47,6 +50,29 @@ app.views.events = Backbone.View.extend({
             console.log("Error:", err)
         }
 		return false;
+	},
+	clear_session_annotations: function(evt){
+
+        evt.preventDefault();
+
+        if ( confirm( "Are you sure you want to clear all the annotations? These changes can not be reversed." ) ) {
+
+            var data = [];
+                data.push({name: "index", value: app.session.s_index});
+                data.push({name: "session", value: "session_" + app.session.s_name});
+
+            $.post(app.appURL+'clear_session_annotations', data, (response) => {
+                if(response){
+                    alert("The status of all documents has been reset.");
+                    this.updateSessionData();
+                }
+            }, 'json').fail(function() {
+                this.clear_session_annotations_error();
+            });
+        }
+	},
+	clear_session_annotations_error: function(evt){
+        alert("An error has occurred. Please, try again.")
 	},
 	review_tweets: function(e){
 		e.preventDefault();

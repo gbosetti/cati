@@ -860,6 +860,16 @@ def event_image():
         res = True
     return jsonify({"result":res, "image": image})
 
+
+@app.route('/clear_session_annotations', methods=['POST'])
+def clear_session_annotations():
+
+    data = request.form
+    index = data["index"]
+    session = data["session"]
+    res = functions.clear_session_annotations(index=index, session=session)
+    return jsonify(res)
+
 @app.route('/all_events_images', methods=['POST'])
 # @cross_origin()
 def all_events_images():

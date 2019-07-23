@@ -30,7 +30,8 @@ class SearchModule{
 
     disableLoading(){
 
-        document.querySelector(this.containerSelector).style["min-height"] = "0px";
+        var elem = document.querySelector(this.containerSelector);
+        if(elem != undefined && elem != null) { elem.style["min-height"] = "0px"; }
         $(this.containerSelector + " ." + this.spinnerClassName).remove();
     }
 
@@ -183,8 +184,9 @@ class GeoSpatialModule extends SearchModule{
     displayDate(lowerDate,upperDate){
         let lower = document.getElementById("maps-date-lower");
         let upper = document.getElementById("maps-date-upper");
-        lower.innerText= this.dateFromTimestamp(lowerDate);
-        upper.innerText= this.dateFromTimestamp(upperDate);
+
+        if(lower != null) lower.innerText= this.dateFromTimestamp(lowerDate);
+        if(upper != null) upper.innerText= this.dateFromTimestamp(upperDate);
     }
     sliderBounds(min, max, skipUpdate = false){
         this.slider.noUiSlider.updateOptions({
@@ -478,12 +480,10 @@ app.views.tweets = Backbone.View.extend({
         };
 
         //this.render();
-
         //this.updatingSearchDatesRange();
-        var handler = _.bind(this.render, this);
-        var self = this;
-        $(document).on("click","body .tweet_state",function(e){
-			self.tweet_state(e);
+        //var handler = _.bind(this.render, this);
+        $(document).on("click","body .tweet_state",(e) => {
+			this.tweet_state(e);
 		});
 		$(document).on("click",".search-accordion .card-header",function(e){
 			if(e.target.tagName.toLocaleLowerCase() == "div")
@@ -1157,7 +1157,7 @@ app.views.tweets = Backbone.View.extend({
 
             var props = response[Object.keys(response)[0]].mappings[docName].properties;
             var sel = $(".n-grams-to-generate:visible")[0];
-                sel.disabled = false;
+            if(sel) { sel.disabled = false; }
 
             for (var propName in props) {
                 if(propName.endsWith("grams")){

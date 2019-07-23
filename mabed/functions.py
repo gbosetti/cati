@@ -1725,6 +1725,24 @@ class Functions:
         })
         return res
 
+
+    def clear_session_annotations(self, index, session):
+
+        my_connector = Es_connector(index=index, doc_type="tweet")
+        query = {
+            "query": {
+                "bool": {
+                  "must_not": [
+                    {"match": {
+                      session: "proposed"
+                    }}
+                  ]
+                }
+              }
+        }
+        script = "ctx._source." + session + " = 'proposed'"
+        return my_connector.update_by_query(query, script)
+
     # Get session events results
     def get_session_results(self, id):
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
