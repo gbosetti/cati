@@ -13,6 +13,11 @@ parser.add_argument("-i",
                     dest="index",
                     help="The target index to which to add the new field")
 
+parser.add_argument("-l",
+                    "--languages",
+                    dest="languages",
+                    help="The list of languages to get the stopwords to remove. E.g. 'fr, es, it, de'")
+
 
 def to_boolean(str_param):
     if isinstance(str_param, bool):
@@ -26,8 +31,14 @@ args = parser.parse_args()
 
 index = args.index  # E.g. "experiment_lyon_2015_gt"
 property_name = "text_images"
-langs = Functions().get_lang_count(index)["aggregations"]["distinct_lang"]["buckets"]
-langs = [lang["key"] for lang in langs]
+
+if 'languages' in args and args.languages != None:
+    langs = args.languages.split(',')
+    print("\nUsing user-defined languages to process stopwords...")
+else:
+    langs = Functions().get_lang_count(index)["aggregations"]["distinct_lang"]["buckets"]
+    langs = [lang["key"] for lang in langs]
+    print("\nUsing automatically-extracted languages to process stopwords...")
 
 
 
