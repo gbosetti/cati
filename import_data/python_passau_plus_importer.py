@@ -13,36 +13,41 @@ args = parser.parse_args()
 input_data=open(args.input_path, encoding="utf8")
 reader=csv.DictReader(input_data)
 csv_columns = reader.fieldnames
+client = Elasticsearch(
+    ["localhost"],
+    http_auth=("elastic", "elastic"),
+    port=9200,
+    timeout=1000,
+    use_ssl=False
+)
 
 for line in reader:
 
-    if line["text_translated_en"]:
+    try:
+        if line["text_translated_en"]:
 
-        #Creating the doc
-        document = {}
-        document["user"] = {"name": line["user_name"]}
-        document["text"] = line["text_translated_en"]
+            #Creating the doc
+            document = {}
+            document["user"] = {"name": line["user_name"]}
+            document["text"] = line["text_translated_en"]
 
-        if line["date"]:
-            date_as_date = datetime.datetime.strptime(line["date"], '%Y-%m-%d %H:%M:%S')
-            document["timestamp_ms"] = str(int(datetime.datetime.timestamp(date_as_date)))
-            document["created_at"] = date_as_date.strftime("%a %b %d %H:%M:%S +0000 %Y")
+            if line["date"]:
+                date_as_date = datetime.datetime.strptime(line["date"], '%Y-%m-%d %H:%M:%S')
+                document["timestamp_ms"] = str(int(datetime.datetime.timestamp(date_as_date)))
+                document["created_at"] = date_as_date.strftime("%a %b %d %H:%M:%S +0000 %Y")
 
-        if line["latitude"] and line["longitude"]:
-            document["coordinates"] = {
-                "coordinates": [float(line["latitude"]), float(line["longitude"])],
-                "type": "Point"
-            }
+            if line["latitude"] and line["longitude"]:
+                document["coordinates"] = {
+                    "coordinates": [float(line["latitude"]), float(line["longitude"])],
+                    "type": "Point"
+                }
 
-        # Persistence
-        client = Elasticsearch(
-            ["localhost"],
-            http_auth=("elastic", "elastic"),
-            port=9200,
-            timeout=1000,
-            use_ssl=False
-        )
-        doc_id = line["id"]
-        client.create(index=args.target_index, doc_type="tweet", body=document, id=doc_id)
+            # Persistence
+            doc_id = line["id"]
+            client.create(index=args.target_index, doc_type="tweet", body=document, id=doc_id)
+            print("Creating document #" + str(doc_id))
+
+    except Exception as err:
+        print("Error: ", err)
 
 input_data.close()
