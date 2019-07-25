@@ -1,6 +1,7 @@
 import numpy as np
 from mabed.es_connector import Es_connector
 import os
+from sklearn.svm import LinearSVC
 
 # Sampling methods: UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 
@@ -18,15 +19,16 @@ class ActiveLearningSampler:
 class UncertaintySampler(ActiveLearningSampler):
 
     def __init__(self, **kwargs):
+        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         return
 
     def get_samples(self, num_questions):
 
         # compute absolute confidence for each unlabeled sample in each class
         # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
-        decision = self.classifier.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        decision = self.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.classifier.model.predict(self.classifier.X_unlabeled)
+        predictions = self.model.predict(self.classifier.X_unlabeled)
 
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
         if (len(self.classifier.categories) > 2):
@@ -56,6 +58,7 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         self.cnf_weight = kwargs["cnf_weight"]
         self.ret_weight = kwargs["ret_weight"]
         self.bgr_weight = kwargs["bgr_weight"]
+        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         return
 
     def get_samples(self, num_questions):
@@ -67,10 +70,10 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         top_retweets = self.classifier.get_top_retweets(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
 
         # compute absolute confidence for each unlabeled sample in each class
-        decision = self.classifier.model.decision_function(
+        decision = self.model.decision_function(
             self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.classifier.model.predict(self.classifier.X_unlabeled)
+        predictions = self.model.predict(self.classifier.X_unlabeled)
         # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
         if (len(self.classifier.categories) > 2):
             confidences = np.average(confidences, axix=1)
@@ -106,13 +109,14 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
         self.session = kwargs["session"]
         self.text_field = kwargs["text_field"]
         self.similarity_percentage = kwargs["similarity_percentage"]
+        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         return
 
     def get_samples(self, num_questions):
 
-        decision = self.classifier.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        decision = self.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.classifier.model.predict(self.classifier.X_unlabeled)
+        predictions = self.model.predict(self.classifier.X_unlabeled)
 
         sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
@@ -258,6 +262,7 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
         self.target_min_confidence = kwargs["target_min_confidence"]
         self.similar_docs = {}
         self.confident_loop = kwargs["confident_loop"]
+        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         return
 
     def post_sampling(self):

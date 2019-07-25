@@ -18,7 +18,6 @@ import numpy as np
 import pylab as pl
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.linear_model import RidgeClassifier
-from sklearn.svm import LinearSVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import Perceptron
 from sklearn.linear_model import PassiveAggressiveClassifier
@@ -657,9 +656,6 @@ class ActiveLearning:
         X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
         print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
-        t0 = time()
-
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         # fits the model according to the training set (passing its data and the vectorized feature)
         # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
         # normalized_X_train = scale(X_train, with_mean=False)
@@ -667,10 +663,10 @@ class ActiveLearning:
         scaler = scaler.fit(X_train)
 
         X_train = scaler.transform(X_train)
-        self.model.fit(X_train, y_train)
+        self.sampler.model.fit(X_train, y_train)
 
         X_test = scaler.transform(X_test)
-        pred = self.model.predict(X_test)
+        pred = self.sampler.model.predict(X_test)
 
         #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
         #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)

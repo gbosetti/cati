@@ -861,6 +861,15 @@ def event_image():
     return jsonify({"result":res, "image": image})
 
 
+@app.route('/geo_selection_to_state', methods=['POST'])
+def geo_selection_to_state():
+    data = request.form
+    index = data["index"]
+    session = data["session"]
+    res = functions.geo_selection_to_state(index=index, session=session)
+    return jsonify(res)
+
+
 @app.route('/clear_session_annotations', methods=['POST'])
 def clear_session_annotations():
 

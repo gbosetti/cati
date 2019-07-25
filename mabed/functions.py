@@ -1726,6 +1726,26 @@ class Functions:
         return res
 
 
+    def geo_selection_to_state(self):
+        print("...")
+        tweets_connector = Es_connector(index=index, doc_type="tweet")
+        query = {
+            "query": {
+                "bool": {
+                    "must": {
+                        "simple_query_string": {
+                            "fields": [
+                                "text"
+                            ],
+                            "query": word
+                        }
+                    }
+                }
+            }
+        }
+        return tweets_connector.update_query(query, session, state)
+
+
     def clear_session_annotations(self, index, session):
 
         my_connector = Es_connector(index=index, doc_type="tweet")

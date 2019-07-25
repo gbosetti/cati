@@ -59,7 +59,7 @@ parser.add_argument("-tf",
                     "--text_field",
                     dest="text_field",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
-                    default="2grams")
+                    default="text-images")
 
 parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
