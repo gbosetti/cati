@@ -1153,13 +1153,13 @@ app.views.tweets = Backbone.View.extend({
         //Loading message
         var jc = this.createChangingStatePopup();
 
-        var callback = (response)=>{
-            jc.close();
-            this.searchForTweets();
-        };
+        $.post(app.appURL+'mark_all_matching_tweets', data, (response)=>{
 
-        $.post(app.appURL+'mark_all_matching_tweets', data, callback, 'json');
-        app.views.mabed.prototype.getClassificationStats();
+            this.searchForTweets();
+            app.views.mabed.prototype.getClassificationStats();
+            jc.close();
+
+        }, 'json');
 
         return false;
     }

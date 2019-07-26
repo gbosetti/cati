@@ -1887,22 +1887,36 @@ class Functions:
         res = tweets_connector.update_query(query, session, state)
         return res
 
-    def mark_all_matching_tweets(self, index, session, state, word):
+    def mark_all_matching_tweets(self, index, session, state, word=None):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        query = {
-            "query": {
-                "bool": {
-                    "must": {
-                        "simple_query_string": {
-                            "fields": [
-                                "text"
-                            ],
-                            "query": word
+
+        if word==None or word.strip() == "":
+            query = {
+                "query": {
+                    "bool":{
+                        "must_not":{
+                            "match": {
+                                session: state
+                            }
                         }
                     }
                 }
             }
-        }
+        else:
+            query = {
+                "query": {
+                    "bool": {
+                        "must": {
+                            "simple_query_string": {
+                                "fields": [
+                                    "text"
+                                ],
+                                "query": word
+                            }
+                        }
+                    }
+                }
+            }
         return tweets_connector.update_query(query, session, state)
 
     def set_cluster_state(self, index, session, cid, state):

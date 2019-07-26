@@ -1013,7 +1013,7 @@ def mark_all_matching_tweets():
     data = request.form
     index = data['index']
     session = data['session']
-    word= data['word']
+    word= data.get('word', None)
     state = data['state']
     functions.mark_all_matching_tweets(index, session, state, word)
     return jsonify(data)
