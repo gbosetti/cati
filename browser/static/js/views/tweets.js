@@ -199,6 +199,7 @@ app.views.tweets = Backbone.View.extend({
                         Mark all the results as:
                         <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
                         <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
+                        <a href="#" data-state="proposed" class="timeline_btn options_btn_clear massive_tagging_to_state">Unlabeled</a>
                     </div>
 
                     <div class="container">
