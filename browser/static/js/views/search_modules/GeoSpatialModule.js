@@ -1,12 +1,37 @@
 class GeoSpatialModule extends SearchModule{
 
-    constructor(containerSelector) {
+    constructor(containerSelector, client) {
 
         super(containerSelector);
+
+        this.client = client;
         this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
         this.tweets = null;
         $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
+        $( ".geo_selection_to_state" ).on( "click", (evt)=>{
+            this.geo_selection_to_state(evt);
+        });
         this.lastZoomAt = null;
+    }
+    geo_selection_to_state(evt){
+
+        evt.preventDefault();
+        var jc = this.client.createChangingStatePopup();
+
+        var tweetsIds = this.loadedDocuments.map(doc => { return doc.properties.doc_id});
+        if(tweetsIds.length>0){
+
+            var data = this.client.getIndexAndSession();
+                data.push({name: "state", value: $(evt.target).data("state")});
+                data.push({name: "docs_ids", value: tweetsIds});
+
+            $.post(app.appURL+'geo_selection_to_state', data, function(response){
+                app.views.mabed.prototype.getClassificationStats();
+                jc.close();
+            }, 'json').fail(this.client.cnxError);
+        }
+
+        return false;
     }
     search_geospatial(collection, data){
 
@@ -84,6 +109,7 @@ class GeoSpatialModule extends SearchModule{
         this.addGeoToMap(response.geo);
     }
     addGeoToMap(geo){
+        this.loadedDocuments = geo;
         let mapgeo = L.geoJSON(geo, {
             pointToLayer: (g,latlng) => L.marker(latlng,{
                 icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})

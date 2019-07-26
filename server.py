@@ -866,7 +866,10 @@ def geo_selection_to_state():
     data = request.form
     index = data["index"]
     session = data["session"]
-    res = functions.geo_selection_to_state(index=index, session=session)
+    state = data["state"]
+    docs_ids = data["docs_ids"].split(",")
+
+    res = functions.geo_selection_to_state(index=index, session=session, state=state, docs_ids=docs_ids)
     return jsonify(res)
 
 

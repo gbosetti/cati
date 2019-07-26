@@ -413,10 +413,10 @@ class NgramBasedClasifier:
             my_connector = Es_connector(index=kwargs["index"])
 
             query = kwargs.get('query', {
-                    "query": {
-                        "match_all": {}
-                    }
-                })
+                "query": {
+                    "match_all": {}
+                }
+            })
 
             res = my_connector.init_paginatedSearch(query)
             sid = res["sid"]

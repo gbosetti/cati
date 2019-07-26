@@ -8,7 +8,6 @@ app.views.tweets = Backbone.View.extend({
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
         'click .massive_tagging_to_state': 'massive_tagging_to_state',
-        'click .geo_selection_to_state': 'geo_selection_to_state',
         'click #search_not_labeled': 'search_not_labeled'
     },
     initialize: function() {
@@ -95,7 +94,7 @@ app.views.tweets = Backbone.View.extend({
     loadGeopositionedTweets: function(data){
         console.log("loadGeopositionedTweets");
         try{
-            new GeoSpatialModule("#mapid").loadTweets(data);
+            new GeoSpatialModule("#mapid", this).loadTweets(data);
         }catch(err){console.log(err)}
     },
     searchForTweets: function(){
@@ -973,9 +972,7 @@ app.views.tweets = Backbone.View.extend({
 		// TODO: check if this text is in the aggregations (to avoid an error if users manipulate the dom)
 		$.post(app.appURL+'mark_retweets', {index: app.session.s_index, session: 'session_'+app.session.s_name, tag: tag, text: text }, function(response){
 		    jc.close();
-		    console.log("Updated: ", response)
             app.views.mabed.prototype.getClassificationStats();
-            console.log("Updated classification")
 		}, 'json').fail(this.cnxError);
 		return false;
 	},
@@ -1141,18 +1138,6 @@ app.views.tweets = Backbone.View.extend({
 
         $.post(app.appURL+'tweets_filter', data, function(response){
             self.displayPaginatedResults(response, t0, data[0].value);
-        }, 'json').fail(this.cnxError);
-
-        return false;
-    },
-    geo_selection_to_state: function(e){
-
-        e.preventDefault();
-        var jc = this.createChangingStatePopup();
-
-        $.post(app.appURL+'geo_selection_to_state', data, function(response){
-            self.displayPaginatedResults(response, t0, data[0].value);
-            jc.close();
         }, 'json').fail(this.cnxError);
 
         return false;

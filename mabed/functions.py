@@ -1133,7 +1133,6 @@ class Functions:
                     }
                 }
             }
-            print(query)
             my_connector = Es_connector(index=index)
             res = my_connector.search(query, 1000)
 
@@ -1145,7 +1144,8 @@ class Functions:
                     "type": "Feature",
                     "geometry": tweet['_source']['coordinates'],
                     "properties": {
-                        "tweet": tweet['_source']
+                        "tweet": tweet['_source'],
+                        "doc_id": tweet['_id']
                     }
                 })
 
@@ -1214,7 +1214,8 @@ class Functions:
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
                 "properties": {
-                    "tweet": tweet['_source']
+                    "tweet": tweet['_source'],
+                    "doc_id": tweet['_id']
                 }
             })
 
@@ -1288,7 +1289,8 @@ class Functions:
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
                 "properties": {
-                    "tweet": tweet['_source']
+                    "tweet": tweet['_source'],
+                    "doc_id": tweet['_id']
                 }
             })
 
@@ -1361,7 +1363,8 @@ class Functions:
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
                 "properties": {
-                    "tweet": tweet['_source']
+                    "tweet": tweet['_source'],
+                    "doc_id": tweet['_id']
                 }
             })
 
@@ -1725,25 +1728,30 @@ class Functions:
         })
         return res
 
-
-    def geo_selection_to_state(self):
-        print("...")
+    def geo_selection_to_state(self, index, session, state, docs_ids):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        query = {
-            "query": {
-                "bool": {
-                    "must": {
-                        "simple_query_string": {
-                            "fields": [
-                                "text"
-                            ],
-                            "query": word
+
+        for id_str in docs_ids:
+            try:
+                query = {
+                    "query":{
+                        "match":{
+                            "_id": id_str
                         }
                     }
                 }
-            }
-        }
-        return tweets_connector.update_query(query, session, state)
+                Es_connector(index=index).es.update(
+                    index=index,
+                    doc_type="tweet",
+                    id=id_str,
+                    body={"doc": {
+                        session: state
+                    }},
+                    retry_on_conflict=5
+                )
+
+            except Exception as e:
+                print('Error: ' + str(e))
 
 
     def clear_session_annotations(self, index, session):
