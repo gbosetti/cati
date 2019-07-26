@@ -7,7 +7,9 @@ class GeoSpatialModule extends SearchModule{
         this.client = client;
         this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
         this.tweets = null;
-        $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
+        $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", (evt)=>{
+            this.geo_document_to_state(evt);
+        });
         $( ".geo_selection_to_state" ).on( "click", (evt)=>{
             this.geo_selection_to_state(evt);
         });
@@ -29,6 +31,25 @@ class GeoSpatialModule extends SearchModule{
                 app.views.mabed.prototype.getClassificationStats();
                 jc.close();
             }, 'json').fail(this.client.cnxError);
+        }
+
+        return false;
+    }
+    geo_document_to_state(evt){
+        evt.preventDefault();
+
+        var tweetId = $(evt.target).data("doc-id");
+        if(tweetId != undefined && tweetId != null){
+
+            var data = this.client.getIndexAndSession();
+                data.push({name: "val", value: $(evt.target).data("status")});
+                data.push({name: "tid", value: tweetId});
+
+            $.post(app.appURL + 'mark_tweet', data, function(response){
+                app.views.mabed.prototype.getClassificationStats();
+                 $(".leaflet-popup-close-button")[0].click();
+            }, 'json').fail(this.client.cnxError);
+
         }
 
         return false;
@@ -87,16 +108,11 @@ class GeoSpatialModule extends SearchModule{
             layer.feature.properties.tweet.text +
             '</br></br><b>Created on:</b> ' + this.formatDateFromString(layer.feature.properties.tweet.created_at) +
             '</br></br><div style="display: flex; justify-content: flex-end;">'+
-                '<button data-status="confirmed" class="onTweetStatusClicked" style="background: rgba( 40, 167, 69, 0.5);">Confirm</button>'+
-                '<button data-status="negative" class="onTweetStatusClicked" style="background: rgba(220, 53, 69, 0.63);">Reject</button>' +
-                '<button data-status="unlabeled" class="onTweetStatusClicked">Clear</button>'+
+                '<button data-doc-id="' + layer.feature.properties.doc_id + '" data-status="confirmed" class="onTweetStatusClicked" style="background: rgba( 40, 167, 69, 0.5);">Confirm</button>'+
+                '<button data-doc-id="' + layer.feature.properties.doc_id + '" data-status="negative" class="onTweetStatusClicked" style="background: rgba(220, 53, 69, 0.63);">Reject</button>' +
+                '<button data-doc-id="' + layer.feature.properties.doc_id + '" data-status="unlabeled" class="onTweetStatusClicked">Clear</button>'+
             '</div>' //+ this.createButton('Confirm')
         );
-    }
-    onTweetStatusClicked(evt){
-        var annotation = $(evt.target).data("status");
-        //TODO: POST TO THE SERVER
-        $(".leaflet-popup-close-button")[0].click();
     }
     createButton(label) {
         var btn = L.DomUtil.create('button');
