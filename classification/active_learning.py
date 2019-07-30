@@ -339,7 +339,7 @@ class ActiveLearning:
             try:
                 self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field]))
             except KeyError as ke:
-               print("Key value missing , maybe this tweet doesn't have the"+ field+"field.")
+               print("Key value missing , maybe this tweet doesn't have the "+ field+" field.")
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6

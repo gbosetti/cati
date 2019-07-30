@@ -27,7 +27,7 @@ parser.add_argument("-s",
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
-                    help="The grountruth session to simulate the user's answer and to measure accuracy")
+                    help="The grountruth session to simulate the user's answer and to measure accuracy. E.g. session_lyon_2017")
 
 
 # Optional arguments
@@ -59,7 +59,7 @@ parser.add_argument("-tf",
                     "--text_field",
                     dest="text_field",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
-                    default="text-images")
+                    default="text")
 
 parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
@@ -83,7 +83,7 @@ parser.add_argument("-sm",
                     "--sampling_methods",
                     dest="sampling_methods",
                     help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler",
-                    default=False)
+                    default="UncertaintySampler")
 
 parser.add_argument("-sp",
                     "--similarity_percentages",

@@ -26,10 +26,13 @@ for line in reader:
     try:
         if line["text_translated_en"]:
 
+            doc_id = line["id"]
+
             #Creating the doc
             document = {}
             document["user"] = {"name": line["user_name"]}
             document["text"] = line["text_translated_en"]
+            document["id_str"] = doc_id
 
             if line["date"]:
                 date_as_date = datetime.datetime.strptime(line["date"], '%Y-%m-%d %H:%M:%S')
@@ -43,7 +46,6 @@ for line in reader:
                 }
 
             # Persistence
-            doc_id = line["id"]
             client.create(index=args.target_index, doc_type="tweet", body=document, id=doc_id)
             print("Creating document #" + str(doc_id))
 
