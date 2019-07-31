@@ -1,5 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
-from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
+from classification.samplers import UncertaintySampler, JackardBasedUncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
 import argparse
 import itertools
 import os
@@ -185,6 +185,26 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                     min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
                     text_field=args.text_field)
+
+    if 'JackardBasedUncertaintySampler' in sampling_methods:
+
+        jackard_percentages = all_percentages.copy()
+        jackard_percentages.remove(0)
+        jackard_percentages.remove(1)
+        for confidence_limit in jackard_percentages:
+
+            try:
+                logs_filename = args.session + "_jackard" + "_cnf" + str(confidence_limit) + ".txt"
+                sampler = JackardBasedUncertaintySampler(low_confidence_limit=confidence_limit, index=args.index, session=args.session,
+                    text_field=args.text_field, similarity_percentage=100)
+
+                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                            text_field=args.text_field)
+            except Exception as e:
+                print(e)
+                learner.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     if 'BigramsRetweetsSampler' in sampling_methods:

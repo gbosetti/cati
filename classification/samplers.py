@@ -2,8 +2,9 @@ import numpy as np
 from mabed.es_connector import Es_connector
 import os
 from sklearn.svm import LinearSVC
+from lexrank import STOPWORDS, LexRank
 
-# Sampling methods: UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
+# Sampling methods: UncertaintySampler, JackardBasedUncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 
 class ActiveLearningSampler:
 
@@ -45,7 +46,6 @@ class UncertaintySampler(ActiveLearningSampler):
         self.classifier.last_predictions = predictions
 
         return selected_samples
-
 
 
 class BigramsRetweetsSampler(ActiveLearningSampler):
@@ -138,6 +138,7 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
                                                                     session=self.session,
                                                                     text_field=self.text_field,
                                                                     similarity_percentage=self.similarity_percentage)
+
         self.classifier.move_answers_to_training_set(duplicated_answers)
 
 
@@ -252,6 +253,145 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
+
+
+class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
+
+    def __init__(self, **kwargs):
+
+        #super(UncertaintySampler, self).__init__()
+        MoveDuplicatedDocsSampler.__init__(self, **kwargs)
+        self.low_confidence_limit = kwargs["low_confidence_limit"]
+        return
+
+    def get_samples(self, num_questions):
+
+        # compute absolute confidence for each unlabeled sample in each class
+        decision = self.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        confidences = np.abs(decision)  # Calculates the absolute value element-wise
+        predictions = self.model.predict(self.classifier.X_unlabeled)
+        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
+
+        question_samples = sorted_samples.tolist()
+        selected_samples = self.classifier.fill_questions(question_samples, predictions, confidences, self.classifier.categories)
+
+        # Filter and get all the tweets with a low confidence
+        full_low_level_confidency=[]
+        for sample in selected_samples:
+            if sample["confidence"]<self.low_confidence_limit:
+                full_low_level_confidency.append(sample)
+
+        if(len(full_low_level_confidency)<num_questions):
+            #full_low_level_confidency = selected_samples.clone()
+            raise Exception('ERROR: the number of low-level-confidence predictions is not enough to retrieve ' + str(num_questions) + ' samples.')
+
+
+        # Get the accumulated jackard score of each document respect to the remaining ones
+        for sample in full_low_level_confidency:
+            for anotherSample in full_low_level_confidency:
+                if sample != anotherSample:
+                    if "jackard_score" not in sample:
+                        sample["jackard_score"] = self.get_jaccard_sim(sample["analyzed_content"], anotherSample["analyzed_content"])
+                    else:
+                        sample["jackard_score"] += self.get_jaccard_sim(sample["analyzed_content"], anotherSample["analyzed_content"])
+
+        # Sort the documents according to the highest jackard score
+        re_sorted_samples = sorted(full_low_level_confidency, key=lambda k: (k["jackard_score"]), reverse=True)
+
+        # Get 20 non repeated documents
+        selected_samples = []
+        top_samples_text = []
+        for sample in re_sorted_samples:
+                if sample["analyzed_content"] not in top_samples_text:  # text
+                    selected_samples.append(sample)
+                    top_samples_text.append(sample["analyzed_content"])
+                if len(selected_samples) >= num_questions:
+                    break
+
+        self.classifier.last_samples = sorted_samples
+        self.classifier.last_confidences = confidences
+        self.classifier.last_predictions = predictions
+
+        self.last_questions = selected_samples  # to be used in the post sampling
+
+        return selected_samples
+
+    def get_jaccard_sim(self, str1, str2):
+        a = set(str1.split())
+        b = set(str2.split())
+        c = a.intersection(b)
+        return float(len(c)) / (len(a) + len(b) - len(c))
+
+    def post_sampling(self):
+
+        duplicated_answers = self.get_similar_docs(questions=self.last_questions,
+                                                                    index=self.index,
+                                                                    session=self.session,
+                                                                    text_field=self.text_field,
+                                                                    similarity_percentage=self.similarity_percentage)
+        if len(duplicated_answers):
+            print("Moving duplicated documents")
+            self.classifier.move_answers_to_training_set(duplicated_answers)
+
+    def get_similar_docs(self, **kwargs):
+
+        if len(kwargs["questions"]) == 0:
+            return []
+
+        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
+        duplicated_docs = []
+
+        docs_ids_matches = [{"match": {"id_str": {"query": question["str_id"] }}} for question in kwargs["questions"]]
+
+        docs_original_textual_content = my_connector.search({
+            "query": {
+                "bool": {
+                    "should": docs_ids_matches,
+                    "minimum_should_match": 1,
+                    "must": [
+                        {
+                            "match": {
+                                kwargs["session"]: "proposed"
+                            }
+                        }
+                    ]
+                }
+            }
+        })
+
+        for doc in docs_original_textual_content["hits"]["hits"]:
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "term": {
+                                    "text.keyword": {
+                                        "value": doc["_source"][kwargs["text_field"]]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+
+            matching_docs = my_connector.search(query)
+            if matching_docs["hits"]["total"]>1:
+
+                label = [question for question in kwargs["questions"] if question["str_id"] == doc["_source"]["id_str"]][0]["label"]
+
+                for dup_doc in matching_docs["hits"]["hits"]:
+                    duplicated_docs.append({
+                        "filename": dup_doc["_source"]["id_str"],
+                        "label": label,
+                        kwargs["text_field"]: dup_doc["_source"][kwargs["text_field"]]
+                    })
+
+        return duplicated_docs
+
+
+
 
 class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
 

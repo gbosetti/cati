@@ -330,8 +330,6 @@ class ActiveLearning:
 
     def write_data_in_folders(self, field, path, dataset):
 
-        #print("WRITTING FIELD: ", field)
-
         if not os.path.exists(path):
              os.makedirs(path)
 

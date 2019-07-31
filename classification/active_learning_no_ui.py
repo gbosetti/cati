@@ -71,21 +71,25 @@ class ActiveLearningNoUi:
 
         questions = self.classifier.get_samples(kwargs["num_questions"])
 
-        # Asking the user (gt_dataset) to answer the questions
-        answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=self.classifier)
+        if len(questions)>0:
 
-        # Injecting the answers in the training set, and re-training the model
-        self.classifier.move_answers_to_training_set(answers)
-        #self.classifier.move
-        #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
-        # self.classifier.remove_matching_answers_from_test_set(answers)
+            # Asking the user (gt_dataset) to answer the questions
+            answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=self.classifier)
 
-        self.classifier.post_sampling() #In case you want, e.g., to move duplicated content
+            # Injecting the answers in the training set, and re-training the model
+            self.classifier.move_answers_to_training_set(answers)
+            #self.classifier.move
+            #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
+            # self.classifier.remove_matching_answers_from_test_set(answers)
 
-        # Present visualization to the user, so he can explore the proposed classification
-        # ...
+            self.classifier.post_sampling() #In case you want, e.g., to move duplicated content
 
-        return self.classifier.scores, wrong_pred_answers
+            # Present visualization to the user, so he can explore the proposed classification
+            # ...
+
+            return self.classifier.scores, wrong_pred_answers
+
+        else: raise Exception('ERROR: the number of low-level-confidence predictions is not enough to retrieve any sample question.')
 
     def download_data(self, **kwargs):
 
@@ -198,7 +202,7 @@ class ActiveLearningNoUi:
 
         #Temporarily label them
         #self.clear_temporary_labels(kwargs["index"], kwargs["session"])
-        self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
+        #self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
         #time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
         #self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
 
