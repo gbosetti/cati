@@ -2,7 +2,6 @@ import numpy as np
 from mabed.es_connector import Es_connector
 import os
 from sklearn.svm import LinearSVC
-from lexrank import STOPWORDS, LexRank
 
 # Sampling methods: UncertaintySampler, JackardBasedUncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 

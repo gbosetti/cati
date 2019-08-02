@@ -429,10 +429,10 @@ app.views.classification = Backbone.View.extend({
                 this.drawNgrams("#cloud_q2", response.neg, "negative");
                 this.drawQuadrantsSlider('.pips-range-vertical');
                 this.drawPiechart(response.total_pos, response.total_neg);
-                this.requestResultsEvolutionBarcharts(data).then(res =>{
+                /*this.requestResultsEvolutionBarcharts(data).then(res =>{
                     console.log(res);
                     this.drawResultsEvolutionScatterplots("classif-graph-area", res);
-                });
+                });*/
                 resolve();
             }, 'json');
         });

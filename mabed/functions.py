@@ -1941,32 +1941,43 @@ class Functions:
         res = tweets_connector.update(tid, query)
         return res
 
+    def chunks(self, target_list, target_size):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(target_list), target_size):
+            yield target_list[i:i + target_size]
+
     def get_total_tweets_by_ids(self, **kwargs):
 
         if len(kwargs["ids"])==0:
             return 0
 
-        ids = ""
-        for id in kwargs["ids"]:
-            ids += id + " or "
-        ids = ids[:-4]
+        ids_chunks = self.chunks(kwargs["ids"], 50)
 
-        query = {
-            "size": 0,
-            "query":{
-                "bool": {
-                    "must": [{
-                        "match": {
-                            "id_str": ids
-                        }
-                    }]
+        total_available_tweets=0
+        for chunk in ids_chunks:
+            ids = ""
+            for id in chunk:
+                ids += id + " or "
+            ids = ids[:-4]
+
+            query = {
+                "size": 0,
+                "query":{
+                    "bool": {
+                        "must": [{
+                            "match": {
+                                "id_str": ids
+                            }
+                        }]
+                    }
                 }
             }
-        }
 
-        my_connector = Es_connector(index=kwargs["index"])
-        res = my_connector.search(query)
-        return res['hits']['total']
+            my_connector = Es_connector(index=kwargs["index"])
+            res = my_connector.search(query)
+            total_available_tweets += res['hits']['total']
+
+        return total_available_tweets
 
     def set_retweets_state(self, **kwargs):
 
