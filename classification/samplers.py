@@ -25,27 +25,14 @@ class UncertaintySampler(ActiveLearningSampler):
 
     def get_samples(self, num_questions):
 
-        # compute absolute confidence for each unlabeled sample in each class
-        # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
-        decision = self.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.model.predict(self.classifier.X_unlabeled)
+        # keep all the sorted samples
+        self.classifier.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
 
-        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
-        if (len(self.classifier.categories) > 2):
-            confidences = np.average(confidences, axix=1)
-            print("when categories are more than 2")
+        # get the N required samples for user validation
+        sub_samples = self.classifier.last_samples[0:num_questions].tolist()
 
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
-        question_samples = sorted_samples[0:num_questions].tolist()
-
-        selected_samples = self.classifier.fill_questions(question_samples, predictions, confidences, self.classifier.categories)
-
-        self.classifier.last_samples = sorted_samples
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
-
-        return selected_samples
+        # format the samples
+        return self.classifier.fill_questions(sub_samples, self.classifier.last_predictions, self.classifier.last_confidences, self.classifier.categories)
 
 
 class BigramsRetweetsSampler(ActiveLearningSampler):
@@ -62,32 +49,18 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         return
 
     def get_samples(self, num_questions):
-        # retrieve from the classifier:
-        # model, X_train, X_test, y_train, y_test, X_unlabeled, categories
 
         # Getting
         top_bigrams = self.classifier.get_top_bigrams(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
         top_retweets = self.classifier.get_top_retweets(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
 
-        # compute absolute confidence for each unlabeled sample in each class
-        decision = self.model.decision_function(
-            self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.model.predict(self.classifier.X_unlabeled)
-        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
-        if (len(self.classifier.categories) > 2):
-            confidences = np.average(confidences, axix=1)
-            print("when categories are more than 2")
+        self.classifier.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
 
-        sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
-
-        self.classifier.last_samples = sorted_samples_by_conf
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
-
-        question_samples = self.classifier.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.classifier.data_unlabeled,
+        question_samples = self.classifier.get_unique_sorted_samples_by_conf(self.classifier.last_samples,
+                                                                             self.classifier.data_unlabeled,
                                                                   self.max_samples_to_sort)  # returns just unique (removes duplicated files)
-        formatted_samples = self.classifier.fill_questions(question_samples, predictions, confidences,
+
+        formatted_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences,
                                                 self.classifier.categories, top_retweets,
                                                 top_bigrams, self.max_samples_to_sort, self.text_field)
 
@@ -114,19 +87,12 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
 
     def get_samples(self, num_questions):
 
-        decision = self.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.model.predict(self.classifier.X_unlabeled)
-
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        sorted_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
-        selected_samples = self.classifier.fill_questions(question_samples, predictions, confidences,
+        selected_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences,
                                                           self.classifier.categories)
 
         self.classifier.last_samples = sorted_samples
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
-
         self.last_questions = selected_samples
 
         return selected_samples
@@ -266,14 +232,9 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
 
     def get_samples(self, num_questions):
 
-        # compute absolute confidence for each unlabeled sample in each class
-        decision = self.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.model.predict(self.classifier.X_unlabeled)
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
-
+        sorted_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples.tolist()
-        selected_samples = self.classifier.fill_questions(question_samples, predictions, confidences, self.classifier.categories)
+        selected_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences, self.classifier.categories)
 
         # Filter and get all the tweets with a low confidence
         full_low_level_confidency=[]
@@ -309,9 +270,6 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
                     break
 
         self.classifier.last_samples = sorted_samples
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
-
         self.last_questions = selected_samples  # to be used in the post sampling
 
         return selected_samples

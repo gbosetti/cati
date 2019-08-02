@@ -16,15 +16,15 @@ import string
 from time import time
 import numpy as np
 import pylab as pl
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.linear_model import RidgeClassifier
-from sklearn.linear_model import SGDClassifier
-from sklearn.linear_model import Perceptron
-from sklearn.linear_model import PassiveAggressiveClassifier
-from sklearn.naive_bayes import BernoulliNB, MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neighbors import NearestCentroid
-from sklearn.ensemble import RandomForestClassifier
+# from sklearn.feature_selection import SelectKBest, chi2
+# from sklearn.linear_model import RidgeClassifier
+# from sklearn.linear_model import SGDClassifier
+# from sklearn.linear_model import Perceptron
+# from sklearn.linear_model import PassiveAggressiveClassifier
+# from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+# from sklearn.neighbors import KNeighborsClassifier
+# from sklearn.neighbors import NearestCentroid
+# from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.extmath import density
 from sklearn import metrics
 from sklearn.model_selection import cross_validate  #by Gabi
@@ -342,13 +342,17 @@ class ActiveLearning:
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
 
-    def loading_tweets_from_files(self):
+    def loading_tweets_from_files(self, download_test=True):
 
         # Loading the datasets
         print("Loading training data from ", self.TRAIN_FOLDER)
         data_train = load_files(self.TRAIN_FOLDER, encoding=self.ENCODING)  # data_train
-        print("Loading testing data from ", self.TEST_FOLDER)
-        data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+
+        if download_test:
+            print("Loading testing data from ", self.TEST_FOLDER)
+            data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+        else: data_test = None
+
         print("Loading target data from ", self.UNLABELED_FOLDER)
         unlabeled = load_files(self.UNLABELED_FOLDER, encoding=self.ENCODING)
 
@@ -612,7 +616,7 @@ class ActiveLearning:
         if total_proposed_data == 0:
             raise Exception('You need to have some data to classify in your dataset')
 
-    def build_model(self, **kwargs):
+    def build_model(self, **kwargs): # to use from the experiment
 
         # Keep track of the last used params
         self.remove_stopwords = kwargs["remove_stopwords"]
@@ -639,8 +643,8 @@ class ActiveLearning:
             raise Exception('The target (unlabeled) set is empty.')
             return
 
-        if (len(self.data_unlabeled.data) == 0):
-            raise Exception('The unlabeled set is empty.')
+        if (len(data_train.data) == 0):
+            raise Exception('The train set is empty.')
             return
 
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
@@ -690,18 +694,6 @@ class ActiveLearning:
 
         pos_precision_score = true_positives/total_expected_positives
 
-        # pos_y_test = np.array(y_test[pos_indexes])
-        # pos_pred = np.array(pred[pos_indexes])
-
-        # test_condition = np.where(idx in pos_indexes)
-        # pos_y_test = np.extract(condition, pos_indexes)
-        #
-        # pred_condition = np.where(idx in pos_indexes)
-        # pos_pred = np.extract(condition, pred)
-
-        # pos_precision_score = metrics.precision_score(np.array(pos_y_test), np.array(pos_pred))
-
-
         self.scores = {
             "f1": score,
             "accuracy": accscore,
@@ -710,6 +702,61 @@ class ActiveLearning:
             "positive_precision": pos_precision_score
         }
         self.X_unlabeled = scaler.transform(X_unlabeled)
+
+        # compute absolute confidence for each unlabeled sample in each class
+        # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
+        decision = self.sampler.model.decision_function(
+            self.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        self.last_confidences = np.abs(decision)  # Calculates the absolute value element-wise
+        self.last_predictions = self.sampler.model.predict(self.X_unlabeled)
+
+    def build_model_no_test(self, **kwargs):  # to use from the UI
+
+        # Keep track of the last used params
+        self.remove_stopwords = kwargs["remove_stopwords"]
+
+        # Starting the process
+        data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files(download_test=False)
+
+        # Get the sparse matrix of each dataset
+        y_train = data_train.target
+
+        vectorizer = TfidfVectorizer(encoding=self.ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
+                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
+
+        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
+        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
+        X_train = vectorizer.fit_transform(data_train.data)
+
+        if(len(self.data_unlabeled)==0):
+            raise Exception('The target (unlabeled) set is empty.')
+            return
+
+        if (len(self.data_unlabeled.data) == 0):
+            raise Exception('The unlabeled set is empty.')
+            return
+
+        # Extracting features from the unlabled dataset using the same vectorizer
+        print("Vectorizing the target set")
+        X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
+        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
+
+        # fits the model according to the training set (passing its data and the vectorized feature)
+        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
+        # normalized_X_train = scale(X_train, with_mean=False)
+        scaler = preprocessing.StandardScaler(with_mean=False)
+        scaler = scaler.fit(X_train)
+
+        # No test scores generation ...
+
+        # Normalize the unlabeled set according to the training set distribution
+        X_train = scaler.transform(X_train)
+        self.sampler.model.fit(X_train, y_train)
+        self.X_unlabeled = scaler.transform(X_unlabeled)
+
+        decision = self.sampler.model.decision_function(self.X_unlabeled)
+        self.last_confidences = np.abs(decision)
+        self.last_predictions = self.sampler.model.predict(self.X_unlabeled)
 
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field=""):
 
@@ -763,35 +810,35 @@ class ActiveLearning:
         return complete_question_samples
 
 
-    def update_answers_labels_in_index(self, labeled_questions, index, session):
-
-        print("Marking answers in elastic")
-        for question in labeled_questions:
-            #print("Moving", question["filename"], " to ", dstDir)
-            try:
-                Es_connector(index=index).update_by_query({
-                    "query": {
-                        "match": {
-                            "id_str": question["filename"]
-                        }
-                    }
-                }, "ctx._source." + session + " = '" + question["label"] + "'")
-            except:
-                print("...")
-
-                {
-                    "script": {
-                        "source": "ctx._source.session_lyon2017_test_03 = params.label",
-                        "params": {
-                            "label": "proposed"
-                        }
-                    },
-                    "query": {
-                        "match": {
-                            "id_str": "..."
-                        }
-                    }
-                }
+    # def update_answers_labels_in_index(self, labeled_questions, index, session):
+    #
+    #     print("Marking answers in elastic")
+    #     for question in labeled_questions:
+    #         #print("Moving", question["filename"], " to ", dstDir)
+    #         try:
+    #             Es_connector(index=index).update_by_query({
+    #                 "query": {
+    #                     "match": {
+    #                         "id_str": question["filename"]
+    #                     }
+    #                 }
+    #             }, "ctx._source." + session + " = '" + question["label"] + "'")
+    #         except:
+    #             print("...")
+    #
+    #             {
+    #                 "script": {
+    #                     "source": "ctx._source.session_lyon2017_test_03 = params.label",
+    #                     "params": {
+    #                         "label": "proposed"
+    #                     }
+    #                 },
+    #                 "query": {
+    #                     "match": {
+    #                         "id_str": "..."
+    #                     }
+    #                 }
+    #             }
 
     def move_answers_to_training_set(self, labeled_questions):
 

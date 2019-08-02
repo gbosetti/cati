@@ -2,6 +2,7 @@
 from preprocessing_and_stats.PreProcessor import PreProcessor
 from preprocessing_and_stats.StopWords import EnglishStopWords, FrenchStopWords
 from BackendLogger import BackendLogger
+from classification.samplers import *
 
 import argparse
 import json
@@ -19,7 +20,6 @@ from flask import Response
 from flask_htpasswd import HtPasswdAuth
 from kneed import KneeLocator
 from classification.active_learning import ActiveLearning
-from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.ngram_based_classifier import NgramBasedClasifier
 
 # rest
@@ -58,7 +58,7 @@ for source in config['elastic_search_sources']:
 
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
-classifier = ActiveLearning(download_folder_name="tmp_data")
+al_classifier = ActiveLearning(download_folder_name="tmp_data")
 
 al_path = os.path.join(os.getcwd(), "classification", "logs", "current_al_status.json")
 if not os.path.exists(os.path.dirname(al_path)):
@@ -573,11 +573,11 @@ def download_al_init_data():
     download_data = to_boolean(data["download_data"])
     debug_limit = to_boolean(data["debug_limit"])
 
-    classifier.clean_directories()
+    al_classifier.clean_directories()
 
     # download
     if(True==download_data): #This just downloads, then add code to copy to tmp_data
-       classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
+       al_classifier.download_data(cleaning_dirs=True, index=data["index"], session=data["session"],
                              gt_session=data["gt_session"], text_field=data["text_field"],
                              debug_limit=debug_limit)
 
@@ -587,7 +587,7 @@ def download_al_init_data():
 @app.route('/save_classification', methods=['POST'])
 def save_classification():
     data = request.form
-    classifier.save_classification(index=data["index"], session=data["session"]);
+    al_classifier.save_classification(index=data["index"], session=data["session"]);
     return jsonify(True)
 
 
@@ -608,32 +608,15 @@ def train_model():
     index = data["index"]
     session = data["session"]
 
-    # Building the model and getting the questions
-    model, X_train, X_test, y_train, y_test, X_unlabeled, categories, scores = classifier.build_model(
-        num_questions=num_questions, remove_stopwords=False)
-
     if (sampling_strategy == "closer_to_hyperplane"):
-         questions = classifier.get_samples_closer_to_hyperplane(model, X_train, X_test, y_train, y_test,
-                                                                      X_unlabeled, categories, num_questions)
-    if (sampling_strategy == "closer_to_hyperplane_bigrams_rt"):
-        questions = classifier.get_samples_closer_to_hyperplane_bigrams_rt(model, X_train, X_test, y_train, y_test,
-                                                                       X_unlabeled, categories,
-                                                                       num_questions,
-                                                                       max_samples_to_sort=max_samples_to_sort,
-                                                                       index=index,
-                                                                       session=session,
-                                                                       text_field=False,
-                                                                       cnf_weight=1,
-                                                                       ret_weight=0,
-                                                                       bgr_weight=0)
+        al_classifier.set_sampling_strategy(UncertaintySampler())
 
-    al_backend_logger.add_raw_log('{ "loop": ' + str(app.loop_index) +
-                                    ', "datetime": "' + str(datetime.datetime.now()) +
-                                    '", "accuracy": ' + str(scores["accuracy"]) +
-                                    ', "precision": ' + str(scores["precision"]) + ' } \n')
-    app.loop_index += 1
+    # Building the model and getting the questions
+    al_classifier.build_model_no_test(num_questions=num_questions, remove_stopwords=False)
 
-    return jsonify({"questions": questions, "scores": scores})
+    questions = al_classifier.get_samples(num_questions)
+
+    return jsonify({"questions": questions, "scores": []})
 
 
 @app.route('/save_user_answers', methods=['POST'])
@@ -641,8 +624,8 @@ def save_user_answers():
     data = request.form
     answers = json.loads(data['answers'])
 
-    classifier.move_answers_to_training_set(answers)
-    classifier.remove_matching_answers_from_test_set(answers)
+    al_classifier.move_answers_to_training_set(answers)
+    al_classifier.remove_matching_answers_from_test_set(answers)
 
     return jsonify(True)
 
@@ -654,7 +637,7 @@ def suggest_classification():
     target_min_score = float(data.get('target_min_score', '0'))
     target_max_score = float(data.get('target_max_score', '1'))
 
-    positives, negatives = classifier.get_classified_queries_ids(target_min_score=target_min_score, target_max_score=target_max_score)
+    positives, negatives = al_classifier.get_classified_queries_ids(target_min_score=target_min_score, target_max_score=target_max_score)
     return jsonify({
        "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
                                                   ids=positives, n_size="2", results_size=data["results_size"]),
@@ -676,8 +659,8 @@ def get_results_from_al_logs():
 
     hyp_results = []
     #session_files = [f for f in os.scandir(os.path.dirname(al_path)) if not f.is_dir()]  # and "_OUR_" in f.name]
-    logs = classifier.read_file(al_path)  # session_files[0].path)
-    loops_values, accuracies, precision = classifier.process_results(logs)
+    logs = al_classifier.read_file(al_path)  # session_files[0].path)
+    loops_values, accuracies, precision = al_classifier.process_results(logs)
     hyp_results.append({"loops": loops_values, "accuracies": accuracies, "precisions": precision})
 
     return jsonify(hyp_results)  # classifier.get_results_from_al_logs())

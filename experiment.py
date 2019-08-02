@@ -1,5 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
-from classification.samplers import UncertaintySampler, JackardBasedUncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
+from classification.samplers import *
 import argparse
 import itertools
 import os
@@ -188,9 +188,10 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
     if 'JackardBasedUncertaintySampler' in sampling_methods:
 
-        jackard_percentages = all_percentages.copy()
-        jackard_percentages.remove(0)
-        jackard_percentages.remove(1)
+        # jackard_percentages = all_percentages.copy()
+        # jackard_percentages.remove(0)
+        # jackard_percentages.remove(1)
+        jackard_percentages = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         for confidence_limit in jackard_percentages:
 
             try:

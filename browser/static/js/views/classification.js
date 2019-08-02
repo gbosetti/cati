@@ -126,16 +126,20 @@ app.views.classification = Backbone.View.extend({
         $.get(app.appURL+'available_indexes', function (response) {
 
             //clear index list
-            document.querySelector(selectSelector).innerHTML = "";
+            var select = document.querySelector(selectSelector);
 
-            //add fields
-            for(let i = 0; i< response.length; i++){
-                let index_name = response[i];
-                let option = document.createElement('option');
-                option.setAttribute('value',index_name);
-                option.appendChild(document.createTextNode(index_name));
-                document.querySelector(selectSelector).appendChild(option);
-           }
+            if(select != undefined){
+                select.innerHTML = "";
+
+                //add fields
+                for(let i = 0; i< response.length; i++){
+                    let index_name = response[i];
+                    let option = document.createElement('option');
+                    option.setAttribute('value',index_name);
+                    option.appendChild(document.createTextNode(index_name));
+                    select.appendChild(option);
+               }
+            }
         },'json');
     },
     loadSamplingStage: function(){
