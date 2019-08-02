@@ -1,12 +1,30 @@
 {
   "elastic_search_sources": [
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "geo_passau_plus_en",
+      "doc_type": "tweet"
+    }, 
+    {
+      "host": "localhost",
+      "port": 9200,
+      "user": "elastic",
+      "password": "elastic",
+      "timeout": 1000,
+      "index": "geo_passau_plus",
+      "doc_type": "tweet"
+     },
      {
       "host": "localhost",
       "port": 9200,
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "news_stri_ruby",
+      "index": "financial_news",
       "doc_type": "tweet"
     },
      {
@@ -28,17 +46,6 @@
       "timeout": 1000,
       "index": "africa_news",
       "doc_type": "tweet"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "lyon2016",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/2016-Image-Classif.json",
-      "images_folder": "Twitter_2016_Imgs"
     },
     {
       "host": "localhost",
@@ -68,18 +75,7 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "experiment_lyon_2016",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/2016.json",
-      "images_folder": "Twitter_2016_Imgs"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "experiment_lyon_2016_gt",
+      "index": "geo_lyon_2016",
       "doc_type": "tweet",
       "image_duplicates": "/home/ssh_user/IMAGES/2016.json",
       "images_folder": "Twitter_2016_Imgs"
@@ -97,7 +93,7 @@
     }
   ],
   "default": {
-    "index":"lyon2017",
+    "index":"financial_news",
     "session" : "lyon2017",
     "sessions_index" : {
       "host": "localhost",
