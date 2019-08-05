@@ -926,6 +926,77 @@ class ActiveLearning:
 
         return loops_values, accuracies, precision
 
+    def update_tmp_predictions(self, **kwargs):
+
+        # self.clear_tmp_predictions(**kwargs)
+        # mark all as negative
+        # self.mark_full_unlabeled_set_as(as_category="negative", field=kwargs["session"] + "_tmp", **kwargs)
+        self.mark_tmp_predictions(as_category="negative", field=kwargs["session"] + "_tmp", subset=kwargs["negatives"], **kwargs)
+        # then mark positives
+        self.mark_tmp_predictions(as_category="confirmed", field=kwargs["session"] + "_tmp", subset=kwargs["positives"], **kwargs)
+
+    def clear_tmp_predictions(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+        res = my_connector.update_by_query({
+            "query": {
+                "exists" : { "field" : kwargs["session"] + "_tmp" }  # e.g. session_lyon2015_test_01_tmp
+            }
+        }, "ctx._source." + kwargs["session"] + "_tmp = 'proposed'")  #"ctx._source.remove('" + kwargs["session"] + "_tmp')")
+
+    def remove_tmp_predictions_field(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+
+        for answer in kwargs["answers"]:
+            res = my_connector.update_by_query({
+                "query": {
+                    "match": {
+                        "_id": answer["id"]
+                    }
+                }
+            }, "ctx._source.remove('" + kwargs["session"] + "_tmp')")
+
+    def remove_all_tmp_predictions_field(self, **kwargs):
+
+        Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
+            "query": {
+                "exists": { "field" : kwargs["field"]}
+            }
+        }, "ctx._source.remove('" + kwargs["field"] + "')")
+
+
+    def mark_full_unlabeled_set_as(self, **kwargs):
+
+        Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
+            "query": {
+                "bool": {
+                  "must_not": [
+                    {
+                      "match": {
+                        kwargs["field"]: kwargs["as_category"]
+                      }
+                    }
+                  ]
+                }
+            }
+        }, "ctx._source." + kwargs["field"] + " = '" + kwargs["as_category"] + "'")
+
+
+    def mark_tmp_predictions(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+
+        for id in kwargs["subset"]:
+            Es_connector(index=kwargs["index"]).es.update(
+                index=kwargs["index"],
+                doc_type="tweet",
+                id=id,
+                body={"doc": {
+                    kwargs["field"]: kwargs["as_category"]
+                }}
+            )
+
     def get_classified_queries_ids(self, **kwargs):
 
         # middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend

@@ -182,7 +182,12 @@ app.views.classification = Backbone.View.extend({
 
         return new Promise((resolve, reject)=>{
 
-            var data = [{name: "answers", value: JSON.stringify(this.lastLoadedQuestions)}];
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "session", value: "session_" + app.session.s_name},
+                {name: "answers", value: JSON.stringify(this.lastLoadedQuestions)}
+            ];
+
             $.post(app.appURL+'save_user_answers', data, response => { resolve() }, 'json');
         });
     },

@@ -608,6 +608,9 @@ def train_model():
     index = data["index"]
     session = data["session"]
 
+    # TODO: move this to the init of the process, not at the beginning of each loop
+    al_classifier.remove_all_tmp_predictions_field(index=index, field=session + "_tmp")
+
     if (sampling_strategy == "closer_to_hyperplane"):
         al_classifier.set_sampling_strategy(UncertaintySampler())
 
@@ -626,6 +629,9 @@ def save_user_answers():
 
     al_classifier.move_answers_to_training_set(answers)
     al_classifier.remove_matching_answers_from_test_set(answers)
+    # Certain sampling strategies have a post_sampling method that also uses the two previous methods
+
+    al_classifier.remove_tmp_predictions_field(answers=answers, index=data['index'], session=data['session'])
 
     return jsonify(True)
 
@@ -638,11 +644,14 @@ def suggest_classification():
     target_max_score = float(data.get('target_max_score', '1'))
 
     positives, negatives = al_classifier.get_classified_queries_ids(target_min_score=target_min_score, target_max_score=target_max_score)
+
+    al_classifier.update_tmp_predictions(positives=positives, negatives=negatives, index=data["index"], session=data["session"])
+
     return jsonify({
-       "pos": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
-                                                  ids=positives, n_size="2", results_size=data["results_size"]),
-       "neg": ngram_classifier.get_ngrams_for_ids(index=data["index"], session=data["session"],
-                                                  ids=negatives, n_size="2", results_size=data["results_size"]),
+       "pos": ngram_classifier.get_positive_unlabeled_ngrams(index=data["index"], session=data["session"],
+                                                  n_size="2", results_size=data["results_size"]),
+       "neg": ngram_classifier.get_negative_unlabeled_ngrams(index=data["index"], session=data["session"],
+                                                  n_size="2", results_size=data["results_size"]),
        "total_pos": len(positives), # functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=positives),  # could this be replaced by len(positives)???
        "total_neg": len(negatives) # functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=negatives)
     })

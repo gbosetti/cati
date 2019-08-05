@@ -6,95 +6,13 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "geo_passau_plus_en",
-      "doc_type": "tweet"
-    }, 
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
       "index": "geo_passau_plus",
       "doc_type": "tweet"
-     },
-     {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "financial_news",
-      "doc_type": "tweet"
-    },
-     {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "geo_lyon_2017",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/2017.json",
-      "images_folder": "2017"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "africa_news",
-      "doc_type": "tweet"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "geo_lyon_foot_2015",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/2015.json",
-      "images_folder": "Twitter_2015_Imgs"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "experiment_lyon_2017",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/Labeled-2017-Image-Classif.json",
-      "images_folder": "2017"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "geo_lyon_2016",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/2016.json",
-      "images_folder": "Twitter_2016_Imgs"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "experiment_lyon_2015_gt",
-      "doc_type": "tweet",
-      "image_duplicates": "/home/ssh_user/IMAGES/2015.json",
-      "images_folder": "Twitter_2015_Imgs"
     }
   ],
   "default": {
-    "index":"financial_news",
-    "session" : "lyon2017",
+    "index":"geo_passau_plus",
+    "session" : "passau_cls_refugees",
     "sessions_index" : {
       "host": "localhost",
       "port": 9200,
