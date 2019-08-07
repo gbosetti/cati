@@ -338,7 +338,7 @@ class ActiveLearning:
             try:
                 self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field]))
             except KeyError as ke:
-               print("Key value missing , maybe this tweet doesn't have the "+ field+" field.")
+               print("Key value missing, maybe this tweet doesn't have the "+ field+" field.")
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
@@ -960,6 +960,7 @@ class ActiveLearning:
 
     def remove_all_tmp_predictions_field(self, **kwargs):
 
+        print("Removing all the predictions")
         Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
             "query": {
                 "exists": { "field" : kwargs["field"]}
@@ -986,6 +987,7 @@ class ActiveLearning:
 
     def mark_tmp_predictions(self, **kwargs):
 
+        print("Bulk: marking " + kwargs["as_category"] + " predictions")
         # Bulk
         query_list = []
         for id in kwargs["subset"]:
@@ -1013,12 +1015,12 @@ class ActiveLearning:
         min_conf = min(confidences)
         max_conf = max(confidences)
 
-        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for smple in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
 
-            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
-            pred_label = self.categories[int(self.last_predictions[index])]
-            scaled_confidence = (self.last_confidences[index] - min_conf) / (max_conf - min_conf)
-            # print("Scaled: ", scaled_confidence, " [", kwargs["target_min_score"], ",", kwargs["target_max_score"], "]")
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[smple])
+            print(id_str, "from", self.data_unlabeled.filenames[smple])
+            pred_label = self.categories[int(self.last_predictions[smple])]
+            scaled_confidence = (self.last_confidences[smple] - min_conf) / (max_conf - min_conf)
 
             if(scaled_confidence > kwargs["target_min_score"]) and (scaled_confidence < kwargs["target_max_score"]):
                 if (pred_label == "confirmed"):

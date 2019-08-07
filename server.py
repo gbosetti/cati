@@ -604,13 +604,13 @@ def train_model():
     data = request.form
     num_questions = int(data["num_questions"])
     max_samples_to_sort = int(data["max_samples_to_sort"])
-    sampling_strategy = "closer_to_hyperplane"
     index = data["index"]
     session = data["session"]
 
     # TODO: move this to the init of the process, not at the beginning of each loop
     al_classifier.remove_all_tmp_predictions_field(index=index, field=session + "_tmp")
 
+    sampling_strategy = "closer_to_hyperplane"
     if (sampling_strategy == "closer_to_hyperplane"):
         al_classifier.set_sampling_strategy(UncertaintySampler())
 

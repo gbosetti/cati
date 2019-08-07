@@ -116,7 +116,7 @@ app.views.classification = Backbone.View.extend({
             {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
             {name: "num_questions", value: this.numSampleQueries },  // do the TODOs like in this way
             {name: "max_samples_to_sort", value:500}, //TODO
-            {name: "text_field", value:"2grams"}, //TODO
+            {name: "text_field", value:"text"}, //TODO
             {name: "debug_limit", value:false}, //TODO
             {name: "download_data", value:true},
             {name: "sampling_strategy", value:sampling_strategy}
@@ -420,7 +420,7 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         return new Promise((resolve, reject)=>{
-        
+
             this.renderALClassificationArea();
             this.enableLoading("#cloud_q1", "pos_predicted_bigrams");
             this.enableLoading("#cloud_q2", "neg_predicted_bigrams");
