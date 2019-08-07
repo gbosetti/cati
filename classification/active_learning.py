@@ -338,7 +338,7 @@ class ActiveLearning:
             try:
                 self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field]))
             except KeyError as ke:
-               print("Key value missing, maybe this tweet doesn't have the "+ field+" field.")
+               print("Key value missing, maybe this document doesn't have the 'id_str' or the '" + field + "' fields.")
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
@@ -1010,12 +1010,12 @@ class ActiveLearning:
         neg_ids = []
 
         confidences = []
-        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for index in self.sampler.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
             confidences.append(self.last_confidences[index])
         min_conf = min(confidences)
         max_conf = max(confidences)
 
-        for smple in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for smple in self.sampler.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
 
             id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[smple])
             print(id_str, "from", self.data_unlabeled.filenames[smple])

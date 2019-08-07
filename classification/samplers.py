@@ -25,10 +25,10 @@ class UncertaintySampler(ActiveLearningSampler):
     def get_samples(self, num_questions):
 
         # keep all the sorted samples
-        self.classifier.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
+        self.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
 
         # get the N required samples for user validation
-        sub_samples = self.classifier.last_samples[0:num_questions].tolist()
+        sub_samples = self.last_samples[0:num_questions].tolist()
 
         # format the samples
         return self.classifier.fill_questions(sub_samples, self.classifier.last_predictions, self.classifier.last_confidences, self.classifier.categories)
@@ -53,9 +53,9 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         top_bigrams = self.classifier.get_top_bigrams(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
         top_retweets = self.classifier.get_top_retweets(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
 
-        self.classifier.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
+        self.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
 
-        question_samples = self.classifier.get_unique_sorted_samples_by_conf(self.classifier.last_samples,
+        question_samples = self.classifier.get_unique_sorted_samples_by_conf(self.last_samples,
                                                                              self.classifier.data_unlabeled,
                                                                   self.max_samples_to_sort)  # returns just unique (removes duplicated files)
 
@@ -91,7 +91,7 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
         selected_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences,
                                                           self.classifier.categories)
 
-        self.classifier.last_samples = sorted_samples
+        self.last_samples = sorted_samples
         self.last_questions = selected_samples
 
         return selected_samples
@@ -268,7 +268,7 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
                 if len(selected_samples) >= num_questions:
                     break
 
-        self.classifier.last_samples = sorted_samples
+        self.last_samples = sorted_samples
         self.last_questions = selected_samples  # to be used in the post sampling
 
         return selected_samples
