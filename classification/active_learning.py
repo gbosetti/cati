@@ -53,18 +53,18 @@ from sklearn import preprocessing
 
 class ActiveLearning:
 
-    def __new__(cls):
-        try:
-            it = cls.__it__
-        except AttributeError:
-            it = cls.__it__ = object.__new__(cls)
-        return it
-
-    def __repr__(self):
-        return '<{}>'.format(self.__class__.__name__.upper())
-
-    def __eq__(self, other):
-        return other is self
+    # def __new__(cls):
+    #     try:
+    #         it = cls.__it__
+    #     except AttributeError:
+    #         it = cls.__it__ = object.__new__(cls)
+    #     return it
+    #
+    # def __repr__(self):
+    #     return '<{}>'.format(self.__class__.__name__.upper())
+    #
+    # def __eq__(self, other):
+    #     return other is self
 
     def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data"):
         # If session_folder and download_folder are different, donot forget to use clone_original_files to move the ones in the download folder to the session folder (the target one)
