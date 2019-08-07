@@ -168,19 +168,27 @@ class NgramBasedClasifier:
 
         res = self.get_ngrams_by_query(query={
             "match": {
-                kwargs["tmp_prediction"]: "confirmed"
+                kwargs["field"]: "confirmed"
             }
         }, **kwargs)
-        return res
+
+        try:
+            return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
 
     def get_negative_unlabeled_ngrams(self, **kwargs):
 
         res = self.get_ngrams_by_query(query={
             "match": {
-                kwargs["tmp_prediction"]: "negative"
+                kwargs["field"]: "negative"
             }
         }, **kwargs)
-        return res
+
+        try:
+            return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
 
     def get_ngrams_for_ids(self, **kwargs):
 

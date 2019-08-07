@@ -512,9 +512,11 @@ app.views.classification = Backbone.View.extend({
         var widget = new BubbleWidget(containerSelector, app.session.s_index, 'session_'+app.session.s_name, 500, "proposed"); //Proposed since the data being classified is the unlabeled, and it doesn't change in Elasticsearch until the end of the process
         var formatted_ngrams;
 
+        console.log("ngrams:", ngrams);
+
         if(category == "confirmed"){
 
-            formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+            formatted_ngrams = ngrams.map(ngram => {  //// - [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
 
                 return [
                     ngram.key.split(/-+/).join(" "), [

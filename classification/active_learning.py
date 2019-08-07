@@ -42,6 +42,7 @@ from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import Counter
 from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
@@ -985,17 +986,20 @@ class ActiveLearning:
 
     def mark_tmp_predictions(self, **kwargs):
 
-        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
-
+        # Bulk
+        query_list = []
         for id in kwargs["subset"]:
-            Es_connector(index=kwargs["index"]).es.update(
-                index=kwargs["index"],
-                doc_type="tweet",
-                id=id,
-                body={"doc": {
-                    kwargs["field"]: kwargs["as_category"]
-                }}
-            )
+            query_dict = {
+                '_op_type': 'update',
+                '_index': kwargs["index"],
+                '_type': "tweet",
+                '_id': id,
+                'doc': {kwargs["field"]: kwargs["as_category"]}
+            }
+            query_list.append(query_dict)
+
+        helpers.bulk(client= Es_connector(index=kwargs["index"], doc_type="tweet").es, actions=query_list)
+
 
     def get_classified_queries_ids(self, **kwargs):
 

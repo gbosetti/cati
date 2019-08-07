@@ -649,9 +649,11 @@ def suggest_classification():
 
     return jsonify({
        "pos": ngram_classifier.get_positive_unlabeled_ngrams(index=data["index"], session=data["session"],
-                                                  n_size="2", results_size=data["results_size"]),
+                                                             n_size="2", results_size=data["results_size"],
+                                                             field=data['session'] + "_tmp"),
        "neg": ngram_classifier.get_negative_unlabeled_ngrams(index=data["index"], session=data["session"],
-                                                  n_size="2", results_size=data["results_size"]),
+                                                             n_size="2", results_size=data["results_size"],
+                                                             field=data['session'] + "_tmp"),
        "total_pos": len(positives), # functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=positives),  # could this be replaced by len(positives)???
        "total_neg": len(negatives) # functions.get_total_tweets_by_ids(index=data["index"], session=data["session"], ids=negatives)
     })
