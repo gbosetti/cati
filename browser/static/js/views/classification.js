@@ -420,7 +420,11 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         return new Promise((resolve, reject)=>{
+        
             this.renderALClassificationArea();
+            this.enableLoading("#cloud_q1", "pos_predicted_bigrams");
+            this.enableLoading("#cloud_q2", "neg_predicted_bigrams");
+
             data = [
                 {name: "index", value: app.session.s_index},
                 {name: "session", value: "session_" + app.session.s_name},
@@ -441,6 +445,24 @@ app.views.classification = Backbone.View.extend({
                 resolve();
             }, 'json');
         });
+    },
+    enableLoading: function(containerSelector, spinnerClassName){
+
+        //console.log("Enabling loading at: ",this.containerSelector);
+        var target = document.querySelector(containerSelector);
+            target.style["min-height"] = "500px";
+
+        new Spinner({
+            lines: 13, // The number of lines to draw
+            length: 50, // The length of each line
+            width: 15, // The line thickness
+            radius: 45, // The radius of the inner circle
+            corners: 1, // Corner roundness (0..1)
+            speed: 1, // Rounds per second
+            rotate: 0,
+            color: '#677079',
+            className: spinnerClassName
+        }).spin(target);
     },
     updateQuadrantsBigrams: function(){
 
