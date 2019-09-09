@@ -1,5 +1,5 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
-from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
+from classification.samplers import *
 import argparse
 import itertools
 import os
@@ -27,7 +27,7 @@ parser.add_argument("-s",
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
-                    help="The grountruth session to simulate the user's answer and to measure accuracy")
+                    help="The grountruth session to simulate the user's answer and to measure accuracy. E.g. session_lyon_2017")
 
 
 # Optional arguments
@@ -59,7 +59,7 @@ parser.add_argument("-tf",
                     "--text_field",
                     dest="text_field",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
-                    default="text-images")
+                    default="text")
 
 parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
@@ -83,7 +83,7 @@ parser.add_argument("-sm",
                     "--sampling_methods",
                     dest="sampling_methods",
                     help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler",
-                    default=False)
+                    default="UncertaintySampler")
 
 parser.add_argument("-sp",
                     "--similarity_percentages",
@@ -185,6 +185,27 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                     min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
                     text_field=args.text_field)
+
+    if 'JackardBasedUncertaintySampler' in sampling_methods:
+
+        # jackard_percentages = all_percentages.copy()
+        # jackard_percentages.remove(0)
+        # jackard_percentages.remove(1)
+        jackard_percentages = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        for confidence_limit in jackard_percentages:
+
+            try:
+                logs_filename = args.session + "_jackard" + "_cnf" + str(confidence_limit) + ".txt"
+                sampler = JackardBasedUncertaintySampler(low_confidence_limit=confidence_limit, index=args.index, session=args.session,
+                    text_field=args.text_field, similarity_percentage=100)
+
+                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                            text_field=args.text_field)
+            except Exception as e:
+                print(e)
+                learner.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     if 'BigramsRetweetsSampler' in sampling_methods:

@@ -17,24 +17,6 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "financial_news",
-      "doc_type": "tweet"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
-      "index": "geo_passau_plus",
-      "doc_type": "tweet"
-    },
-    {
-      "host": "localhost",
-      "port": 9200,
-      "user": "elastic",
-      "password": "elastic",
-      "timeout": 1000,
       "index": "geo_lyon_foot_2015",
       "doc_type": "tweet",
       "image_duplicates": "D:\\IDENUM\\data-to-import\\2015.json",
@@ -46,13 +28,13 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "africa_news",
+      "index": "geo_passau_plus",
       "doc_type": "tweet"
     }
   ],
   "default": {
-    "index":"financial_news",
-    "session" : "financial_news",
+    "index":"geo_passau_plus",
+    "session" : "geo_passau_plus",
     "sessions_index" : {
       "host": "localhost",
       "port": 9200,

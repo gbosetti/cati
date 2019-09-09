@@ -159,23 +159,63 @@ class NgramBasedClasifier:
 
         return self.get_ngrams_by_query(query=query, **kwargs)
 
-    def get_ngrams_for_ids(self, **kwargs):
+    def chunks(self, target_list, target_size):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(target_list), target_size):
+            yield target_list[i:i + target_size]
 
-        ids = ""
-        for id in kwargs["ids"]:
-            ids += id + " or "
-        ids = ids[:-4]
+    def get_positive_unlabeled_ngrams(self, **kwargs):
 
-        query = {
+        res = self.get_ngrams_by_query(query={
             "match": {
-                "id_str": ids
+                kwargs["field"]: "confirmed"
             }
-        }
-
-        res = self.get_ngrams_by_query(query=query, **kwargs)
+        }, **kwargs)
 
         try:
             return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
+
+    def get_negative_unlabeled_ngrams(self, **kwargs):
+
+        res = self.get_ngrams_by_query(query={
+            "match": {
+                kwargs["field"]: "negative"
+            }
+        }, **kwargs)
+
+        try:
+            return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
+
+    def get_ngrams_for_ids(self, **kwargs):
+
+        ids_chunks = self.chunks(kwargs["ids"], 50)
+
+        total_buckets = []
+        for chunk in ids_chunks:
+
+            ids = ""
+            for id in chunk:
+                ids += id + " or "
+            ids = ids[:-4]
+
+            query = {
+                "match": {
+                    "id_str": ids
+                }
+            }
+
+            res = self.get_ngrams_by_query(query=query, **kwargs)
+            buckets = res["aggregations"]["ngrams_count"]["buckets"]
+
+            if len(buckets)>0:
+                total_buckets += buckets
+
+        try:
+            return total_buckets
         except KeyError as e:
             return []
 

@@ -16,15 +16,15 @@ import string
 from time import time
 import numpy as np
 import pylab as pl
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.linear_model import RidgeClassifier
-from sklearn.linear_model import SGDClassifier
-from sklearn.linear_model import Perceptron
-from sklearn.linear_model import PassiveAggressiveClassifier
-from sklearn.naive_bayes import BernoulliNB, MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neighbors import NearestCentroid
-from sklearn.ensemble import RandomForestClassifier
+# from sklearn.feature_selection import SelectKBest, chi2
+# from sklearn.linear_model import RidgeClassifier
+# from sklearn.linear_model import SGDClassifier
+# from sklearn.linear_model import Perceptron
+# from sklearn.linear_model import PassiveAggressiveClassifier
+# from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+# from sklearn.neighbors import KNeighborsClassifier
+# from sklearn.neighbors import NearestCentroid
+# from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.extmath import density
 from sklearn import metrics
 from sklearn.model_selection import cross_validate  #by Gabi
@@ -42,6 +42,7 @@ from sklearn.datasets import load_files
 from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import Counter
 from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
@@ -51,6 +52,19 @@ from sklearn import preprocessing
 
 
 class ActiveLearning:
+
+    # def __new__(cls):
+    #     try:
+    #         it = cls.__it__
+    #     except AttributeError:
+    #         it = cls.__it__ = object.__new__(cls)
+    #     return it
+    #
+    # def __repr__(self):
+    #     return '<{}>'.format(self.__class__.__name__.upper())
+    #
+    # def __eq__(self, other):
+    #     return other is self
 
     def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data"):
         # If session_folder and download_folder are different, donot forget to use clone_original_files to move the ones in the download folder to the session folder (the target one)
@@ -330,8 +344,6 @@ class ActiveLearning:
 
     def write_data_in_folders(self, field, path, dataset):
 
-        #print("WRITTING FIELD: ", field)
-
         if not os.path.exists(path):
              os.makedirs(path)
 
@@ -339,18 +351,22 @@ class ActiveLearning:
             try:
                 self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field]))
             except KeyError as ke:
-               print("Key value missing , maybe this tweet doesn't have the"+ field+"field.")
+               print("Key value missing, maybe this document doesn't have the 'id_str' or the '" + field + "' fields.")
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
 
-    def loading_tweets_from_files(self):
+    def loading_tweets_from_files(self, download_test=True):
 
         # Loading the datasets
         print("Loading training data from ", self.TRAIN_FOLDER)
         data_train = load_files(self.TRAIN_FOLDER, encoding=self.ENCODING)  # data_train
-        print("Loading testing data from ", self.TEST_FOLDER)
-        data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+
+        if download_test:
+            print("Loading testing data from ", self.TEST_FOLDER)
+            data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+        else: data_test = None
+
         print("Loading target data from ", self.UNLABELED_FOLDER)
         unlabeled = load_files(self.UNLABELED_FOLDER, encoding=self.ENCODING)
 
@@ -614,7 +630,7 @@ class ActiveLearning:
         if total_proposed_data == 0:
             raise Exception('You need to have some data to classify in your dataset')
 
-    def build_model(self, **kwargs):
+    def build_model(self, **kwargs): # to use from the experiment
 
         # Keep track of the last used params
         self.remove_stopwords = kwargs["remove_stopwords"]
@@ -641,8 +657,8 @@ class ActiveLearning:
             raise Exception('The target (unlabeled) set is empty.')
             return
 
-        if (len(self.data_unlabeled.data) == 0):
-            raise Exception('The unlabeled set is empty.')
+        if (len(data_train.data) == 0):
+            raise Exception('The train set is empty.')
             return
 
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
@@ -692,18 +708,6 @@ class ActiveLearning:
 
         pos_precision_score = true_positives/total_expected_positives
 
-        # pos_y_test = np.array(y_test[pos_indexes])
-        # pos_pred = np.array(pred[pos_indexes])
-
-        # test_condition = np.where(idx in pos_indexes)
-        # pos_y_test = np.extract(condition, pos_indexes)
-        #
-        # pred_condition = np.where(idx in pos_indexes)
-        # pos_pred = np.extract(condition, pred)
-
-        # pos_precision_score = metrics.precision_score(np.array(pos_y_test), np.array(pos_pred))
-
-
         self.scores = {
             "f1": score,
             "accuracy": accscore,
@@ -712,6 +716,61 @@ class ActiveLearning:
             "positive_precision": pos_precision_score
         }
         self.X_unlabeled = scaler.transform(X_unlabeled)
+
+        # compute absolute confidence for each unlabeled sample in each class
+        # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
+        decision = self.sampler.model.decision_function(
+            self.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        self.last_confidences = np.abs(decision)  # Calculates the absolute value element-wise
+        self.last_predictions = self.sampler.model.predict(self.X_unlabeled)
+
+    def build_model_no_test(self, **kwargs):  # to use from the UI
+
+        # Keep track of the last used params
+        self.remove_stopwords = kwargs["remove_stopwords"]
+
+        # Starting the process
+        data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files(download_test=False)
+
+        # Get the sparse matrix of each dataset
+        y_train = data_train.target
+
+        vectorizer = TfidfVectorizer(encoding=self.ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
+                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
+
+        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
+        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
+        X_train = vectorizer.fit_transform(data_train.data)
+
+        if(len(self.data_unlabeled)==0):
+            raise Exception('The target (unlabeled) set is empty.')
+            return
+
+        if (len(self.data_unlabeled.data) == 0):
+            raise Exception('The unlabeled set is empty.')
+            return
+
+        # Extracting features from the unlabled dataset using the same vectorizer
+        print("Vectorizing the target set")
+        X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
+        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
+
+        # fits the model according to the training set (passing its data and the vectorized feature)
+        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
+        # normalized_X_train = scale(X_train, with_mean=False)
+        scaler = preprocessing.StandardScaler(with_mean=False)
+        scaler = scaler.fit(X_train)
+
+        # No test scores generation ...
+
+        # Normalize the unlabeled set according to the training set distribution
+        X_train = scaler.transform(X_train)
+        self.sampler.model.fit(X_train, y_train)
+        self.X_unlabeled = scaler.transform(X_unlabeled)
+
+        decision = self.sampler.model.decision_function(self.X_unlabeled)
+        self.last_confidences = np.abs(decision)
+        self.last_predictions = self.sampler.model.predict(self.X_unlabeled)
 
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field=""):
 
@@ -765,35 +824,35 @@ class ActiveLearning:
         return complete_question_samples
 
 
-    def update_answers_labels_in_index(self, labeled_questions, index, session):
-
-        print("Marking answers in elastic")
-        for question in labeled_questions:
-            #print("Moving", question["filename"], " to ", dstDir)
-            try:
-                Es_connector(index=index).update_by_query({
-                    "query": {
-                        "match": {
-                            "id_str": question["filename"]
-                        }
-                    }
-                }, "ctx._source." + session + " = '" + question["label"] + "'")
-            except:
-                print("...")
-
-                {
-                    "script": {
-                        "source": "ctx._source.session_lyon2017_test_03 = params.label",
-                        "params": {
-                            "label": "proposed"
-                        }
-                    },
-                    "query": {
-                        "match": {
-                            "id_str": "..."
-                        }
-                    }
-                }
+    # def update_answers_labels_in_index(self, labeled_questions, index, session):
+    #
+    #     print("Marking answers in elastic")
+    #     for question in labeled_questions:
+    #         #print("Moving", question["filename"], " to ", dstDir)
+    #         try:
+    #             Es_connector(index=index).update_by_query({
+    #                 "query": {
+    #                     "match": {
+    #                         "id_str": question["filename"]
+    #                     }
+    #                 }
+    #             }, "ctx._source." + session + " = '" + question["label"] + "'")
+    #         except:
+    #             print("...")
+    #
+    #             {
+    #                 "script": {
+    #                     "source": "ctx._source.session_lyon2017_test_03 = params.label",
+    #                     "params": {
+    #                         "label": "proposed"
+    #                     }
+    #                 },
+    #                 "query": {
+    #                     "match": {
+    #                         "id_str": "..."
+    #                     }
+    #                 }
+    #             }
 
     def move_answers_to_training_set(self, labeled_questions):
 
@@ -881,6 +940,82 @@ class ActiveLearning:
 
         return loops_values, accuracies, precision
 
+    def update_tmp_predictions(self, **kwargs):
+
+        # self.clear_tmp_predictions(**kwargs)
+        # mark all as negative
+        # self.mark_full_unlabeled_set_as(as_category="negative", field=kwargs["session"] + "_tmp", **kwargs)
+        self.mark_tmp_predictions(as_category="negative", field=kwargs["session"] + "_tmp", subset=kwargs["negatives"], **kwargs)
+        # then mark positives
+        self.mark_tmp_predictions(as_category="confirmed", field=kwargs["session"] + "_tmp", subset=kwargs["positives"], **kwargs)
+
+    def clear_tmp_predictions(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+        res = my_connector.update_by_query({
+            "query": {
+                "exists" : { "field" : kwargs["session"] + "_tmp" }  # e.g. session_lyon2015_test_01_tmp
+            }
+        }, "ctx._source." + kwargs["session"] + "_tmp = 'proposed'")  #"ctx._source.remove('" + kwargs["session"] + "_tmp')")
+
+    def remove_tmp_predictions_field(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+
+        for answer in kwargs["answers"]:
+            res = my_connector.update_by_query({
+                "query": {
+                    "match": {
+                        "_id": answer["id"]
+                    }
+                }
+            }, "ctx._source.remove('" + kwargs["session"] + "_tmp')")
+
+    def remove_all_tmp_predictions_field(self, **kwargs):
+
+        print("Removing all the predictions")
+        Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
+            "query": {
+                "exists": { "field" : kwargs["field"]}
+            }
+        }, "ctx._source.remove('" + kwargs["field"] + "')")
+
+
+    def mark_full_unlabeled_set_as(self, **kwargs):
+
+        Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
+            "query": {
+                "bool": {
+                  "must_not": [
+                    {
+                      "match": {
+                        kwargs["field"]: kwargs["as_category"]
+                      }
+                    }
+                  ]
+                }
+            }
+        }, "ctx._source." + kwargs["field"] + " = '" + kwargs["as_category"] + "'")
+
+
+    def mark_tmp_predictions(self, **kwargs):
+
+        print("Bulk: marking " + kwargs["as_category"] + " predictions")
+        # Bulk
+        query_list = []
+        for id in kwargs["subset"]:
+            query_dict = {
+                '_op_type': 'update',
+                '_index': kwargs["index"],
+                '_type': "tweet",
+                '_id': id,
+                'doc': {kwargs["field"]: kwargs["as_category"]}
+            }
+            query_list.append(query_dict)
+
+        helpers.bulk(client= Es_connector(index=kwargs["index"], doc_type="tweet").es, actions=query_list)
+
+
     def get_classified_queries_ids(self, **kwargs):
 
         # middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
@@ -888,17 +1023,17 @@ class ActiveLearning:
         neg_ids = []
 
         confidences = []
-        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for index in self.sampler.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
             confidences.append(self.last_confidences[index])
         min_conf = min(confidences)
         max_conf = max(confidences)
 
-        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for smple in self.sampler.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
 
-            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
-            pred_label = self.categories[int(self.last_predictions[index])]
-            scaled_confidence = (self.last_confidences[index] - min_conf) / (max_conf - min_conf)
-            # print("Scaled: ", scaled_confidence, " [", kwargs["target_min_score"], ",", kwargs["target_max_score"], "]")
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[smple])
+            print(id_str, "from", self.data_unlabeled.filenames[smple])
+            pred_label = self.categories[int(self.last_predictions[smple])]
+            scaled_confidence = (self.last_confidences[smple] - min_conf) / (max_conf - min_conf)
 
             if(scaled_confidence > kwargs["target_min_score"]) and (scaled_confidence < kwargs["target_max_score"]):
                 if (pred_label == "confirmed"):
