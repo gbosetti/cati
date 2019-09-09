@@ -39,7 +39,7 @@
 				<div class="collapse navbar-collapse" id="mainCATInavbar">
 					<ul class="navbar-nav mr-auto">
 						<li class="nav-item" id="nav-mabed">
-							<a class="nav-link" href="#mabed">Detect Events Using MABED</a>
+							<a class="nav-link" href="#mabed">Detect Events</a>
 						</li>
 						<li class="nav-item" id="nav-results">
 							<a class="nav-link" href="#results">Event-detection results</a>
@@ -809,7 +809,7 @@
 			           <h3 class="pix-gray darken-4 font-black">Run MABED</h3>
 			      </div>
 
-			      <div class="col-12 col-sm-12">
+			      <div class="col-12 col-sm-12 pix-margin-bottom-30">
 
 			        <!-- MABED SECTION -->
 			        <form class="static_box pix-padding-20 white-bg" id="run_mabed">
@@ -870,6 +870,34 @@
 			            <button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
 			        </form>
 			      </div>
+
+				  <div class="col-12 pix-margin-bottom-30">
+			           <h3 class="pix-gray darken-4 font-black">Run TOBAS</h3>
+			      </div>
+
+			      <div class="col-12 col-sm-12">
+
+			        <!-- TOPIC-BASED SECTION -->
+			        <form class="static_box pix-padding-20 white-bg" id="run_tobas">
+
+						<div class="form-row">
+							<div class="col-md-3 col-sm-12 h_field">
+							  <label for="inputState">Filter</label>
+							  <select name="filter" class="form-control">
+								<option value="all" selected>All Tweets</option>
+								<option value="proposed">Proposed</option>
+								<option value="negative">Negative</option>
+								<option value="confirmed">Confirmed</option>
+								  <option value="proposedconfirmed">Proposed + Confirmed</option>
+							  </select>
+							</div>
+						</div>
+						</br>
+						<button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
+
+					</form>
+				  </div>
+
 			    </div>
 			  </div>
 			</div>

@@ -2,6 +2,7 @@ app.views.mabed = Backbone.View.extend({
     template: _.template($("#tpl-page-mabed").html()),
     events: {
         'submit #run_mabed': 'run_mabed',
+        'submit #run_tobas': 'run_tobas'
     },
     initialize: function() {
         var handler = _.bind(this.render, this);
@@ -293,6 +294,42 @@ app.views.mabed = Backbone.View.extend({
           }else{
               console.log("No result");
           }
+
+      }, 'json').fail(function() {
+            $.confirm({
+                title: 'Error',
+                boxWidth: '600px',
+                theme: 'pix-danger-modal',
+                backgroundDismiss: true,
+                content: "An error was encountered while connecting to the server, please try again.",
+                buttons: {
+                    cancel: {
+                        text: 'CANCEL',
+                        btnClass: 'btn-cancel',
+                    }
+                }
+            });
+        });
+
+      return false;
+    },
+    run_tobas: function(e){
+        e.preventDefault();
+        if(!app.session){
+          return this.notifyNoSession()
+        }
+      console.log("Running TOBAS from mabed.js...");
+      $('#mabed_loading').fadeIn('slow');
+      var self = this;
+      var data = $('#run_mabed').serializeArray();
+      data.push({name: "index", value: app.session.s_index});
+      //data.push({name: "session", value: app.session.s_name});
+
+      //var progressPopup = this.showProcessingEventsPopup();
+
+      $.post(app.appURL+'detect_events_with_tobas', data, function(response){
+
+         console.log("RESPONSE FROM TOBAS", data);
 
       }, 'json').fail(function() {
             $.confirm({

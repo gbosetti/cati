@@ -25,9 +25,9 @@ from classification.ngram_based_classifier import NgramBasedClasifier
 # rest
 from flask_restful import Resource, Api, reqparse
 
-
 # mabed
 from mabed.functions import Functions
+from tobas.TobasEventDetection import TobasEventDetection
 import datetime
 app = Flask(__name__, static_folder='browser/static', template_folder='browser/templates')
 app.config['FLASK_HTPASSWD_PATH'] = '.htpasswd'
@@ -59,6 +59,7 @@ for source in config['elastic_search_sources']:
 htpasswd = HtPasswdAuth(app)
 ngram_classifier = NgramBasedClasifier()
 classifier = ActiveLearning(download_folder_name="tmp_data")
+tobas = TobasEventDetection()
 
 al_path = os.path.join(os.getcwd(), "classification", "logs", "current_al_status.json")
 if not os.path.exists(os.path.dirname(al_path)):
@@ -183,6 +184,17 @@ def get_backend_logs():
     logs = jsonify(app.backend_logger.get_logs())
     app.backend_logger.clear_logs()
     return logs
+
+# Run MABED
+@app.route('/detect_events_with_tobas', methods=['POST', 'GET'])
+# @cross_origin()
+def detect_events_with_tobas():
+    data = request.form
+
+    res = tobas.detect_events(index=data["index"]) #docs=clean_corpus)
+    print(res)
+
+    return jsonify(res)
 
 # Run MABED
 @app.route('/detect_events', methods=['POST', 'GET'])
