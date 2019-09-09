@@ -18,7 +18,7 @@ app.views.mabed = Backbone.View.extend({
     },
     getClassificationStats: function () {
 
-        setTimeout(function(){
+        setTimeout(()=>{
 
             if (!app.session) {
                 return this.notifyNoSession();
