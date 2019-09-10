@@ -10,13 +10,13 @@ class TobasEventDetection:
     def __init__(self):
         self.tknzr = TweetTokenizer()
 
-    def detect_events(self, index):
+    def detect_events(self, index, doc_field):
         # tokenized_docs = [['human', 'interface', 'computer'],
         #  ['survey', 'user', 'computer', 'system', 'response', 'time'],
         #  ['eps', 'user', 'interface', 'system']]
         # Setting up the corpus
 
-        tokenized_docs = self.get_tweets(index=index, doc_field="text")
+        tokenized_docs = self.get_tweets(index=index, doc_field=doc_field)
         words_distribution = Dictionary(tokenized_docs) # list of (word, word_count) tuples
         corpus = [words_distribution.doc2bow(doc) for doc in tokenized_docs]  # Convert document into the bag-of-words (BoW) format = list of (token_id, token_count) tuples.
 

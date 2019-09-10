@@ -321,8 +321,9 @@ app.views.mabed = Backbone.View.extend({
       console.log("Running TOBAS from mabed.js...");
       $('#mabed_loading').fadeIn('slow');
       var self = this;
-      var data = $('#run_mabed').serializeArray();
-      data.push({name: "index", value: app.session.s_index});
+      var   data = $('#run_mabed').serializeArray();
+            data.push({name: "index", value: app.session.s_index});
+            data.push({name: "doc_field", value: "clean_text"});  // The target field from which to consider as the tweets content
       //data.push({name: "session", value: app.session.s_name});
 
       //var progressPopup = this.showProcessingEventsPopup();

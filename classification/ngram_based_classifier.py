@@ -9,7 +9,9 @@ from nltk.tokenize import TweetTokenizer
 import re
 import json
 from elasticsearch_dsl import UpdateByQuery
-
+from nltk.stem.snowball import FrenchStemmer
+from nltk.stem.snowball import EnglishStemmer
+from nltk.stem.snowball import ArabicStemmer
 
 class NgramBasedClasifier:
 
@@ -36,6 +38,30 @@ class NgramBasedClasifier:
         full_text_no_emojis = self.remove_emojis(full_text)
         full_text_no_emojis = " ".join(full_text_no_emojis.split())
         return full_text_no_emojis
+
+    def remove_urls(self, text):
+
+        return re.sub(r'http\S+', '', text).strip()
+
+    def lemmatize(self, text, lang):
+
+        # spacy.prefer_gpu()
+        # nlp = spacy.load(lang) # en fr "en_core_web_sm"
+        if lang == "fr":
+            stemmer = FrenchStemmer()
+        else:
+            stemmer = EnglishStemmer()
+
+        stemmed = []
+        for word in text.split(" "):
+            stemmed.append(stemmer.stem(word))
+
+        # doc = nlp(u""+text)
+        # lem_terms = []
+        # for token in doc:
+        #     lem_terms.append(token.lemma_)
+
+        return " ".join(stemmed)
 
     def search_bigrams_related_tweets(self, **kwargs):
 

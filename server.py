@@ -190,10 +190,7 @@ def get_backend_logs():
 # @cross_origin()
 def detect_events_with_tobas():
     data = request.form
-
-    res = tobas.detect_events(index=data["index"]) #docs=clean_corpus)
-    print(res)
-
+    res = tobas.detect_events(index=data["index"], doc_field=data["doc_field"]) #docs=clean_corpus)
     return jsonify(res)
 
 # Run MABED

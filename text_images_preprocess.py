@@ -13,6 +13,18 @@ parser.add_argument("-i",
                     dest="index",
                     help="The target index to which to add the new field")
 
+parser.add_argument("-if",
+                    "--input_field",
+                    dest="input_field",
+                    help="The target field to be written and pre-processed",
+                    default="text")
+
+parser.add_argument("-of",
+                    "--output_field",
+                    dest="output_field",
+                    help="The field name to generate as the output",
+                    default="clean-text")
+
 parser.add_argument("-l",
                     "--languages",
                     dest="languages",
@@ -30,7 +42,8 @@ def to_boolean(str_param):
 args = parser.parse_args()
 
 index = args.index  # E.g. "experiment_lyon_2015_gt"
-property_name = "text_images"
+input_field = args.input_field
+output_field = args.output_field
 
 if 'languages' in args and args.languages != None:
     langs = args.languages.split(',')
@@ -43,6 +56,7 @@ else:
 
 
 def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
+
     ngramsAnalizer = NgramBasedClasifier()
     for tweet in docs:
         image_clusters = tweet["_source"].get("imagesCluster", [])
@@ -50,21 +64,26 @@ def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
         for cluster_id in image_clusters:
             image_clusters_str += ' ' + str(cluster_id)
 
-        doc_text = tweet["_source"]["text"]
+        doc_text = tweet["_source"][input_field]
         clean_text = ngramsAnalizer.remove_stop_words(doc_text, langs=langs)  # .split()
+        clean_text = ngramsAnalizer.remove_urls(text=clean_text)
+        clean_text = ngramsAnalizer.lemmatize(clean_text, "en") # "en", "fr"
 
         full_text = clean_text + image_clusters_str
-        #print(property_name, "(", tweet["_id"], ") = ", full_text)
-        # ngramsAnalizer.updatePropertyValue(tweet=tweet, property_name=property_name, property_value=full_text, index=index)
         Es_connector(index=index).es.update(
             index=index,
             doc_type="tweet",
             id=tweet["_id"],
             body={"doc": {
-                property_name: full_text
+                output_field: full_text
             }}
         )
     print("Languages for stopwords: ", ngramsAnalizer.retrievedLangs)
+
+
+
+
+
 
 
 
@@ -76,11 +95,6 @@ try:
         }
     })
 
-    # res = my_connector.init_paginatedSearch({
-    #     "query": {
-    #         "match": {"_id": "SvfjDGoBPjCajA-0a9x-"}
-    #     }
-    # })
     sid = res["sid"]
     scroll_size = res["scroll_size"]
     init_total = int(res["total"])
