@@ -30,11 +30,14 @@ class NgramBasedClasifier:
     def remove_stop_words(self, full_text, langs=["en", "fr", "es"]):
 
         punctuation = list(string.punctuation + "…" + "’" + "'" + '🔴' + '•' + '...' + '.')
-        multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT"] + punctuation
-        tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
-        filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
+        multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT", "im"] + punctuation
 
-        full_text = " ".join(filtered_words).lower()
+        full_text = full_text.lower().translate(str.maketrans('', '', string.punctuation))
+
+        tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
+        filtered_words = list(filter(lambda word: len(word)>1 and word not in multilang_stopwords, tokenized_text))
+
+        full_text = " ".join(filtered_words)
         full_text_no_emojis = self.remove_emojis(full_text)
         full_text_no_emojis = " ".join(full_text_no_emojis.split())
         return full_text_no_emojis

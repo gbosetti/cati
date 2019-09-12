@@ -4,31 +4,55 @@ from gensim.corpora.dictionary import Dictionary
 from mabed.es_connector import Es_connector
 from nltk.tokenize import TweetTokenizer
 from datetime import datetime
+from mabed.mabed import MABED
+from tobas.TobasCorpus import TobasCorpus
 
 class TobasEventDetection:
 
     def __init__(self):
         self.tknzr = TweetTokenizer()
 
-    def detect_events(self, index, doc_field):
-        # tokenized_docs = [['human', 'interface', 'computer'],
-        #  ['survey', 'user', 'computer', 'system', 'response', 'time'],
-        #  ['eps', 'user', 'interface', 'system']]
-        # Setting up the corpus
+    def detect_events(self, index, doc_field, max_perc_words_by_topic, logger):
+
+        vocabulary = self.get_vocabulary(index, doc_field, max_perc_words_by_topic)
+        corpus = TobasCorpus(vocabulary=vocabulary)
+
+        mabed = MABED(corpus, logger)
+        basic_events = mabed.phase1()
+
+    def get_vocabulary(self, index, doc_field, max_perc_words_by_topic):
 
         tokenized_docs = self.get_tweets(index=index, doc_field=doc_field)
-        words_distribution = Dictionary(tokenized_docs) # list of (word, word_count) tuples
-        corpus = [words_distribution.doc2bow(doc) for doc in tokenized_docs]  # Convert document into the bag-of-words (BoW) format = list of (token_id, token_count) tuples.
+        words_distribution = Dictionary(tokenized_docs)  # list of (word, word_count) tuples
+        corpus = [words_distribution.doc2bow(doc) for doc in
+                  tokenized_docs]  # Convert document into the bag-of-words (BoW) format = list of (token_id, token_count) tuples.
 
-        print('Getting topics at ', datetime.now())
+        print('Getting initial vocabulary at ', datetime.now())
         topics = self.get_topics(corpus, words_distribution)
-        print('Got topics at ', datetime.now())
-        return topics
+        print('Got vocabulary at ', datetime.now(), "(", len(topics)," topics)", topics)
+
+        # Now filter the most important terms
+        vocabulary=set()
+
+        avg_topics_length = [len(topic[1]) for topic in topics]
+        avg_topics_length = sum(avg_topics_length)/len(topics)
+        max_words_by_topic = int(avg_topics_length * max_perc_words_by_topic)
+
+        for topic in topics:
+            topic_words = topic[1]
+            i = 0
+            topic_words_size = len(topic_words)
+
+            while i <= max_words_by_topic and i<topic_words_size: #topic_words[i][0] palabra, topic_words[i][1] weight
+                vocabulary.add(topic_words[i][0])
+                i += 1
+
+        return list(vocabulary)
 
     def get_topics(self, corpus, vocabulary):
 
         hdp = HdpModel(corpus=corpus, id2word=vocabulary)
-        return hdp.show_topics(formatted=True) #.print_topics(num_topics=20, num_words=10)  # If -1 all topics will be in result (ordered by significance). num_words is optional.
+        return hdp.show_topics(formatted=False) #.print_topics(num_topics=20, num_words=10)  # If -1 all topics will be in result (ordered by significance). num_words is optional.
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
@@ -53,7 +77,5 @@ class TobasEventDetection:
 
             res = my_connector.loop_paginatedSearch(sid, scroll_size)
             scroll_size = res["scroll_size"]
-            print(processed_tweets)
-
 
         return all_tweets

@@ -855,19 +855,13 @@
 			        <!-- TOPIC-BASED SECTION -->
 			        <form class="static_box pix-padding-20 white-bg" id="run_tobas">
 
-						<!-- <div class="form-row">
-							<div class="col-md-3 col-sm-12 h_field">
-							  <label for="inputState">Filter</label>
-							  <select name="filter" class="form-control">
-								<option value="all" selected>All Tweets</option>
-								<option value="proposed">Proposed</option>
-								<option value="negative">Negative</option>
-								<option value="confirmed">Confirmed</option>
-								  <option value="proposedconfirmed">Proposed + Confirmed</option>
-							  </select>
-							</div>
-						</div>
-						</br>-->
+						<div class="col-md-3 col-sm-12 h_field">
+			              <label for="p_value">Percentage of average words describing topics</label>
+			              <div class="input-group mb-3">
+			                <input id="max_perc_words_by_topic" name="max_perc_words_by_topic" type="number" class="form-control" placeholder="Default to 0.5" value="0.5" min="0" max="1" step="0.1" >
+			              </div>
+			            </div>
+						</br>
 						<button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
 
 					</form>

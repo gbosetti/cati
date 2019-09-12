@@ -319,11 +319,11 @@ app.views.mabed = Backbone.View.extend({
           return this.notifyNoSession()
         }
       console.log("Running TOBAS from mabed.js...");
-      $('#mabed_loading').fadeIn('slow');
       var self = this;
-      var   data = $('#run_mabed').serializeArray();
+      var   data = []
             data.push({name: "index", value: app.session.s_index});
-            data.push({name: "doc_field", value: "clean_text"});  // The target field from which to consider as the tweets content
+            data.push({name: "doc_field", value: "clean-text"});  // The target field from which to consider as the tweets content
+            data.push({name: "max_perc_words_by_topic", value: $("#max_perc_words_by_topic").val()});
       //data.push({name: "session", value: app.session.s_name});
 
       //var progressPopup = this.showProcessingEventsPopup();
