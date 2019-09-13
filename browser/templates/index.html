@@ -854,23 +854,25 @@
 
 			        <!-- TOPIC-BASED SECTION -->
 			        <form class="static_box pix-padding-20 white-bg" id="run_tobas">
+						<div class="form-row">
 
-						<div class="col-md-3 col-sm-12 h_field">
-			              <label for="tobas_time_slice_length">Time-slice length</label>
-			              <div class="input-group mb-3">
-			                <input id="tobas_time_slice_length" aria-describedby="basic-addon1" name="tobas_time_slice_length" type="text" class="form-control" placeholder="Default to 30" value="30">
-			                <div class="input-group-append">
-			                  <span class="input-group-text">minutes</span>
-			                </div>
-			              </div>
-			            </div>
+							<div class="col-md-3 col-sm-12 h_field">
+							  <label for="tobas_time_slice_length">Time-slice length</label>
+							  <div class="input-group mb-3">
+								<input id="tobas_time_slice_length" aria-describedby="basic-addon1" name="tobas_time_slice_length" type="text" class="form-control" placeholder="Default to 30" value="30">
+								<div class="input-group-append">
+								  <span class="input-group-text">minutes</span>
+								</div>
+							  </div>
+							</div>
 
-						<div class="col-md-3 col-sm-12 h_field">
-			              <label for="p_value">Percentage of average words describing topics</label>
-			              <div class="input-group mb-3">
-			                <input id="max_perc_words_by_topic" name="max_perc_words_by_topic" type="number" class="form-control" placeholder="Default to 0.5" value="0.5" min="0" max="1" step="0.1" >
-			              </div>
-			            </div>
+							<div class="col-md-3 col-sm-12 h_field">
+							  <label for="p_value">Percentage of average words describing topics</label>
+							  <div class="input-group mb-3">
+								<input id="max_perc_words_by_topic" name="max_perc_words_by_topic" type="number" class="form-control" placeholder="Default to 0.5" value="0.5" min="0" max="1" step="0.1" >
+							  </div>
+							</div>
+						</div>
 						</br>
 						<button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
 

@@ -330,7 +330,7 @@ app.views.mabed = Backbone.View.extend({
       //var progressPopup = this.showProcessingEventsPopup();
       $.post(app.appURL+'detect_events_with_tobas', data, function(response){
 
-         console.log("RESPONSE FROM TOBAS", data);
+         console.log("RESPONSE FROM TOBAS", response);
 
       }, 'json').fail(function() {
             $.confirm({

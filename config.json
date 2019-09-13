@@ -6,12 +6,12 @@
       "user": "elastic",
       "password": "elastic",
       "timeout": 1000,
-      "index": "geo_passau_plus",
+      "index": "geo_passau_plus_en",
       "doc_type": "tweet"
     }
   ],
   "default": {
-    "index":"geo_passau_plus",
+    "index":"geo_passau_plus_en",
     "session" : "passau_cls_refugees",
     "sessions_index" : {
       "host": "localhost",

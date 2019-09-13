@@ -15,24 +15,21 @@ class TobasEventDetection(MABED):
     def __init__(self):
         self.tknzr = TweetTokenizer()
 
-    def detect_events(self, index, doc_field, max_perc_words_by_topic, logger, time_slice_length, k=10, words_per_event=10, theta=0.6, sigma=0.5):
+    def detect_events(self, index, doc_field, max_perc_words_by_topic, logger, time_slice_length, k=10, rel_words_per_event=5, theta=0.6, sigma=0.5):
 
         # vocabulary = self.get_vocabulary(index, doc_field, max_perc_words_by_topic)
         # corpus = TobasCorpus(vocabulary=vocabulary)  # text timestamp_ms (must be a date object)
-
         vocabulary_tweets = self.get_vocabulary_tweets(index, doc_field, max_perc_words_by_topic)
         self.corpus = TobasCorpus(tweets=vocabulary_tweets)  # text timestamp_ms (must be a date object)
         self.corpus.discretize(time_slice_length, logger=logger)
 
         mabed = MABED(self.corpus, logger)
-        self.words_per_event = words_per_event
-        self.p = words_per_event # since some inherited methods need it with this name
-        self.k = k
+        self.rel_words_per_event = rel_words_per_event
+        self.p = rel_words_per_event # since some inherited methods need it with this name
         self.theta = theta
         self.sigma = sigma
         basic_events = mabed.phase1()
         final_events = self.phase2(basic_events)
-        #print("events: ", final_events)
 
         return final_events
 
@@ -44,9 +41,10 @@ class TobasEventDetection(MABED):
 
         filtered_tweets = []
         for tweet in tweets:
-            word_list = tweet['_source']["text"] # [word for word in tweet['_source']["text"] if word in vocabulary]
-            if len(word_list)>0:
-                tweet['_source']["text"] = " ".join(word_list)
+
+            matching_words = [word for word in tweet['_source']["text"] if word in vocabulary]
+            if len(matching_words)>0:
+                tweet['_source']["text"] = " ".join(tweet['_source']["text"])
                 filtered_tweets.append(tweet)
 
         return filtered_tweets
@@ -144,13 +142,12 @@ class TobasEventDetection(MABED):
         # create the event graph (directed) and the redundancy graph (undirected)
         self.event_graph = nx.DiGraph(name='Event graph')
         self.redundancy_graph = nx.Graph(name='Redundancy graph')
-        unique_events = 0
         refined_events = []
 
         for basic_event in basic_events:
 
             main_word = basic_event[2]
-            candidate_words = self.corpus.cooccurring_words(basic_event, self.words_per_event)
+            candidate_words = self.corpus.cooccurring_words(basic_event, self.rel_words_per_event)
             main_word_freq = self.corpus.global_freq[self.corpus.vocabulary[main_word], :].toarray()
             main_word_freq = main_word_freq[0, :]
             related_words = []
@@ -166,12 +163,17 @@ class TobasEventDetection(MABED):
                     if weight >= self.theta:
                         related_words.append((candidate_word, weight))
 
-                if len(related_words) > 1:
-                    refined_event = (basic_event[0], basic_event[1], main_word, related_words, basic_event[3])
-                    # check if this event is distinct from those already stored in the event graph
-                    if self.update_graphs(refined_event):
-                        refined_events.append(refined_event)
-                        unique_events += 1
+                # if len(related_words) > 1:
+                # I also removed a tab. The following lines were inside the "if candidate_words is not None:"
+            else: print("no related words")
+
+            refined_event = (basic_event[0], basic_event[1], main_word, related_words, basic_event[3])
+
+            if self.update_graphs(refined_event): # check if this event is distinct from those already stored in the event graph
+                refined_events.append(refined_event)
+            else :
+                print("Different main word but same related words")
+
         # merge redundant events and save the result
         self.events = self.merge_redundant_events(refined_events)
         return self.events

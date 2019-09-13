@@ -148,3 +148,30 @@ class TobasCorpus(Corpus):
                 time_slice_file.write(tweet_text+'\n')
         self.global_freq = self.global_freq.tocsr()
         self.mention_freq = self.global_freq  #GAB self.mention_freq.tocsr()
+
+    def cooccurring_words(self, event, rel_words_per_event):
+        main_word = event[2]
+        word_frequency = {}
+        for i in range(event[1][0], event[1][1] + 1):
+            with open('corpus/' + str(i), 'r',  encoding="utf-8") as input_file:
+                for tweet_text in input_file.readlines():
+                    words = self.tokenize(tweet_text)
+                    if event[2] in words:
+                        for word in words:
+                            if word != main_word:
+                                if len(word) > 1 and self.vocabulary.get(word) is not None:  # Comment to include all the words
+                                    frequency = word_frequency.get(word)
+                                    if frequency is None:
+                                        frequency = 0
+                                    word_frequency[word] = frequency + 1
+        # sort words w.r.t frequency
+        vocabulary = list(word_frequency.items())
+        vocabulary.sort(key=lambda x: x[1], reverse=True)
+        top_cooccurring_words = []
+        for word, frequency in vocabulary:
+            top_cooccurring_words.append(word)
+            if len(top_cooccurring_words) == rel_words_per_event:
+                # return the p words that co-occur the most with the main word
+                break
+
+        return top_cooccurring_words
