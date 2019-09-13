@@ -324,10 +324,10 @@ app.views.mabed = Backbone.View.extend({
             data.push({name: "index", value: app.session.s_index});
             data.push({name: "doc_field", value: "clean-text"});  // The target field from which to consider as the tweets content
             data.push({name: "max_perc_words_by_topic", value: $("#max_perc_words_by_topic").val()});
+            data.push({name: "time_slice_length", value: $("#tobas_time_slice_length").val()});
             data.push({name: "session", value: app.session.s_name});
 
       //var progressPopup = this.showProcessingEventsPopup();
-
       $.post(app.appURL+'detect_events_with_tobas', data, function(response){
 
          console.log("RESPONSE FROM TOBAS", data);

@@ -36,7 +36,8 @@ class MABED:
     def phase1(self):
         self.logger.add_log('Phase 1...')
         basic_events = []
-        for vocabulary_entry in self.corpus.vocabulary.items():
+        items = self.corpus.vocabulary.items()
+        for vocabulary_entry in items:
             basic_events.append(self.maximum_contiguous_subsequence_sum(vocabulary_entry))
         self.logger.add_log('   Detected events: %d' % len(basic_events))
         return basic_events

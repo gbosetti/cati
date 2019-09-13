@@ -6,23 +6,56 @@ from nltk.tokenize import TweetTokenizer
 from datetime import datetime
 from mabed.mabed import MABED
 from tobas.TobasCorpus import TobasCorpus
+import networkx as nx
+import numpy as np
+import mabed.stats as st
 
-class TobasEventDetection:
+class TobasEventDetection(MABED):
 
     def __init__(self):
         self.tknzr = TweetTokenizer()
 
-    def detect_events(self, index, doc_field, max_perc_words_by_topic, logger):
+    def detect_events(self, index, doc_field, max_perc_words_by_topic, logger, time_slice_length, k=10, words_per_event=10, theta=0.6, sigma=0.5):
 
-        vocabulary = self.get_vocabulary(index, doc_field, max_perc_words_by_topic)
-        corpus = TobasCorpus(vocabulary=vocabulary)
+        # vocabulary = self.get_vocabulary(index, doc_field, max_perc_words_by_topic)
+        # corpus = TobasCorpus(vocabulary=vocabulary)  # text timestamp_ms (must be a date object)
 
-        mabed = MABED(corpus, logger)
+        vocabulary_tweets = self.get_vocabulary_tweets(index, doc_field, max_perc_words_by_topic)
+        self.corpus = TobasCorpus(tweets=vocabulary_tweets)  # text timestamp_ms (must be a date object)
+        self.corpus.discretize(time_slice_length, logger=logger)
+
+        mabed = MABED(self.corpus, logger)
+        self.words_per_event = words_per_event
+        self.p = words_per_event # since some inherited methods need it with this name
+        self.k = k
+        self.theta = theta
+        self.sigma = sigma
         basic_events = mabed.phase1()
+        final_events = self.phase2(basic_events)
+        #print("events: ", final_events)
 
-    def get_vocabulary(self, index, doc_field, max_perc_words_by_topic):
+        return final_events
 
-        tokenized_docs = self.get_tweets(index=index, doc_field=doc_field)
+    def get_vocabulary_tweets(self, index, doc_field, max_perc_words_by_topic):
+
+        tweets = self.get_tweets(index=index, doc_field=doc_field)
+        tokenized_docs = [tweet["_source"]["text"] for tweet in tweets]
+        vocabulary = self.get_vocabulary(tokenized_docs, max_perc_words_by_topic)
+
+        filtered_tweets = []
+        for tweet in tweets:
+            word_list = tweet['_source']["text"] # [word for word in tweet['_source']["text"] if word in vocabulary]
+            if len(word_list)>0:
+                tweet['_source']["text"] = " ".join(word_list)
+                filtered_tweets.append(tweet)
+
+        return filtered_tweets
+
+
+
+    def get_vocabulary(self, tokenized_docs, max_perc_words_by_topic):
+
+
         words_distribution = Dictionary(tokenized_docs)  # list of (word, word_count) tuples
         corpus = [words_distribution.doc2bow(doc) for doc in
                   tokenized_docs]  # Convert document into the bag-of-words (BoW) format = list of (token_id, token_count) tuples.
@@ -47,12 +80,16 @@ class TobasEventDetection:
                 vocabulary.add(topic_words[i][0])
                 i += 1
 
-        return list(vocabulary)
+        # lala = { word:idx for idx, word in enumerate(vocabulary)}
+        return vocabulary
 
     def get_topics(self, corpus, vocabulary):
 
         hdp = HdpModel(corpus=corpus, id2word=vocabulary)
-        return hdp.show_topics(formatted=False) #.print_topics(num_topics=20, num_words=10)  # If -1 all topics will be in result (ordered by significance). num_words is optional.
+        # Docs say that if -1 all topics will be in result (ordered by significance). num_words is optional.
+        # .print_topics(num_topics=20, num_words=10)
+        # Docs are wrong. If you use -1 the list will be empty. So just don't specify the num_topics:
+        return hdp.show_topics(formatted=False)
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
@@ -60,6 +97,27 @@ class TobasEventDetection:
             yield l[i:i + n]
 
     def get_tweets(self, index, doc_field):
+
+        my_connector = Es_connector(index=index)
+        all_tweets = []
+        res = my_connector.init_paginatedSearch({"_source": [doc_field, "timestamp_ms"], "query": {"match_all": {}}})
+        sid = res["sid"]
+        scroll_size = res["scroll_size"]
+
+        # Analyse and process page by page
+        processed_tweets = 0
+        while scroll_size > 0:
+
+            tweets = res["results"]
+            all_tweets.extend([{ '_source': { "text": self.tknzr.tokenize(tweet["_source"][doc_field]), "timestamp_ms": tweet["_source"]["timestamp_ms"]}} for tweet in tweets])
+            processed_tweets += scroll_size
+
+            res = my_connector.loop_paginatedSearch(sid, scroll_size)
+            scroll_size = res["scroll_size"]
+
+        return all_tweets
+
+    def get_tweets_texts(self, index, doc_field):
 
         my_connector = Es_connector(index=index)
         all_tweets = []
@@ -79,3 +137,41 @@ class TobasEventDetection:
             scroll_size = res["scroll_size"]
 
         return all_tweets
+
+    def phase2(self, basic_events):
+        print('Phase 2...')
+
+        # create the event graph (directed) and the redundancy graph (undirected)
+        self.event_graph = nx.DiGraph(name='Event graph')
+        self.redundancy_graph = nx.Graph(name='Redundancy graph')
+        unique_events = 0
+        refined_events = []
+
+        for basic_event in basic_events:
+
+            main_word = basic_event[2]
+            candidate_words = self.corpus.cooccurring_words(basic_event, self.words_per_event)
+            main_word_freq = self.corpus.global_freq[self.corpus.vocabulary[main_word], :].toarray()
+            main_word_freq = main_word_freq[0, :]
+            related_words = []
+
+            # identify candidate words based on co-occurrence
+            if candidate_words is not None:
+                for candidate_word in candidate_words:
+                    candidate_word_freq = self.corpus.global_freq[self.corpus.vocabulary[candidate_word], :].toarray()
+                    candidate_word_freq = candidate_word_freq[0, :]
+
+                    # compute correlation and filter according to theta
+                    weight = (st.erdem_correlation(main_word_freq, candidate_word_freq) + 1) / 2
+                    if weight >= self.theta:
+                        related_words.append((candidate_word, weight))
+
+                if len(related_words) > 1:
+                    refined_event = (basic_event[0], basic_event[1], main_word, related_words, basic_event[3])
+                    # check if this event is distinct from those already stored in the event graph
+                    if self.update_graphs(refined_event):
+                        refined_events.append(refined_event)
+                        unique_events += 1
+        # merge redundant events and save the result
+        self.events = self.merge_redundant_events(refined_events)
+        return self.events
