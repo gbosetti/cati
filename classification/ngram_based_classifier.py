@@ -32,7 +32,7 @@ class NgramBasedClasifier:
     def remove_stop_words(self, full_text, langs=["en", "fr", "es"]):
 
         punctuation = list(string.punctuation + "…" + "’" + "'" + '🔴' + '•' + '...' + '.')
-        multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT", "im"] + punctuation
+        multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "rt", "im"] + punctuation
 
         full_text = full_text.lower().translate(str.maketrans('', '', string.punctuation))
 
