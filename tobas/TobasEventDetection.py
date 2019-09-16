@@ -98,6 +98,9 @@ class TobasEventDetection(MABED):
 
         my_connector = Es_connector(index=index)
         all_tweets = []
+        query = {
+            "query": {"exists": {"field": doc_field}}
+        }
         res = my_connector.init_paginatedSearch({"_source": [doc_field, "timestamp_ms"], "query": {"match_all": {}}})
         sid = res["sid"]
         scroll_size = res["scroll_size"]
@@ -108,27 +111,6 @@ class TobasEventDetection(MABED):
 
             tweets = res["results"]
             all_tweets.extend([{ '_source': { "text": self.tknzr.tokenize(tweet["_source"][doc_field]), "timestamp_ms": tweet["_source"]["timestamp_ms"]}} for tweet in tweets])
-            processed_tweets += scroll_size
-
-            res = my_connector.loop_paginatedSearch(sid, scroll_size)
-            scroll_size = res["scroll_size"]
-
-        return all_tweets
-
-    def get_tweets_texts(self, index, doc_field):
-
-        my_connector = Es_connector(index=index)
-        all_tweets = []
-        res = my_connector.init_paginatedSearch({"_source": doc_field, "query": {"match_all": {}}})
-        sid = res["sid"]
-        scroll_size = res["scroll_size"]
-
-        # Analyse and process page by page
-        processed_tweets = 0
-        while scroll_size > 0:
-
-            tweets = res["results"]
-            all_tweets.extend([self.tknzr.tokenize(tweet["_source"][doc_field]) for tweet in tweets])
             processed_tweets += scroll_size
 
             res = my_connector.loop_paginatedSearch(sid, scroll_size)

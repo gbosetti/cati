@@ -59,8 +59,6 @@ class NgramBasedClasifier:
         else:
             stemmer = EnglishStemmer()
 
-        print("Stemming in lang: ", lang)
-
         stemmed = []
         for word in text.split(" "):
             stemmed.append(stemmer.stem(word))
