@@ -99,9 +99,10 @@ class TobasEventDetection(MABED):
         my_connector = Es_connector(index=index)
         all_tweets = []
         query = {
+            "_source": [doc_field, "timestamp_ms"],
             "query": {"exists": {"field": doc_field}}
         }
-        res = my_connector.init_paginatedSearch({"_source": [doc_field, "timestamp_ms"], "query": {"match_all": {}}})
+        res = my_connector.init_paginatedSearch(query)
         sid = res["sid"]
         scroll_size = res["scroll_size"]
 
