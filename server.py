@@ -190,6 +190,7 @@ def get_backend_logs():
 # @cross_origin()
 def detect_events_with_tobas():
     data = request.form
+    print("Running Tobas")
     res = tobas.detect_events(index=data["index"], doc_field=data["doc_field"],
                               max_perc_words_by_topic=float(data["max_perc_words_by_topic"]),
                               time_slice_length=int(data["time_slice_length"]),

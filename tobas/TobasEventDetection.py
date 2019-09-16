@@ -19,17 +19,23 @@ class TobasEventDetection(MABED):
 
         # vocabulary = self.get_vocabulary(index, doc_field, max_perc_words_by_topic)
         # corpus = TobasCorpus(vocabulary=vocabulary)  # text timestamp_ms (must be a date object)
+        print("Getting the vocabulary-based tweets")
         vocabulary_tweets = self.get_vocabulary_tweets(index, doc_field, max_perc_words_by_topic)
+        print("Setting the corpus")
         self.corpus = TobasCorpus(tweets=vocabulary_tweets)  # text timestamp_ms (must be a date object)
+        print("Discretizing the corpus")
         self.corpus.discretize(time_slice_length, logger=logger)
 
+        print("Running MABED phase 1")
         mabed = MABED(self.corpus, logger)
         self.rel_words_per_event = rel_words_per_event
         self.p = rel_words_per_event # since some inherited methods need it with this name
         self.theta = theta
         self.sigma = sigma
         basic_events = mabed.phase1()
+        print("Running MABED phase 2")
         final_events = self.phase2(basic_events)
+        print("Events", final_events)
 
         return final_events
 
