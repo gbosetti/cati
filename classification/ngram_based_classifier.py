@@ -12,6 +12,8 @@ from elasticsearch_dsl import UpdateByQuery
 from nltk.stem.snowball import FrenchStemmer
 from nltk.stem.snowball import EnglishStemmer
 from nltk.stem.snowball import ArabicStemmer
+from nltk.stem.snowball import SpanishStemmer
+
 
 class NgramBasedClasifier:
 
@@ -52,8 +54,12 @@ class NgramBasedClasifier:
         # nlp = spacy.load(lang) # en fr "en_core_web_sm"
         if lang == "fr":
             stemmer = FrenchStemmer()
+        elif lang == "es":
+            stemmer = SpanishStemmer()
         else:
             stemmer = EnglishStemmer()
+
+        print("Stemming in lang: ", lang)
 
         stemmed = []
         for word in text.split(" "):

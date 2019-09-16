@@ -67,7 +67,12 @@ def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
         doc_text = tweet["_source"][input_field]
         clean_text = ngramsAnalizer.remove_stop_words(doc_text, langs=langs)  # .split()
         clean_text = ngramsAnalizer.remove_urls(text=clean_text)
-        clean_text = ngramsAnalizer.lemmatize(clean_text, "en") # "en", "fr"
+
+        lang = "en"
+        if tweet["_source"]["lang"] is not None:
+            lang = tweet["_source"]["lang"]
+
+        clean_text = ngramsAnalizer.lemmatize(clean_text, lang) # "en", "fr"
 
         full_text = clean_text + image_clusters_str
         Es_connector(index=index).es.update(
@@ -89,11 +94,17 @@ def generate_text_images_prop(docs, langs=["en", "fr", "es"]):
 
 try:
     my_connector = Es_connector(index=index)
-    res = my_connector.init_paginatedSearch({
+    #query = #"query": {
+            #"match_all": {}
+        #}
+    query = {
         "query": {
-            "match_all": {}
+            "match": {
+                "lang": "en or fr or es"
+            }
         }
-    })
+    }
+    res = my_connector.init_paginatedSearch(query=query)
 
     sid = res["sid"]
     scroll_size = res["scroll_size"]
