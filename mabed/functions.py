@@ -517,6 +517,23 @@ class Functions:
             })
         return res
 
+    def get_tweets_frequency(self, index, word, session, label, full_search):
+
+        my_connector = Es_connector(index=index)
+
+        res = my_connector.search({
+                "_source": "timestamp_ms",
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": word}},
+                            {"match": { session: label }}
+                        ]
+                    }
+                }
+            })
+        return res
+
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
         terms = self.get_retated_terms(main_term, related_terms)

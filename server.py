@@ -447,6 +447,19 @@ def ngrams_with_higher_ocurrence():
                                                                     label=data['search_by_label'], matching_ngrams=matching_ngrams, full_search=full_search)
     })
 
+
+@app.route('/get_tweets_frequency', methods=['POST', 'GET'])
+# @cross_origin()
+def get_tweets_frequency():
+    data = request.form
+    word = (request.form.get('word', '')).strip()
+    full_search = len(word) == 0
+
+    res = functions.get_tweets_frequency(index=data['index'], word=data['word'], session=data['session'],
+                                         label=data['search_by_label'], full_search=full_search)
+    return jsonify(res)
+
+
 # Get Tweets
 @app.route('/event_ngrams_with_higher_ocurrence', methods=['POST'])
 # @cross_origin()
@@ -927,7 +940,6 @@ def mark_valid():
     data = request.form
     res = functions.set_all_status(default_source, default_session, "proposed")
     return jsonify(res)
-
 
 @app.route('/mark_event', methods=['POST', 'GET'])
 # @cross_origin()

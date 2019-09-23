@@ -256,6 +256,8 @@ app.views.client = Backbone.View.extend({
 
                 chart.showControls(false);
                 $('#chartDiv').html('<svg id="chart1" style="height: 300px;"></svg>')
+
+                console.log("event_impact:", event_impact);
                 var output = d3.select('#chart1')
                     .datum(event_impact)
                     .call(chart);

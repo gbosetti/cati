@@ -112,10 +112,10 @@ app.views.tweets = Backbone.View.extend({
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
 
-
         if(query && query.trim() != ""){ //If the user has entered at least a keyword
 
             this.requestTweets(data, startingReqTime);
+            this.loadTweetsTimeline(data);
             this.loadGeopositionedTweets(data);
             this.loadRetweets(data, retweetsContainer);
             this.requestNgrams(data);
@@ -143,6 +143,69 @@ app.views.tweets = Backbone.View.extend({
             });
         }
         app.views.mabed.prototype.getClassificationStats();
+    },
+    loadTweetsTimeline: function (data) {
+
+        this.requestTweetsFrequency(data).then(response => {
+            this.presentTweetsFrequency(response, '#tweets_timeline_results_svg');
+        });
+    },
+    requestTweetsFrequency: function (data) {
+
+        return new Promise((resolve, reject)=>{
+
+            console.log("\nfreq");
+
+            $.post(app.appURL+'get_tweets_frequency', data, function(response){
+
+                 console.log("RESPONSE FROM get_tweets_frequency", response);
+
+            }, 'json').fail(function(err) {
+                    console.log("Error:", err);
+            });
+        });
+    },
+    presentTweetsFrequency(data, chartSelector){
+
+        $(chartSelector).html("");
+
+//        Demo data
+//        var barchartdata = [{
+//            "key": "Tweets frequency",
+//            "values": [
+//                [1209528000000, 3.8699674365231],
+//                [1214798400000, 6.7571718894253],
+//                [1293771600000, 1.340824670897],
+//                [1296450000000, 0]
+//            ]
+//        }];
+
+        console.log("loadTweetsTimeline", data);
+        var barchartdata = []
+
+        var chart;
+        nv.addGraph(function() {
+          chart = nv.models.stackedAreaChart()
+            .useInteractiveGuideline(true)
+            .x(function(d) {
+              return d[0]
+            })
+            .y(function(d) {
+              return d[1]
+            })
+            .duration(300);
+
+          chart.xAxis.tickFormat(function(d) {
+            return d3.time.format('%x')(new Date(d))
+          });
+
+          d3.select(chartSelector)
+            .datum(barchartdata)
+            .transition().duration(1000)
+            .call(chart)
+
+          return chart;
+        });
     },
     loadRetweets(data, retweetsContainer){
         console.log("loadRetweets");
@@ -205,6 +268,20 @@ app.views.tweets = Backbone.View.extend({
                     <div class="container">
                       <div class="full-search-ngrams-classif" hidden></div>
                       <div class="search-accordion">
+
+                                <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Tweets timeline</a></div>
+                                  <div id="collapseGeopositioned" class="collapse show collapseGeopositioned">
+                                    <div class="card-body">
+
+                                        <!-- TWEETS TIMELINE SECTION -->
+                                        <div class="col-12 tweets_timeline_results">
+                                            <svg id="tweets_timeline_results_svg"></svg>
+                                        </div>
+
+                                    </div>
+                                  </div>
+                                </div>
 
                                 <div class="card">
                                   <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Geopositioned tweets</a></div>
