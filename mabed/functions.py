@@ -19,6 +19,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import UpdateByQuery
+from datetime import datetime, timedelta
 
 from elasticsearch.client import Elasticsearch as es
 
@@ -519,20 +520,62 @@ class Functions:
 
     def get_tweets_frequency(self, index, word, session, label, full_search):
 
-        my_connector = Es_connector(index=index)
+        my_connector = Es_connector(index=index) #Replace this by a paginated retrieval, so there is no size limit
 
-        res = my_connector.search({
-                "_source": "timestamp_ms",
-                "query": {
-                    "bool": {
-                        "must": [
-                            {"match": {"text": word}},
-                            {"match": { session: label }}
-                        ]
-                    }
+        if full_search:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {session: label}}
+                    ]
                 }
+            }
+        else:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": { session: label }}
+                    ]
+                }
+            }
+        res = my_connector.search({
+                "size": 500000,
+                "_source": "timestamp_ms",
+                "query": query
             })
-        return res
+        tweets_by_frequency = {}
+
+        #Getting the dates
+        dates = []
+        for doc in res["hits"]["hits"]:
+            timestamp = doc["_source"]["timestamp_ms"]
+            date = datetime.fromtimestamp(int(timestamp))
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+            dates.append(date)
+        min_date = min(dates)
+        max_date = max(dates)
+        numdays = (max_date-min_date).days + 1
+
+        date_list = [max_date - timedelta(days=x) for x in range(numdays)]
+        tweets_by_frequency = {date: 0 for date in date_list}
+
+        #Getting the ocurrences for each date
+        for doc in res["hits"]["hits"]:
+
+            timestamp = doc["_source"]["timestamp_ms"]
+            date = datetime.fromtimestamp(int(timestamp))
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            if date in date_list:
+                tweets_by_frequency[date] += 1
+            else: print("Not found: ", date)
+
+        #Sorting by dates and transforming the dates in the required timestamps (so the client doesn't need to process big amounts of tweets)
+        tweets_by_frequency_list = [(datetime.timestamp(k)*1000, v) for k, v in tweets_by_frequency.items()]
+        #tweets_by_frequency_list.sort(key=lambda r: r[0])
+
+        return tweets_by_frequency_list
 
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
