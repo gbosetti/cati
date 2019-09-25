@@ -123,6 +123,7 @@ app.views.tweets = Backbone.View.extend({
         } else { //If the user has entered no keyword
 
             this.hideNotFullSearchSearch();
+            this.requestTweets(data, startingReqTime);
             this.loadTweetsTimeline(data);
             this.loadGeopositionedTweets(data);
             this.loadRetweets(data, retweetsContainer);
@@ -142,6 +143,7 @@ app.views.tweets = Backbone.View.extend({
                     this.clearContainer(".imagesClusters");
                     this.showNoTweetsFound(".imagesClusters");
             });
+
         }
         app.views.mabed.prototype.getClassificationStats();
     },
@@ -159,6 +161,7 @@ app.views.tweets = Backbone.View.extend({
             if( !cardElem.querySelector(".collapse").classList.contains("collapseNgrams") &&
                 !cardElem.querySelector(".collapse").classList.contains("collapseRetweets") &&
                 !cardElem.querySelector(".collapse").classList.contains("collapseImages")&&
+                !cardElem.querySelector(".collapse").classList.contains("collapseIndividual")&&
                 !cardElem.querySelector(".collapse").classList.contains("collapseGeopositioned"))
                 cardElem.hidden = true;
         });

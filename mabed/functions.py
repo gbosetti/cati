@@ -424,18 +424,30 @@ class Functions:
     # Tweets
     # ==================================================================
 
-    def get_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+    def get_tweets(self, index="test3", word=None, session="", label="confirmed OR proposed OR negative"):
         my_connector = Es_connector(index=index)
-        res = my_connector.init_paginatedSearch({
-            "query": {
-                "bool": {
-                    "must": [
-                        {"match": {"text": word}},
-                        {"match": {session: label}}
-                    ]
+
+        if word == None or word == '':
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {session: label}}
+                        ]
+                    }
                 }
-            }
-        })
+            })
+        else:
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": word}},
+                            {"match": {session: label}}
+                        ]
+                    }
+                }
+            })
 
         return res
 
@@ -549,8 +561,10 @@ class Functions:
         #Getting the dates
         dates = []
         for doc in res["hits"]["hits"]:
-            timestamp = doc["_source"]["timestamp_ms"]
-            date = datetime.fromtimestamp(int(timestamp))
+            timestamp = int(doc["_source"]["timestamp_ms"])
+            if len(doc["_source"]["timestamp_ms"]) > 10:
+                timestamp = timestamp / 1000
+            date = datetime.fromtimestamp(timestamp)
             date = date.replace(hour=0, minute=0, second=0, microsecond=0)
             dates.append(date)
         min_date = min(dates)
@@ -563,8 +577,10 @@ class Functions:
         #Getting the ocurrences for each date
         for doc in res["hits"]["hits"]:
 
-            timestamp = doc["_source"]["timestamp_ms"]
-            date = datetime.fromtimestamp(int(timestamp))
+            timestamp = int(doc["_source"]["timestamp_ms"])
+            if len(doc["_source"]["timestamp_ms"]) > 10:
+                timestamp = timestamp / 1000
+            date = datetime.fromtimestamp(timestamp)
             date = date.replace(hour=0, minute=0, second=0, microsecond=0)
 
             if date in date_list:
