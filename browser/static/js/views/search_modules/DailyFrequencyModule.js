@@ -100,7 +100,7 @@ class DailyFrequencyModule extends SearchModule{
             .clipEdge(false);
 
           chart.xAxis.tickFormat(function(d) {
-            return d3.time.format('%x')(new Date(d))
+            return d3.time.format('%d/%m/%Y')(new Date(d))
           });
 
           d3.select("#tweets_timeline_results_svg")
