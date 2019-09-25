@@ -46,7 +46,7 @@ class TopRetweetsModule extends SearchModule{
         if(repeated_tweets.length>0){
 
             try{
-                $(".top-retweets-header").text("Top " + repeated_tweets.length + " retweets");
+                $(".top-retweets-header").text("Top " + repeated_tweets.length + " duplicated documents");
 
                 var html = this.client.get_retweets_html(repeated_tweets);
 
@@ -61,7 +61,7 @@ class TopRetweetsModule extends SearchModule{
     }
 
     showNoRetweetsFound(containerSelector){
-        $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
+        $(containerSelector).html("Sorry, no duplicated documents were found under this criteria.");
     }
 
     requestReTweets(data){

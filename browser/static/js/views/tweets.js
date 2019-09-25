@@ -212,7 +212,7 @@ app.views.tweets = Backbone.View.extend({
                       <div class="search-accordion">
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Tweets frequency</a></div>
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Documents frequency</a></div>
                                   <div id="collapseGeopositioned" class="collapse show collapseGeopositioned">
 
                                     <div class="card-body">
@@ -223,7 +223,7 @@ app.views.tweets = Backbone.View.extend({
                                 </div>
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Geopositioned tweets</a></div>
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Geopositioned documents</a></div>
                                   <div id="collapseGeopositioned" class="collapse show collapseGeopositioned">
                                     <div class="card-body">
 
@@ -247,7 +247,7 @@ app.views.tweets = Backbone.View.extend({
 
                                             <div class="row pt-3">
                                                 <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="text-align: right;">
-                                                    Mark the tweets matching the selection as:
+                                                    Mark the documents matching the selection as:
                                                     <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative geo_selection_to_state">Negative</a>
                                                     <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid geo_selection_to_state">Confirmed</a>
                                                     <a href="#" data-state="unlabeled" class="timeline_btn options_btn_clear geo_selection_to_state">Unlabeled</a>
@@ -412,13 +412,13 @@ app.views.tweets = Backbone.View.extend({
         this.clearContainer(".bigrams-graph-area:visible");
     },
     showNoTweetsFound: function(containerSelector){
-        $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
+        $(containerSelector).html("Sorry, no documents were found under this criteria.");
     },
     showNoBigramsFound: function(containerSelector){
         $(containerSelector).html("Sorry, no bigrams were found under this criteria.");
     },
     showNoTweetsFound: function(containerSelector){
-        $(containerSelector).html("Sorry, no tweets were found under this criteria.");
+        $(containerSelector).html("Sorry, no documents were found under this criteria.");
     },
     showNoImageClustersFound: function(containerSelector){
         $(containerSelector).html("Sorry, no image clusters were found under this criteria.");
@@ -463,7 +463,7 @@ app.views.tweets = Backbone.View.extend({
               });
             }
             //var state = retweet._source['session_'+app.session.s_name];
-			matchingTweets = '<h6><span class="badge badge-secondary"> Matching tweets: '+aggregation.doc_count+'</span></h6>';
+			matchingTweets = '<h6><span class="badge badge-secondary"> Matching documents: '+aggregation.doc_count+'</span></h6>';
 
 		    try{
             html += template({
