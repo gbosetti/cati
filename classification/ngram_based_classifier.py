@@ -78,7 +78,7 @@ class NgramBasedClasifier:
                 "query": {
                    "bool": {
                        "must": [
-                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                            {"match": {kwargs["session"]: kwargs["label"]}}
                        ]
                    }
@@ -90,7 +90,7 @@ class NgramBasedClasifier:
                    "bool": {
                        "must": [
                            {"match": {"text": kwargs["word"]}},
-                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                            {"match": {kwargs["session"]: kwargs["label"]}}
                        ]
                    }
@@ -110,7 +110,7 @@ class NgramBasedClasifier:
                 "query": {
                     "bool": {
                         "must": [
-                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                             {"match": {kwargs["session"]: kwargs["query_label"]}}
                         ]
                     }
@@ -122,7 +122,7 @@ class NgramBasedClasifier:
                     "bool": {
                         "must": [
                             {"match": {"text": kwargs["word"]}},
-                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                             {"match": {kwargs["session"]: kwargs["query_label"]}}
                         ]
                     }
@@ -141,7 +141,7 @@ class NgramBasedClasifier:
                    "should": kwargs["target_terms"],
                    "minimum_should_match": 1,
                    "must": [
-                       {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                       {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                        {"match": {kwargs["session"]: kwargs["label"]}}
                    ]
                }
@@ -161,7 +161,7 @@ class NgramBasedClasifier:
                     "should": kwargs["target_terms"],
                     "minimum_should_match": 1,
                     "must": [
-                        {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                        {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                         {"match": {kwargs["session"]: kwargs["query_label"]}}
                     ]
                 }

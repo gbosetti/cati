@@ -92,7 +92,6 @@ app.views.tweets = Backbone.View.extend({
       return false;
     },
     loadGeopositionedTweets: function(data){
-        console.log("loadGeopositionedTweets");
         try{
             new GeoSpatialModule("#mapid", this).loadTweets(data);
         }catch(err){console.log(err)}
@@ -405,14 +404,12 @@ app.views.tweets = Backbone.View.extend({
     requestNgrams: function(data){
 
         var self = this;
-        console.log("requestNgrams");
         return new Promise((resolve, reject) => {
 
             this.bigrams.lastQueryParams = data;
             this.updateBigramsFormData(data);
 
             var containerSelector = ".ngrams-search-classif";
-            //self.showLoadingMessage(containerSelector, 677); ...
             new SearchModule(containerSelector,"spinner-ngrams").enableLoading();
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
