@@ -17,7 +17,6 @@ class DailyFrequencyModule extends SearchModule{
         return new Promise((resolve, reject)=>{
             $.post(app.appURL+'get_tweets_frequency', data, function(response){
 
-                 console.log("response", response);
                  resolve(response);
 
             }, 'json').fail(function(err) { console.log("Error:", err); });

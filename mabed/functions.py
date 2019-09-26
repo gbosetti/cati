@@ -424,7 +424,7 @@ class Functions:
     # Tweets
     # ==================================================================
 
-    def get_tweets(self, index="test3", word=None, session="", label="confirmed OR proposed OR negative"):
+    def get_tweets(self, index="test3", word=None, session="", label="confirmed OR proposed OR negative", size=None):
         my_connector = Es_connector(index=index)
 
         if word == None or word == '':
@@ -436,7 +436,7 @@ class Functions:
                         ]
                     }
                 }
-            })
+            }, size)
         else:
             res = my_connector.init_paginatedSearch({
                 "query": {
@@ -447,7 +447,7 @@ class Functions:
                         ]
                     }
                 }
-            })
+            }, size)
 
         return res
 

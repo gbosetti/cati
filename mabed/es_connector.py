@@ -246,7 +246,7 @@ class Es_connector:
         return res
 
 
-    def init_paginatedSearch(self, query):
+    def init_paginatedSearch(self, query, size=None):
         res = []
         # Process hits here
         def process_hits(hits, results):
@@ -259,12 +259,16 @@ class Es_connector:
             # print("Index " + self.index + " not exists")
             exit()
 
+        if size != None:
+            target_size = size
+        else: target_size = self.size
+
         # Init scroll by search
         data = self.es.search(
             index=self.index,
             doc_type=self.doc_type,
             scroll='15m',
-            size=self.size,
+            size=target_size,
             body=query,
         )
 

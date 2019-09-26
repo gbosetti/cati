@@ -107,14 +107,18 @@ app.views.tweets = Backbone.View.extend({
         var retweetsContainer=".top_retweets_results";
 
         var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
-            .concat([{name: "retweets_number", value: 20}, {name: "image_clusters_limit", value:20}]);
+            .concat([
+                {name: "retweets_number", value: 20},
+                {name: "image_clusters_limit", value:20},
+                {name: "individual_tweets_limit", value:10}
+            ]);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
 
         if(query && query.trim() != ""){ //If the user has entered at least a keyword
 
-            this.requestTweets(data, startingReqTime);
+            this.requestTweetsAndImageCLusters(data, startingReqTime);
             this.loadTweetsTimeline(data);
             this.loadGeopositionedTweets(data);
             this.loadRetweets(data, retweetsContainer);
@@ -123,7 +127,6 @@ app.views.tweets = Backbone.View.extend({
         } else { //If the user has entered no keyword
 
             this.hideNotFullSearchSearch();
-            this.requestTweets(data, startingReqTime);
             this.loadTweetsTimeline(data);
             this.loadGeopositionedTweets(data);
             this.loadRetweets(data, retweetsContainer);
@@ -135,6 +138,7 @@ app.views.tweets = Backbone.View.extend({
                 (err) => { //In case of failing
                     this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
+            //this.requestTweetsAndImageCLusters(data, startingReqTime).then(()=>{});
             this.requestFullImageClusters(data).then(
                 res => {
                     this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last', undefined, undefined, res.total_clusters);
@@ -143,9 +147,26 @@ app.views.tweets = Backbone.View.extend({
                     this.clearContainer(".imagesClusters");
                     this.showNoTweetsFound(".imagesClusters");
             });
-
+            this.loadIndividualTweets(data, startingReqTime);
         }
         app.views.mabed.prototype.getClassificationStats();
+    },
+    loadIndividualTweets: function(data, t0){
+
+        //First clean the previous results
+        new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
+
+        var individualTweetsSelector = '.individual_tweets_result';
+        $(individualTweetsSelector).html("");
+        this.showLoadingMessage(individualTweetsSelector, 400);
+
+        var self = this;
+        $.post(app.appURL+'search_for_tweets', data, (response)=>{
+            var html = this.get_tweets_html(response, '', 'scroll_tweets');
+            this.showIndividualTweets(html, t0);
+            this.showResultsStats(response.tweets.total, t0, response.keywords);
+            new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+        }, 'json').fail(this.cnxError);
     },
     loadTweetsTimeline: function (data) {
 
@@ -345,27 +366,31 @@ app.views.tweets = Backbone.View.extend({
             target: document.querySelector(tab.target)
         };
     },
-    requestTweets: function(data, startingReqTime){
+    requestTweetsAndImageCLusters: function(data, startingReqTime, showClusters=true){
 
-        //First clean the previous results
-        var imageClustersSelector = '.imagesClusters';
-        $(imageClustersSelector).html("");
+        return new Promise((resolve, reject)=>{
 
-        new SearchModule(".image-clusters-container","spinner-images").enableLoading();
-        new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
+            //First clean the previous results
+            var imageClustersSelector = '.imagesClusters';
+            $(imageClustersSelector).html("");
 
-        var individualTweetsSelector = '.individual_tweets_result';
-        $(individualTweetsSelector).html("");
-        this.showLoadingMessage(individualTweetsSelector, 400);
+            new SearchModule(".image-clusters-container","spinner-images").enableLoading();
+            new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
 
-        var self = this;
-        $.post(app.appURL+'search_for_tweets', data, function(response){
-            self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
+            var individualTweetsSelector = '.individual_tweets_result';
+            $(individualTweetsSelector).html("");
+            this.showLoadingMessage(individualTweetsSelector, 400);
 
-            new SearchModule(".image-clusters-container","spinner-images").disableLoading();
-            new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+            var self = this;
+            $.post(app.appURL+'search_for_tweets', data, function(response){
+                self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
 
-        }, 'json').fail(this.cnxError);
+                new SearchModule(".image-clusters-container","spinner-images").disableLoading();
+                new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+                resolve()
+
+            }, 'json').fail(this.cnxError);
+        });
     },
     requestFullImageClusters: function(data){
         return new Promise((resolve, reject) => {

@@ -267,7 +267,7 @@ def images():
 # @cross_origin()
 def search_for_tweets():
     data = request.form
-    last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
+    last_searched_tweets = functions.get_tweets(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'], size=int(data["individual_tweets_limit"]))
     clusters = functions.get_clusters(index=data['index'], word=data['word'], session=data['session'], label=data['search_by_label'])
     clusters_stats = functions.get_clusters_stats(index=data['index'], word=data['word'], session=data['session'])
     return jsonify({"tweets": last_searched_tweets, "clusters": clusters, "clusters_stats": clusters_stats, "total_clusters": 0, "keywords": data['word'] })
