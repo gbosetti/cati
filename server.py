@@ -529,13 +529,14 @@ def generate_ngrams_for_index():
     data = request.form
     #preproc = PreProcessor()
     propName = data['to_property']
+    from_property = data['from_property']
 
     print("Generating ngrams for index: ", data['index'])
 
     start_time = datetime.datetime.now()
     print("Starting at: ", start_time)
     #preproc.putDocumentProperty(index=data['index'], prop=propName, prop_type='keyword')
-    res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName)
+    res = ngram_classifier.generate_ngrams_for_index(index=data['index'], length=int(data["ngrams_length"]), prop=propName, from_property=from_property)
     print("Starting at: ", start_time, " - Ending at: ", datetime.datetime.now())
     return jsonify(res)
 

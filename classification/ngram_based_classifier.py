@@ -392,21 +392,25 @@ class NgramBasedClasifier:
         length = int(kwargs.get('length', 2))
 
         tweets_to_update = []  # So the URL doesn't get too large
+        prop = kwargs['from_property']
         for tweet in tweets:
             try:
-                clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
-                ngrams = list(self.get_n_grams(clean_text, length))
+                if prop in tweet["_source"]:
+                    clean_text = self.remove_stop_words(tweet["_source"][prop]).split()
+                    ngrams = list(self.get_n_grams(clean_text, length))
 
-                tweets_to_update.append({
-                    "_ngrams": self.format_single_tweet_ngrams(ngrams),
-                    "_id": tweet["_id"]
-                })
+                    tweets_to_update.append({
+                        "_ngrams": self.format_single_tweet_ngrams(ngrams),
+                        "_id": tweet["_id"]
+                    })
 
-                # for prop in tweet["_source"]:
-                #     if tweet["_source"][prop] == None:
-                #         tweet["_source"][prop] = "None"
-                full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
-                self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
+                    # for prop in tweet["_source"]:
+                    #     if tweet["_source"][prop] == None:
+                    #         tweet["_source"][prop] = "None"
+                    full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
+                    self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
+                else:
+                    print("The tweet has no ", prop, " property.")
 
             except Exception as e:
                 print('Error: ' + str(e))
@@ -501,9 +505,11 @@ class NgramBasedClasifier:
             total_scrolls = int(total/scroll_size)
             processed_scrolls = 0
 
+            print("from_property:", kwargs['from_property'])
+
             while scroll_size > 0:
                 tweets = res["results"]
-                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+                self.gerenate_ngrams_for_tweets(tweets, from_property=kwargs['from_property'], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
 
                 i += 1
                 res = my_connector.loop_paginatedSearch(sid, scroll_size)
