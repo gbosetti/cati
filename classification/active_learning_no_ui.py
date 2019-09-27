@@ -99,6 +99,7 @@ class ActiveLearningNoUi:
             self.classifier.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
                                              field=kwargs["text_field"],
                                              debug_limit=kwargs["debug_limit"])
+            self.classifier.remove_docs_absent_in_training()
 
     def clear_temporary_labels(self, index, session):
 

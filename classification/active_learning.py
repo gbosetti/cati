@@ -514,6 +514,38 @@ class ActiveLearning:
         self.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
                                               field=kwargs["text_field"],
                                               debug_limit=kwargs["debug_limit"])
+        self.remove_docs_absent_in_training()
+
+    def remove_docs_absent_in_training(self):
+
+        dirs_to_check = [
+            os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER),
+            os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER),
+            os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER)
+        ]
+        train_pos_folder = os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER)
+        train_neg_folder = os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER)
+
+        filenames = [file for file in os.listdir(train_pos_folder)] + [file for file in os.listdir(train_neg_folder)]
+        files_ignored = set()
+
+        for training_file in filenames:
+            file_exists = False
+
+            for dir_to_check in dirs_to_check:
+                file_exists = os.path.exists(os.path.join(dir_to_check, training_file))
+                if not file_exists:
+                    files_ignored.add(training_file)
+                    self.delete_file(filename=training_file, dir=dir_to_check)
+
+        print("\n\nIgnoring unclassified tweets from groundtruth. Total ignored: ", len(files_ignored))
+        #print("\nFiles: ", files_ignored, "\n\n")
+
+    def delete_file(self, filename, dir):
+
+        path = os.path.join(dir, filename)
+        if os.path.exists(path):
+            os.remove(path)
 
     def download_testing_data(self, **kwargs):
 
