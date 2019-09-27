@@ -186,7 +186,7 @@ class ActiveLearningNoUi:
 
         loop_index = 0
         looping_clicks = 0
-        while loop_index in range(100):  # and accuracy<1:
+        while loop_index in range(kwargs["max_loops"]):  # and accuracy<1:  /// max_loops default is 100
 
             print("\n---------------------------------")
             loop_index+=1

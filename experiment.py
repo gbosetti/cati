@@ -43,6 +43,12 @@ parser.add_argument("-df",
                     help="Boolean indicating whether new documents should be downloaded to build new training, test and target sets.",
                     default=True)
 
+parser.add_argument("-ml",
+                    "--max_loops",
+                    dest="max_loops",
+                    help="The max amount of loops to perform",
+                    default=100)
+
 parser.add_argument("-dl",
                     "--debug_limit",
                     dest="debug_limit",
@@ -124,6 +130,7 @@ sampling_methods = args.sampling_methods.split(',')
 similarity_percentages = args.similarity_percentages.split(',')
 confident_loops = args.confident_loops.split(',')
 target_min_confidence = float(args.target_min_confidence)
+max_loops = int(args.max_loops)
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -184,7 +191,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
         learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                     min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field)
+                    text_field=args.text_field, max_loops=max_loops)
 
     if 'JackardBasedUncertaintySampler' in sampling_methods:
 
@@ -202,7 +209,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                 learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
                 learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                             min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                            text_field=args.text_field)
+                            text_field=args.text_field, max_loops=max_loops)
             except Exception as e:
                 print(e)
                 learner.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
@@ -221,7 +228,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
             learner.run(index=args.index, session=args.session, num_questions=args.num_questions,
                         gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
-                        text_field=args.text_field)
+                        text_field=args.text_field, max_loops=max_loops)
 
     if 'MoveDuplicatedDocsSampler' in sampling_methods:
 
@@ -236,7 +243,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
             learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
             learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                         min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                        text_field=args.text_field)
+                        text_field=args.text_field, max_loops=max_loops)
 
     if 'ConsecutiveDeferredMovDuplicatedDocsSampler' in sampling_methods:
 
@@ -255,4 +262,4 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                 learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
                 learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                             min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                            text_field=args.text_field)
+                            text_field=args.text_field, max_loops=max_loops)
