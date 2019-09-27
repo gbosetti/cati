@@ -226,7 +226,7 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
 
         #super(UncertaintySampler, self).__init__()
         MoveDuplicatedDocsSampler.__init__(self, **kwargs)
-        self.low_confidence_limit = kwargs["low_confidence_limit"]
+        self.low_confidence_limit = float(kwargs["low_confidence_limit"])
         return
 
     def get_samples(self, num_questions):

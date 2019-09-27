@@ -91,6 +91,12 @@ parser.add_argument("-sm",
                     help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler",
                     default="UncertaintySampler")
 
+parser.add_argument("-jp",
+                    "--jackard_percentages",
+                    dest="jackard_percentages",
+                    help="The list of the percentage of similarity to search for similar documents",
+                    default="0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9")
+
 parser.add_argument("-sp",
                     "--similarity_percentages",
                     dest="similarity_percentages",
@@ -198,7 +204,8 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         # jackard_percentages = all_percentages.copy()
         # jackard_percentages.remove(0)
         # jackard_percentages.remove(1)
-        jackard_percentages = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        jackard_percentages = args.jackard_percentages.split(',')
+
         for confidence_limit in jackard_percentages:
 
             try:
