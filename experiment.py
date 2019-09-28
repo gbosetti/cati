@@ -193,7 +193,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
         print("\nRunning hyperplane strategy\n")
         logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
-        sampler = UncertaintySampler()
+        sampler = UncertaintySampler(index=args.index, session=args.session)
         learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
         learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
                     min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,

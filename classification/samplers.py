@@ -59,6 +59,8 @@ class UncertaintySampler(ActiveLearningSampler):
 
     def __init__(self, **kwargs):
         self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+        self.index = kwargs["index"]
+        self.session = kwargs["session"]
         return
 
     def get_samples(self, num_questions):
