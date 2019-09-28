@@ -95,13 +95,19 @@ parser.add_argument("-jp",
                     "--jackard_percentages",
                     dest="jackard_percentages",
                     help="The list of the percentage of similarity to search for similar documents",
-                    default="0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9")
+                    default="0.7")  #0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9")
+
+parser.add_argument("-jmdtr",
+                    "--jackard_max_doct_to_resort",
+                    dest="jackard_max_doct_to_resort",
+                    help="The list of the percentage of similarity to search for similar documents",
+                    default="500")
 
 parser.add_argument("-sp",
                     "--similarity_percentages",
                     dest="similarity_percentages",
                     help="A number followed by the % symbol. XX%. If you specify different percentages separate them with comma (not spaces)",
-                    default="75%")
+                    default="75")
 
 parser.add_argument("-cl",
                     "--confident_loops",
@@ -205,13 +211,16 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         # jackard_percentages.remove(0)
         # jackard_percentages.remove(1)
         jackard_percentages = args.jackard_percentages.split(',')
+        similarity_percentage= int(args.similarity_percentages)
+
+        jackard_max_doct_to_resort = int(args.jackard_max_doct_to_resort)
 
         for confidence_limit in jackard_percentages:
 
             try:
                 logs_filename = args.session + "_jackard" + "_cnf" + str(confidence_limit) + ".txt"
                 sampler = JackardBasedUncertaintySampler(low_confidence_limit=confidence_limit, index=args.index, session=args.session,
-                    text_field=args.text_field, similarity_percentage=100)
+                    text_field=args.text_field, similarity_percentage=similarity_percentage, max_doct_to_resort=jackard_max_doct_to_resort)
 
                 learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
                 learner.run(index=args.index, session=args.session, gt_session=args.gt_session,

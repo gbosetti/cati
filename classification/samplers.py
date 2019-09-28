@@ -289,6 +289,7 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
         #super(UncertaintySampler, self).__init__()
         MoveDuplicatedDocsSampler.__init__(self, **kwargs)
         self.low_confidence_limit = float(kwargs["low_confidence_limit"])
+        self.max_doct_to_resort = kwargs["max_doct_to_resort"]
         return
 
     def get_samples(self, num_questions):
@@ -307,6 +308,8 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
             #full_low_level_confidency = selected_samples.clone()
             raise Exception('ERROR: the number of low-level-confidence predictions is not enough to retrieve ' + str(num_questions) + ' samples.')
 
+        if(len(full_low_level_confidency)>self.max_doct_to_resort):
+            full_low_level_confidency = full_low_level_confidency[0:self.max_doct_to_resort]
 
         # Get the accumulated jackard score of each document respect to the remaining ones
         for sample in full_low_level_confidency:
@@ -336,21 +339,44 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
         return selected_samples
 
     def get_jaccard_sim(self, str1, str2):
-        a = set(str1.split())
-        b = set(str2.split())
-        c = a.intersection(b)
-        return float(len(c)) / (len(a) + len(b) - len(c))
+        try:
+            a = set(str1.split())
+            b = set(str2.split())
+            c = a.intersection(b)
+            return float(len(c)) / (len(a) + len(b) - len(c))
+        except Exception as e:  # This is the correct syntax
+            return 1
 
     def post_sampling(self, answers=None):
 
-        duplicated_answers = self.get_similar_docs(questions=self.last_questions,
-                                                                    index=self.index,
-                                                                    session=self.session,
-                                                                    text_field=self.text_field,
-                                                                    similarity_percentage=self.similarity_percentage)
-        if len(duplicated_answers):
-            print("Moving duplicated documents")
-            self.classifier.move_answers_to_training_set(duplicated_answers)
+        positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "confirmed"]
+        negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "negative"]
+
+        self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
+        self.update_docs_by_ids(positive_docs_ids_matches, "negative")
+
+        # #Movingnalso theduplicate
+        #
+        # duplicated_answers = self.get_similar_docs(questions=self.last_questions,
+        #                                                             index=self.index,
+        #                                                             session=self.session,
+        #                                                             text_field=self.text_field,
+        #                                                             similarity_percentage=self.similarity_percentage)
+        # if len(duplicated_answers):
+        #     print("Moving duplicated documents")
+        #     self.classifier.move_answers_to_training_set(duplicated_answers)
+        #
+        #     positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in duplicated_answers if
+        #                                  ans["pred_label"] == "confirmed"]
+        #     negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in duplicated_answers if
+        #                                  ans["pred_label"] == "negative"]
+        #
+        #     self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
+        #     self.update_docs_by_ids(positive_docs_ids_matches, "negative")
+
+
 
     def get_similar_docs(self, **kwargs):
 
