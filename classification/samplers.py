@@ -20,6 +20,18 @@ class ActiveLearningSampler:
 
         if len(docs_matches)>0:
 
+            # my_connector = Es_connector(index=self.index)  # , config_relative_path='../')
+            # query = {
+            #     "query": {
+            #         "bool": {
+            #             "should": docs_matches,
+            #             "minimum_should_match": 1
+            #         }
+            #     }
+            # }
+            # script = "ctx._source." + self.session + " = '" + pred_labed + "'"
+            # my_connector.update_by_query(query, script)
+
             my_connector = Es_connector(index=self.index)  # , config_relative_path='../')
             query = {
                 "query": {
@@ -29,8 +41,19 @@ class ActiveLearningSampler:
                     }
                 }
             }
-            script = "ctx._source." + self.session + " = '" + pred_labed + "'"
-            my_connector.update_by_query(query, script)
+            original_docs = my_connector.search(query)["hits"]["hits"]
+
+            if len(original_docs)>0:
+                for doc in original_docs:
+                    Es_connector(index=self.index).es.update(
+                        index=self.index,
+                        doc_type="tweet",
+                        id=doc["_id"],
+                        body={"doc": {
+                            self.session: pred_labed
+                        }},
+                        retry_on_conflict=5
+                    )
 
 class UncertaintySampler(ActiveLearningSampler):
 
@@ -52,9 +75,10 @@ class UncertaintySampler(ActiveLearningSampler):
     def post_sampling(self, answers=None):
         print("Persisting answers so they have an infuelce on the ngrams")
 
-        positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if ans["pred_label"] == "confirmed"]
+        positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "confirmed"]
         negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
-                                      ans["pred_label"] == "negative"]
+                                     ans["pred_label"] == "negative"]
 
         self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
         self.update_docs_by_ids(positive_docs_ids_matches, "negative")
@@ -99,8 +123,7 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         print("Persisting answers so they have an infuelce on the ngrams")
 
         positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if ans["pred_label"] == "confirmed"]
-        negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
-                                      ans["pred_label"] == "negative"]
+        negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if ans["pred_label"] == "negative"]
 
         self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
         self.update_docs_by_ids(positive_docs_ids_matches, "negative")
