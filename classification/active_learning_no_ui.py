@@ -77,7 +77,7 @@ class ActiveLearningNoUi:
 
             # Injecting the answers in the training set, and re-training the model
             self.classifier.move_answers_to_training_set(answers)
-            self.classifier.post_sampling() #In case you want, e.g., to move duplicated content
+            self.classifier.post_sampling(answers=answers) #In case you want, e.g., to move duplicated content
 
             return self.classifier.scores, wrong_pred_answers
 

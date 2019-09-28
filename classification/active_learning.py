@@ -90,8 +90,8 @@ class ActiveLearning:
     def get_samples(self, num_questions):
         return self.sampler.get_samples(num_questions)
 
-    def post_sampling(self):
-        return self.sampler.post_sampling()
+    def post_sampling(self, answers=None):
+        return self.sampler.post_sampling(answers=answers)
 
     def set_sampling_strategy(self, sampler):
         self.sampler = sampler
@@ -255,7 +255,7 @@ class ActiveLearning:
 
         functions = Functions()  # config_relative_path='../')
         retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
-                                          label='unlabeled', retweets_number=kwargs['results_size'])
+                                          label='proposed', retweets_number=kwargs['results_size'])
 
         try:
             buckets = []
@@ -271,7 +271,7 @@ class ActiveLearning:
 
         ngram_classifier = NgramBasedClasifier() #  config_relative_path='../')
         matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
-                                                      label='unlabeled', results_size=kwargs['results_size'],
+                                                      label='proposed', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)
 
         try:

@@ -5,9 +5,11 @@ import plotly.graph_objs as go
 import plotly.io as pio
 import os
 import numpy as np
+import plotly
+plotly.io.orca.config.executable = '/home/gabi/dev/miniconda3/bin/orca'  #May be useful in Ubuntu
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
+logs_path = "C:\\Users\\gbosetti\\Desktop\\test\\logs"
 output_path = "C:\\Users\\gbosetti\\Desktop"
 
 

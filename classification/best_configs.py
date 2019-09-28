@@ -9,8 +9,7 @@ import statistics
 import operator
 
 #PARAMS
-logs_path = "C:\\Users\\gbosetti\\Desktop\\experiment3_2017_s0102"
-output_path = "C:\\Users\\gbosetti\\Desktop"
+logs_path = "/home/gabi/Bureau/test/"
 
 
 def read_file(path):
@@ -111,7 +110,7 @@ for scenario_path in logs_folders:
         # Get the logs of the only file for HYP
         config = read_file(config_file.path)
         config_name = get_config_name(config_file.name)
-        print(config_name)
+        print("CONFIG: ", config_name)
         loops = [line for line in config if 'loop' in line]
 
         accuracies = [log["accuracy"] for log in loops]
