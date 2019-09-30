@@ -319,6 +319,18 @@ app.views.mabed = Backbone.View.extend({
           return this.notifyNoSession()
         }
       console.log("Running TOBAS from mabed.js...");
+
+      var jc = $.confirm({
+        title:"Running TOBAS",
+        columnClass: 'extra-large',
+        content: "Processing...",
+        buttons: {
+            cancel: {
+                text: 'OK'
+            }
+        }
+      });
+
       var self = this;
       var   data = []
             data.push({name: "index", value: app.session.s_index});
@@ -331,8 +343,10 @@ app.views.mabed = Backbone.View.extend({
       $.post(app.appURL+'detect_events_with_tobas', data, function(response){
 
          console.log("RESPONSE FROM TOBAS", response);
+         jc.close();
 
       }, 'json').fail(function() {
+            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',

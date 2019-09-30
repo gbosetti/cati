@@ -42,7 +42,7 @@ class TobasEventDetection(MABED):
     def get_vocabulary_tweets(self, index, doc_field, max_perc_words_by_topic):
 
         tweets = self.get_tweets(index=index, doc_field=doc_field)
-        tokenized_docs = [tweet["_source"]["text"] for tweet in tweets]
+        tokenized_docs = [tweet["_source"][doc_field] for tweet in tweets]
         vocabulary = self.get_vocabulary(tokenized_docs, max_perc_words_by_topic)
 
         filtered_tweets = []
@@ -57,16 +57,29 @@ class TobasEventDetection(MABED):
 
 
 
-    def get_vocabulary(self, tokenized_docs, max_perc_words_by_topic):
+    def generate_searching_topics(self, index, doc_field, num_words):
 
+        tweets = self.get_tweets(index=index, doc_field=doc_field)
+        tokenized_docs = [tweet["_source"][doc_field] for tweet in tweets]
+        topics = self.get_topics_from_docs(tokenized_docs=tokenized_docs, num_words=num_words)
+        return topics
+
+    def get_topics_from_docs(self, tokenized_docs, num_words):
 
         words_distribution = Dictionary(tokenized_docs)  # list of (word, word_count) tuples
         corpus = [words_distribution.doc2bow(doc) for doc in
                   tokenized_docs]  # Convert document into the bag-of-words (BoW) format = list of (token_id, token_count) tuples.
 
         print('Getting initial vocabulary at ', datetime.now())
-        topics = self.get_topics(corpus, words_distribution)
-        print('Got vocabulary at ', datetime.now(), "(", len(topics)," topics)", topics)
+        topics = self.get_topics(corpus, words_distribution, num_words=num_words)
+        print('Got vocabulary at ', datetime.now(), "(", len(topics), " topics)", topics)
+
+        return topics
+
+
+    def get_vocabulary(self, tokenized_docs, max_perc_words_by_topic):
+
+        topics = self.get_topics(tokenized_docs)
 
         # Now filter the most important terms
         vocabulary=set()
@@ -87,13 +100,13 @@ class TobasEventDetection(MABED):
         # lala = { word:idx for idx, word in enumerate(vocabulary)}
         return vocabulary
 
-    def get_topics(self, corpus, vocabulary):
+    def get_topics(self, corpus, vocabulary, num_words=10):
 
         hdp = HdpModel(corpus=corpus, id2word=vocabulary)
         # Docs say that if -1 all topics will be in result (ordered by significance). num_words is optional.
         # .print_topics(num_topics=20, num_words=10)
         # Docs are wrong. If you use -1 the list will be empty. So just don't specify the num_topics:
-        return hdp.show_topics(formatted=False)
+        return hdp.show_topics(formatted=False)  #, num_words=num_words, num_topics=-1)
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
@@ -117,7 +130,7 @@ class TobasEventDetection(MABED):
         while scroll_size > 0:
 
             tweets = res["results"]
-            all_tweets.extend([{ '_source': { "text": self.tknzr.tokenize(tweet["_source"][doc_field]), "timestamp_ms": tweet["_source"]["timestamp_ms"]}} for tweet in tweets])
+            all_tweets.extend([{ '_source': { doc_field: self.tknzr.tokenize(tweet["_source"][doc_field]), "timestamp_ms": tweet["_source"]["timestamp_ms"]}} for tweet in tweets])
             processed_tweets += scroll_size
 
             res = my_connector.loop_paginatedSearch(sid, scroll_size)
