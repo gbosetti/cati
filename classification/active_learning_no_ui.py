@@ -200,7 +200,6 @@ class ActiveLearningNoUi:
                                             ', "f1": ' + str(scores["f1"]) +
                                             ', "recall": ' + str(scores["recall"]) +
                                             ', "precision": ' + str(scores["precision"]) +
-                                            ', "positive_precision": ' + str(scores["positive_precision"]) +
                                             ', "wrong_pred_answers": ' + str(wrong_pred_answers) + ' } \n')
 
         self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')

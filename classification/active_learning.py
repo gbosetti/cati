@@ -662,15 +662,10 @@ class ActiveLearning:
         if total_proposed_data == 0:
             raise Exception('You need to have some data to classify in your dataset')
 
-    def build_model(self, **kwargs): # to use from the experiment
-
-        # Keep track of the last used params
-        self.remove_stopwords = kwargs["remove_stopwords"]
-
-        # Starting the process
-        data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
+    def vectorize(self, data_train, data_test, data_unlabeled):
 
         # Get the sparse matrix of each dataset
+        self.data_unlabeled = data_unlabeled
         y_train = data_train.target
         y_test = data_test.target
 
@@ -681,11 +676,11 @@ class ActiveLearning:
         # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
         X_train = vectorizer.fit_transform(data_train.data)
 
-        if(len(data_test.data)==0):
+        if (len(data_test.data) == 0):
             raise Exception('The test set is empty.')
             return
 
-        if(len(self.data_unlabeled)==0):
+        if (len(data_unlabeled) == 0):
             raise Exception('The target (unlabeled) set is empty.')
             return
 
@@ -694,16 +689,13 @@ class ActiveLearning:
             return
 
         # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
-        print("Vectorizing the test set")
+        #print("Vectorizing the test set")
         X_test = vectorizer.transform(data_test.data)
-
         print("X_test n_samples: %d, n_features: %d" % X_test.shape)
-
         # Extracting features from the unlabled dataset using the same vectorizer
-        print("Vectorizing the target set")
-        X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
-        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
 
+        X_unlabeled = vectorizer.transform(data_unlabeled.data)
+        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)
         # fits the model according to the training set (passing its data and the vectorized feature)
         # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
         # normalized_X_train = scale(X_train, with_mean=False)
@@ -714,54 +706,59 @@ class ActiveLearning:
         self.sampler.model.fit(X_train, y_train)
 
         X_test = scaler.transform(X_test)
-        pred = self.sampler.model.predict(X_test)
+        X_unlabeled = scaler.transform(X_unlabeled)
 
-        #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
-        #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
+        return X_test, y_test, X_unlabeled
 
-        score = metrics.f1_score(y_test, pred)
-        accscore = metrics.accuracy_score(y_test, pred)
-        recall_score = metrics.recall_score(y_test, pred)
-        precision_score = metrics.precision_score(y_test, pred)
+    def predict(self, conf_matrix):
+        return self.sampler.model.predict(conf_matrix)  # may be the X_test or X_unlabeled
 
-        pos_category = [ idx for [idx, cat] in enumerate(self.categories) if cat == "confirmed"][0]  # Returns 0 or 1. categories[int(pos_pred[index])]
+    def get_prediction_scores(self, pred_on_X_test, y_test):
 
-        # Number of correct predictions on positives
-        true_positives = 0
-        for index, x in np.ndenumerate(pred):
-            if(x == pos_category and y_test[index[0]] == pred[index[0]]):
-                true_positives +=1
+        score = metrics.f1_score(y_test, pred_on_X_test)
+        accscore = metrics.accuracy_score(y_test, pred_on_X_test)
+        recall_score = metrics.recall_score(y_test, pred_on_X_test)
+        precision_score = metrics.precision_score(y_test, pred_on_X_test)
 
-        # Total expected positives from the ground truth
-        total_expected_positives = 0
-        for index, x in np.ndenumerate(y_test):
-            if(x == pos_category):
-                total_expected_positives += 1
-
-        pos_precision_score = true_positives/total_expected_positives
-
-        self.scores = {
+        return {
             "f1": score,
             "accuracy": accscore,
             "recall": recall_score,
-            "precision": precision_score,
-            "positive_precision": pos_precision_score
+            "precision": precision_score
         }
-        self.X_unlabeled = scaler.transform(X_unlabeled)
+
+    def predict_confidence_scores_for_samples(self, X_unlabeled):
 
         # compute absolute confidence for each unlabeled sample in each class
         # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
-        decision = self.sampler.model.decision_function(
-            self.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+        return self.sampler.model.decision_function(
+            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
+
+    def build_model(self, **kwargs): # to use from the experiment
+
+        # Keep track of the last used params
+        self.remove_stopwords = kwargs["remove_stopwords"]
+
+        # Starting the process
+        data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
+        X_test, y_test, X_unlabeled = self.vectorize(data_train, data_test, self.data_unlabeled)
+
+        # Predicts annotations on the test set to get the scores
+        pred_on_X_test = self.predict(X_test)
+        self.scores = self.get_prediction_scores(pred_on_X_test, y_test)
+
+        #Predicts annotations on the unlabeled set and get the confidence
+        decision = self.predict_confidence_scores_for_samples(X_unlabeled)
         self.last_confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        self.last_predictions = self.sampler.model.predict(self.X_unlabeled)
+        self.last_predictions = self.predict(X_unlabeled)
+        self.X_unlabeled = X_unlabeled
 
     def build_model_no_test(self, **kwargs):  # to use from the UI
 
         # Keep track of the last used params
         self.remove_stopwords = kwargs["remove_stopwords"]
 
-        # Starting the process
+        # Starting the process. Loads through sklearn.datasets import load_files
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files(download_test=False)
 
         # Get the sparse matrix of each dataset
@@ -955,7 +952,6 @@ class ActiveLearning:
             line = line.replace('", "f1"', ', "f1"')
             line = line.replace('", "recall"', ', "recall"')
             line = line.replace('", "precision"', ', "precision"')
-            line = line.replace('", "positive_precision"', ', "positive_precision"')
             line = line.replace('", "wrong_pred_answers"', ', "wrong_pred_answers"')
 
             logs = logs + line
