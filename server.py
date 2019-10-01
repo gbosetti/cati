@@ -3,6 +3,7 @@ from preprocessing_and_stats.PreProcessor import PreProcessor
 from preprocessing_and_stats.StopWords import EnglishStopWords, FrenchStopWords
 from BackendLogger import BackendLogger
 from classification.samplers import *
+from classification.learners import *
 
 import argparse
 import json
@@ -639,10 +640,10 @@ def train_model():
 
     sampling_strategy = "closer_to_hyperplane"
     if (sampling_strategy == "closer_to_hyperplane"):
-        al_classifier.set_sampling_strategy(UncertaintySampler())
+        al_classifier.initialize(learner=TfidfBasedLinearModel(), sampler=UncertaintySampler(index=index, session=session))
 
     # Building the model and getting the questions
-    al_classifier.build_model_no_test(num_questions=num_questions, remove_stopwords=False)
+    al_classifier.build_model(remove_stopwords=False)
 
     questions = al_classifier.get_samples(num_questions)
 

@@ -39,7 +39,6 @@ from mabed.functions import Functions
 nltk.download('stopwords')
 
 from sklearn.datasets import load_files
-from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import Counter
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
@@ -66,7 +65,7 @@ class ActiveLearning:
     # def __eq__(self, other):
     #     return other is self
 
-    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data"):
+    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data", sampler="", learner=""):
         # If session_folder and download_folder are different, donot forget to use clone_original_files to move the ones in the download folder to the session folder (the target one)
 
         self.DATA_FOLDER = os.path.join(os.getcwd(), "classification", session_folder_name)
@@ -86,6 +85,7 @@ class ActiveLearning:
         self.NO_CLASS_FOLDER = "proposed"
         self.ENCODING = 'latin1'  # latin1
         self.loop_index = 0
+        self.learner = learner
 
     def get_samples(self, num_questions):
         return self.sampler.get_samples(num_questions)
@@ -93,8 +93,9 @@ class ActiveLearning:
     def post_sampling(self, answers=None):
         return self.sampler.post_sampling(answers=answers)
 
-    def set_sampling_strategy(self, sampler):
+    def initialize(self, sampler, learner):
         self.sampler = sampler
+        self.learner = learner
         sampler.set_classifier(self)
 
     def clone_original_files(self):
@@ -662,78 +663,6 @@ class ActiveLearning:
         if total_proposed_data == 0:
             raise Exception('You need to have some data to classify in your dataset')
 
-    def vectorize(self, data_train, data_test, data_unlabeled):
-
-        # Get the sparse matrix of each dataset
-        self.data_unlabeled = data_unlabeled
-        y_train = data_train.target
-        y_test = data_test.target
-
-        vectorizer = TfidfVectorizer(encoding=self.ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
-
-        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        X_train = vectorizer.fit_transform(data_train.data)
-
-        if (len(data_test.data) == 0):
-            raise Exception('The test set is empty.')
-            return
-
-        if (len(data_unlabeled) == 0):
-            raise Exception('The target (unlabeled) set is empty.')
-            return
-
-        if (len(data_train.data) == 0):
-            raise Exception('The train set is empty.')
-            return
-
-        # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
-        #print("Vectorizing the test set")
-        X_test = vectorizer.transform(data_test.data)
-        print("X_test n_samples: %d, n_features: %d" % X_test.shape)
-        # Extracting features from the unlabled dataset using the same vectorizer
-
-        X_unlabeled = vectorizer.transform(data_unlabeled.data)
-        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)
-        # fits the model according to the training set (passing its data and the vectorized feature)
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        # normalized_X_train = scale(X_train, with_mean=False)
-        scaler = preprocessing.StandardScaler(with_mean=False)
-        scaler = scaler.fit(X_train)
-
-        X_train = scaler.transform(X_train)
-        self.sampler.model.fit(X_train, y_train)
-
-        X_test = scaler.transform(X_test)
-        X_unlabeled = scaler.transform(X_unlabeled)
-
-        return X_test, y_test, X_unlabeled
-
-    def predict(self, conf_matrix):
-        return self.sampler.model.predict(conf_matrix)  # may be the X_test or X_unlabeled
-
-    def get_prediction_scores(self, pred_on_X_test, y_test):
-
-        score = metrics.f1_score(y_test, pred_on_X_test)
-        accscore = metrics.accuracy_score(y_test, pred_on_X_test)
-        recall_score = metrics.recall_score(y_test, pred_on_X_test)
-        precision_score = metrics.precision_score(y_test, pred_on_X_test)
-
-        return {
-            "f1": score,
-            "accuracy": accscore,
-            "recall": recall_score,
-            "precision": precision_score
-        }
-
-    def predict_confidence_scores_for_samples(self, X_unlabeled):
-
-        # compute absolute confidence for each unlabeled sample in each class
-        # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
-        return self.sampler.model.decision_function(
-            X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-
     def build_model(self, **kwargs): # to use from the experiment
 
         # Keep track of the last used params
@@ -741,65 +670,10 @@ class ActiveLearning:
 
         # Starting the process
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
-        X_test, y_test, X_unlabeled = self.vectorize(data_train, data_test, self.data_unlabeled)
 
-        # Predicts annotations on the test set to get the scores
-        pred_on_X_test = self.predict(X_test)
-        self.scores = self.get_prediction_scores(pred_on_X_test, y_test)
+        # Train the model: vectorize, make predictions, get scores, confidences, etc
+        self.last_confidences, self.last_predictions, self.X_unlabeled, self.scores = self.learner.train_model(data_train, data_test, self.data_unlabeled, self.ENCODING, self.categories)
 
-        #Predicts annotations on the unlabeled set and get the confidence
-        decision = self.predict_confidence_scores_for_samples(X_unlabeled)
-        self.last_confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        self.last_predictions = self.predict(X_unlabeled)
-        self.X_unlabeled = X_unlabeled
-
-    def build_model_no_test(self, **kwargs):  # to use from the UI
-
-        # Keep track of the last used params
-        self.remove_stopwords = kwargs["remove_stopwords"]
-
-        # Starting the process. Loads through sklearn.datasets import load_files
-        data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files(download_test=False)
-
-        # Get the sparse matrix of each dataset
-        y_train = data_train.target
-
-        vectorizer = TfidfVectorizer(encoding=self.ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
-
-        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        X_train = vectorizer.fit_transform(data_train.data)
-
-        if(len(self.data_unlabeled)==0):
-            raise Exception('The target (unlabeled) set is empty.')
-            return
-
-        if (len(self.data_unlabeled.data) == 0):
-            raise Exception('The unlabeled set is empty.')
-            return
-
-        # Extracting features from the unlabled dataset using the same vectorizer
-        print("Vectorizing the target set")
-        X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
-        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
-
-        # fits the model according to the training set (passing its data and the vectorized feature)
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        # normalized_X_train = scale(X_train, with_mean=False)
-        scaler = preprocessing.StandardScaler(with_mean=False)
-        scaler = scaler.fit(X_train)
-
-        # No test scores generation ...
-
-        # Normalize the unlabeled set according to the training set distribution
-        X_train = scaler.transform(X_train)
-        self.sampler.model.fit(X_train, y_train)
-        self.X_unlabeled = scaler.transform(X_unlabeled)
-
-        decision = self.sampler.model.decision_function(self.X_unlabeled)
-        self.last_confidences = np.abs(decision)
-        self.last_predictions = self.sampler.model.predict(self.X_unlabeled)
 
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field=""):
 

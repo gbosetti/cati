@@ -1,7 +1,7 @@
 import numpy as np
 from mabed.es_connector import Es_connector
 import os
-from sklearn.svm import LinearSVC
+
 
 # Sampling methods: UncertaintySampler, JackardBasedUncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 
@@ -55,10 +55,10 @@ class ActiveLearningSampler:
                         retry_on_conflict=5
                     )
 
+
 class UncertaintySampler(ActiveLearningSampler):
 
     def __init__(self, **kwargs):
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
         self.index = kwargs["index"]
         self.session = kwargs["session"]
         return
@@ -96,7 +96,7 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         self.cnf_weight = kwargs["cnf_weight"]
         self.ret_weight = kwargs["ret_weight"]
         self.bgr_weight = kwargs["bgr_weight"]
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+
         return
 
     def get_samples(self, num_questions):
@@ -143,7 +143,7 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
         self.session = kwargs["session"]
         self.text_field = kwargs["text_field"]
         self.similarity_percentage = kwargs["similarity_percentage"]
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+
         return
 
     def get_samples(self, num_questions):
@@ -447,7 +447,7 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
         self.target_min_confidence = kwargs["target_min_confidence"]
         self.similar_docs = {}
         self.confident_loop = kwargs["confident_loop"]
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+
         return
 
     def post_sampling(self, answers=None):

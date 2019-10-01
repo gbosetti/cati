@@ -143,6 +143,7 @@ similarity_percentages = args.similarity_percentages.split(',')
 confident_loops = args.confident_loops.split(',')
 target_min_confidence = float(args.target_min_confidence)
 max_loops = int(args.max_loops)
+num_questions = int(args.num_questions)
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -202,7 +203,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         sampler = UncertaintySampler(index=args.index, session=args.session)
         learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
         learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                    min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                     text_field=args.text_field, max_loops=max_loops)
 
     if 'JackardBasedUncertaintySampler' in sampling_methods:
@@ -224,7 +225,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
 
                 learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
                 learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                             text_field=args.text_field, max_loops=max_loops)
             except Exception as e:
                 print(e)
@@ -242,7 +243,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                 text_field=args.text_field, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2])
             learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
 
-            learner.run(index=args.index, session=args.session, num_questions=args.num_questions,
+            learner.run(index=args.index, session=args.session, num_questions=num_questions,
                         gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
                         text_field=args.text_field, max_loops=max_loops)
 
@@ -258,7 +259,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                     text_field=args.text_field, similarity_percentage=similarity_percentage)
             learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
             learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                        min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                        min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                         text_field=args.text_field, max_loops=max_loops)
 
     if 'ConsecutiveDeferredMovDuplicatedDocsSampler' in sampling_methods:
@@ -277,5 +278,5 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                         confident_loop=confident_loop, target_min_confidence=target_min_confidence)
                 learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
                 learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                             text_field=args.text_field, max_loops=max_loops)

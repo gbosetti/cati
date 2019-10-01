@@ -102,11 +102,13 @@ class TobasEventDetection(MABED):
 
     def get_topics(self, corpus, vocabulary, num_words=10):
 
-        hdp = HdpModel(corpus=corpus, id2word=vocabulary)
+        hdpmodel = HdpModel(corpus=corpus, id2word=vocabulary)
         # Docs say that if -1 all topics will be in result (ordered by significance). num_words is optional.
         # .print_topics(num_topics=20, num_words=10)
         # Docs are wrong. If you use -1 the list will be empty. So just don't specify the num_topics:
-        return hdp.show_topics(formatted=False)  #, num_words=num_words, num_topics=-1)
+        topics = hdpmodel.show_topics(formatted=False, num_words=num_words, num_topics=-1)
+        #print(hdpmodel.get_topics().shape)
+        return topics
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
