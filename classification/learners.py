@@ -1,8 +1,15 @@
+# TfidfBasedLinearModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import preprocessing
 from sklearn import metrics
 from sklearn.svm import LinearSVC
 import numpy as np
+
+#Word2Vec
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from sklearn.linear_model import LogisticRegression
+import multiprocessing
+from tqdm import tqdm
 
 class AbstractLearner():
 
@@ -10,7 +17,10 @@ class AbstractLearner():
         self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
 
     def train_model(self, data_train, data_test, data_unlabeled, encoding, categories):
-        return
+        # data_train, data_test, data_unlabeled are the results of reading with sklearn.datasets load_files
+        # Encoding is a string. e.g. 'latin1'
+        # categories
+        return  # last_confidences, last_predictions, X_unlabeled, scores
 
 class TfidfBasedLinearModel(AbstractLearner):
 
@@ -103,3 +113,31 @@ class TfidfBasedLinearModel(AbstractLearner):
         # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
         # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
         return self.model.decision_function(X_unlabeled)
+
+class Word2VecBasedLinearModel(AbstractLearner):
+
+    def train_model(self, data_train, data_test, data_unlabeled, encoding, categories, scores_generation=True):
+
+        cores = multiprocessing.cpu_count()
+
+        model_dbow = Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, min_count=2, sample=0, workers=cores)
+        model_dbow.build_vocab([x for x in tqdm(train_tagged.values)])
+
+
+        y_train, X_train = self.vec_for_learning(model_dbow, train_tagged)
+        y_test, X_test = self.vec_for_learning(model_dbow, test_tagged)
+
+        logreg = LogisticRegression(n_jobs=1, C=1e5)
+        logreg.fit(X_train, y_train)
+        y_pred = logreg.predict(X_test)
+
+        scores = self.get_prediction_scores(y_pred, y_test)
+
+    def vec_for_learning(model, tagged_docs):
+        sents = tagged_docs.values
+        targets, regressors = zip(*[(doc.tags[0], model.infer_vector(doc.words, steps=20)) for doc in sents])
+        return targets, regressors
+
+
+
+
