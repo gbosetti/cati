@@ -1,6 +1,7 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.samplers import *
 from classification.learners import *
+from classification.vectorizers import *
 import argparse
 import itertools
 import os

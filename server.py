@@ -4,6 +4,7 @@ from preprocessing_and_stats.StopWords import EnglishStopWords, FrenchStopWords
 from BackendLogger import BackendLogger
 from classification.samplers import *
 from classification.learners import *
+from classification.vectorizers import *
 
 import argparse
 import json

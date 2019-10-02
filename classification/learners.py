@@ -1,12 +1,11 @@
 # TfidfBasedLinearModel
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn import preprocessing
 from sklearn import metrics
 from sklearn.svm import LinearSVC
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 # from sklearn.ensemble import RandomForestClassifier
+from classification.vectorizers import *
 
 
 #Word2Vec
@@ -63,6 +62,8 @@ class SklearnBasedModel(AbstractLearner):
 
     def train_model(self, data_train, data_test, data_unlabeled, encoding, categories, scores_generation=True):
 
+        self.data_unlabeled = data_unlabeled
+
         X_train, y_train, X_test, y_test, X_unlabeled = self.vectorize(data_train, data_test, data_unlabeled, encoding)
         self._train(X_train, y_train)
 
@@ -80,48 +81,8 @@ class SklearnBasedModel(AbstractLearner):
 
     def vectorize(self, data_train, data_test, data_unlabeled, encoding):
 
-        if (len(data_test.data) == 0):
-            raise Exception('The test set is empty.')
-            return
-
-        if (len(data_unlabeled) == 0):
-            raise Exception('The target (unlabeled) set is empty.')
-            return
-
-        if (len(data_train.data) == 0):
-            raise Exception('The train set is empty.')
-            return
-
-        # Get the sparse matrix of each dataset
-        self.data_unlabeled = data_unlabeled
-        y_train = data_train.target
-        y_test = data_test.target
-
-        vectorizer = TfidfVectorizer(encoding=encoding, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
-
-        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        X_train = vectorizer.fit_transform(data_train.data)
-
-        # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
-        #print("Vectorizing the test set")
-        X_test = vectorizer.transform(data_test.data)
-        print("X_test n_samples: %d, n_features: %d" % X_test.shape)
-        # Extracting features from the unlabled dataset using the same vectorizer
-
-        X_unlabeled = vectorizer.transform(data_unlabeled.data)
-        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)
-        # fits the model according to the training set (passing its data and the vectorized feature)
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        # normalized_X_train = scale(X_train, with_mean=False)
-        scaler = preprocessing.StandardScaler(with_mean=False)
-        scaler = scaler.fit(X_train)
-        X_train = scaler.transform(X_train)
-        X_test = scaler.transform(X_test)
-        X_unlabeled = scaler.transform(X_unlabeled)
-
-        return X_train, y_train, X_test, y_test, X_unlabeled
+        # return TfidfBasedVectorizer(encoding=encoding).vectorize(data_train, data_test, data_unlabeled)
+        return CountBasedVectorizer().vectorize(data_train, data_test, data_unlabeled)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -143,48 +104,40 @@ class TfidfBasedLinearModel(SklearnBasedModel):
         return np.abs(decision)  # Calculates the absolute value element-wise
 
 
+
+class SklearnProbaBasedModel(SklearnBasedModel):
+
+    def decision_function(self, X_unlabeled, predicted_labels):
+
+        pred_confidences = predicted_labels.astype(np.float64) # np.copy(predicted_labels)
+        all_classes_confidences = self.model.predict_proba(X_unlabeled)  # clsas_1_pred = pred_1[:,1]
+
+        for i, tuple in enumerate(all_classes_confidences):
+            selected_class_index = int(pred_confidences[i])
+            pred_confidences[i] = tuple[selected_class_index]
+
+        return pred_confidences
+
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class DecisionTreeBasedModel(SklearnBasedModel):  # DecisionTreeClassifierModel
+class DecisionTreeBasedModel(SklearnProbaBasedModel):  # DecisionTreeClassifierModel
     # Unsupervised Outlier Detection.
     def init_model(self):
         self.model = DecisionTreeClassifier(random_state=0) # OneClassSVM(gamma='auto')
 
-    def decision_function(self, X_unlabeled, predicted_labels):
-
-        pred_confidences = predicted_labels.astype(np.float64) # np.copy(predicted_labels)
-        all_classes_confidences = self.model.predict_proba(X_unlabeled)  # clsas_1_pred = pred_1[:,1]
-
-        for i, tuple in enumerate(all_classes_confidences):
-            selected_class_index = int(pred_confidences[i])
-            pred_confidences[i] = tuple[selected_class_index]
-
-        return pred_confidences
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class KNeighborsBasedModel(SklearnBasedModel):  # DecisionTreeClassifierModel
+class KNeighborsBasedModel(SklearnProbaBasedModel):  # DecisionTreeClassifierModel
     # Unsupervised Outlier Detection.
     def init_model(self):
-        self.model = KNeighborsClassifier(n_neighbors=3)
-
-    def decision_function(self, X_unlabeled, predicted_labels):
-
-        pred_confidences = predicted_labels.astype(np.float64) # np.copy(predicted_labels)
-        all_classes_confidences = self.model.predict_proba(X_unlabeled)  # clsas_1_pred = pred_1[:,1]
-
-        for i, tuple in enumerate(all_classes_confidences):
-            selected_class_index = int(pred_confidences[i])
-            pred_confidences[i] = tuple[selected_class_index]
-
-        return pred_confidences
+        self.model = KNeighborsClassifier(n_neighbors=2)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
