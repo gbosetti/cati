@@ -194,7 +194,7 @@ if download_files:
     classifier.clean_logs()
 
 
-learner = DecisionTreeBasedModel()  # TfidfBasedLinearModel()  # DecisionTreeBasedModel()
+learner = KNeighborsBasedModel()  # TfidfBasedLinearModel()  # DecisionTreeBasedModel()
 
 
 #  Running the algorythm multiple times

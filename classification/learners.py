@@ -2,10 +2,12 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import preprocessing
 from sklearn import metrics
-from sklearn.svm import LinearSVC, OneClassSVM, LinearSVR
+from sklearn.svm import LinearSVC
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+# from sklearn.ensemble import RandomForestClassifier
+
 
 #Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
@@ -27,6 +29,12 @@ class AbstractLearner():
         # Encoding is a string. e.g. 'latin1'
         # categories
         return  # last_confidences, last_predictions, X_unlabeled, scores
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
 
 class SklearnBasedModel(AbstractLearner):
 
@@ -116,6 +124,11 @@ class SklearnBasedModel(AbstractLearner):
         return X_train, y_train, X_test, y_test, X_unlabeled
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class TfidfBasedLinearModel(SklearnBasedModel):
 
     def init_model(self):
@@ -130,22 +143,9 @@ class TfidfBasedLinearModel(SklearnBasedModel):
         return np.abs(decision)  # Calculates the absolute value element-wise
 
 
-
-
-
-
-
-
-
-# class UnsupervisedOutlierBasedModel(TfidfBasedLinearModel):
-#
-#     def init_model(self):
-#         self.model = RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
-#             max_depth=2, max_features='auto', max_leaf_nodes=None,
-#             min_impurity_decrease=0.0, min_impurity_split=None,
-#             min_samples_leaf=1, min_samples_split=2,
-#             min_weight_fraction_leaf=0.0, n_estimators=100, n_jobs=None,
-#             oob_score=False, random_state=0, verbose=0, warm_start=False)
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 class DecisionTreeBasedModel(SklearnBasedModel):  # DecisionTreeClassifierModel
@@ -165,13 +165,31 @@ class DecisionTreeBasedModel(SklearnBasedModel):  # DecisionTreeClassifierModel
         return pred_confidences
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
+class KNeighborsBasedModel(SklearnBasedModel):  # DecisionTreeClassifierModel
+    # Unsupervised Outlier Detection.
+    def init_model(self):
+        self.model = KNeighborsClassifier(n_neighbors=3)
+
+    def decision_function(self, X_unlabeled, predicted_labels):
+
+        pred_confidences = predicted_labels.astype(np.float64) # np.copy(predicted_labels)
+        all_classes_confidences = self.model.predict_proba(X_unlabeled)  # clsas_1_pred = pred_1[:,1]
+
+        for i, tuple in enumerate(all_classes_confidences):
+            selected_class_index = int(pred_confidences[i])
+            pred_confidences[i] = tuple[selected_class_index]
+
+        return pred_confidences
 
 
-
-
-
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 
