@@ -49,10 +49,26 @@ class SklearnBasedModel(AbstractLearner):
             "precision": precision_score
         }
 
-class TfidfBasedLinearModel(SklearnBasedModel):
+    def _train(self, X_train, y_train):
+        # TRAIN THE MODEL BEFORE PREDICTING
+        self.model.fit(X_train, y_train)
 
-    def init_model(self):
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
+    def train_model(self, data_train, data_test, data_unlabeled, encoding, categories, scores_generation=True):
+
+        X_train, y_train, X_test, y_test, X_unlabeled = self.vectorize(data_train, data_test, data_unlabeled, encoding)
+        self._train(X_train, y_train)
+
+        # Predicts annotations on the test set to get the scores
+        scores=None
+        if scores_generation:
+            pred_on_X_test = self.predict(X_test)
+            scores = self.get_prediction_scores(pred_on_X_test, y_test)
+
+        # Predicts annotations on the unlabeled set and get the confidence
+        last_predictions = self.predict(X_unlabeled)
+        last_confidences = self.decision_function(X_unlabeled, last_predictions)
+
+        return last_confidences, last_predictions, X_unlabeled, scores
 
     def vectorize(self, data_train, data_test, data_unlabeled, encoding):
 
@@ -99,26 +115,11 @@ class TfidfBasedLinearModel(SklearnBasedModel):
 
         return X_train, y_train, X_test, y_test, X_unlabeled
 
-    def _train(self, X_train, y_train):
-        # TRAIN THE MODEL BEFORE PREDICTING
-        self.model.fit(X_train, y_train)
 
-    def train_model(self, data_train, data_test, data_unlabeled, encoding, categories, scores_generation=True):
+class TfidfBasedLinearModel(SklearnBasedModel):
 
-        X_train, y_train, X_test, y_test, X_unlabeled = self.vectorize(data_train, data_test, data_unlabeled, encoding)
-        self._train(X_train, y_train)
-
-        # Predicts annotations on the test set to get the scores
-        scores=None
-        if scores_generation:
-            pred_on_X_test = self.predict(X_test)
-            scores = self.get_prediction_scores(pred_on_X_test, y_test)
-
-        # Predicts annotations on the unlabeled set and get the confidence
-        last_predictions = self.predict(X_unlabeled)
-        last_confidences = self.decision_function(X_unlabeled, last_predictions)
-
-        return last_confidences, last_predictions, X_unlabeled, scores
+    def init_model(self):
+        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
 
     def decision_function(self, X_unlabeled, predicted_labels):
 
@@ -147,7 +148,7 @@ class TfidfBasedLinearModel(SklearnBasedModel):
 #             oob_score=False, random_state=0, verbose=0, warm_start=False)
 
 
-class DecisionTreeBasedModel(TfidfBasedLinearModel):  # DecisionTreeClassifierModel
+class DecisionTreeBasedModel(SklearnBasedModel):  # DecisionTreeClassifierModel
     # Unsupervised Outlier Detection.
     def init_model(self):
         self.model = DecisionTreeClassifier(random_state=0) # OneClassSVM(gamma='auto')
