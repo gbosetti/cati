@@ -1,5 +1,4 @@
 from classification.active_learning import ActiveLearning
-from classification.learners import TfidfBasedLinearModel
 from datetime import datetime
 from mabed.es_connector import Es_connector
 from BackendLogger import BackendLogger
@@ -19,7 +18,7 @@ class ActiveLearningNoUi:
         self.classifier = ActiveLearning()
 
         if kwargs.get("sampler", None) != None:
-            self.classifier.initialize(sampler=kwargs["sampler"], learner=TfidfBasedLinearModel())
+            self.classifier.initialize(sampler=kwargs["sampler"], learner=kwargs["learner"])
 
     def clean_logs(self, **kwargs):
 

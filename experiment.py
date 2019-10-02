@@ -1,5 +1,6 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
 from classification.samplers import *
+from classification.learners import *
 import argparse
 import itertools
 import os
@@ -186,11 +187,15 @@ if clear_results:
 
 if download_files:
     print("Downloading files from session ", args.session, " and ", args.gt_session)
-    learner = ActiveLearningNoUi(logs_filename="download.txt")
-    learner.download_data(index=args.index, session=args.session,
+    classifier = ActiveLearningNoUi(logs_filename="download.txt")
+    classifier.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
                     text_field=args.text_field)
-    learner.clean_logs()
+    classifier.clean_logs()
+
+
+learner = DecisionTreeBasedModel()  # TfidfBasedLinearModel()  # DecisionTreeBasedModel()
+
 
 #  Running the algorythm multiple times
 for max_samples_to_sort in args.selected_max_samples_to_sort:
@@ -201,8 +206,8 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
         print("\nRunning hyperplane strategy\n")
         logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
         sampler = UncertaintySampler(index=args.index, session=args.session)
-        learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-        learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+        classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+        classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
                     min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                     text_field=args.text_field, max_loops=max_loops)
 
@@ -223,13 +228,13 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                 sampler = JackardBasedUncertaintySampler(low_confidence_limit=confidence_limit, index=args.index, session=args.session,
                     text_field=args.text_field, similarity_percentage=similarity_percentage, max_doct_to_resort=jackard_max_doct_to_resort)
 
-                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+                classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
                             min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                             text_field=args.text_field, max_loops=max_loops)
             except Exception as e:
                 print(e)
-                learner.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
+                classifier.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     if 'BigramsRetweetsSampler' in sampling_methods:
@@ -241,9 +246,9 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                             "_smss" + str(max_samples_to_sort) + ".txt"
             sampler = BigramsRetweetsSampler(max_samples_to_sort=max_samples_to_sort, index=args.index, session=args.session,
                 text_field=args.text_field, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2])
-            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+            classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
 
-            learner.run(index=args.index, session=args.session, num_questions=num_questions,
+            classifier.run(index=args.index, session=args.session, num_questions=num_questions,
                         gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
                         text_field=args.text_field, max_loops=max_loops)
 
@@ -257,8 +262,8 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
             logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
             sampler = MoveDuplicatedDocsSampler(index=args.index, session=args.session,
                     text_field=args.text_field, similarity_percentage=similarity_percentage)
-            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-            learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+            classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+            classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
                         min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                         text_field=args.text_field, max_loops=max_loops)
 
@@ -276,7 +281,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                 sampler = ConsecutiveDeferredMovDuplicatedDocsSampler(index=args.index, session=args.session,
                         text_field=args.text_field, similarity_percentage=similarity_percentage,
                         confident_loop=confident_loop, target_min_confidence=target_min_confidence)
-                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+                classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
                             min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
                             text_field=args.text_field, max_loops=max_loops)

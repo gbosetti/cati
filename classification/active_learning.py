@@ -681,7 +681,16 @@ class ActiveLearning:
         # print("max_samples_to_sort: ", max_samples_to_sort)
         complete_question_samples = []
         i=0
+
+        get_confidences = False
+        if isinstance(confidences,np.ndarray):
+            get_confidences = True
+
         for index in conf_sorted_question_samples: # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            conf = None
+            if get_confidences:
+                conf = confidences[index]
 
             question ={
                 "filename": self.data_unlabeled.filenames[index],
@@ -689,7 +698,7 @@ class ActiveLearning:
                 "str_id": self.extract_filename_no_ext(self.data_unlabeled.filenames[index]),
                 "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
-                "confidence": confidences[index],
+                "confidence": conf,
                 "cnf_pos": i,
                 "ret_pos": max_samples_to_sort,
                 "bgr_pos": max_samples_to_sort,
