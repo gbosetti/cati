@@ -1,4 +1,4 @@
-# TfidfBasedLinearModel
+# LinearSVCBasedModel
 from sklearn import metrics
 from sklearn.svm import LinearSVC
 import numpy as np
@@ -16,8 +16,16 @@ from tqdm import tqdm
 
 class AbstractLearner():
 
-    def __init__(self):
+    def __init__(self, vectorizer=None):
+        # super(type(self), self).__init__(self, encoding="")
         self.init_model()
+        self.init_vectorizer(vectorizer)
+        print("Using the ", self.__class__.__name__, " model")
+
+    def init_vectorizer(self, vectorizer=None):
+        if vectorizer != None:
+            self._vectorizer = vectorizer
+        else: self._vectorizer = CountBasedVectorizer()  # TfidfBasedVectorizer(encoding=encoding)
 
     def init_model(self):
         #self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
@@ -81,8 +89,7 @@ class SklearnBasedModel(AbstractLearner):
 
     def vectorize(self, data_train, data_test, data_unlabeled, encoding):
 
-        # return TfidfBasedVectorizer(encoding=encoding).vectorize(data_train, data_test, data_unlabeled)
-        return CountBasedVectorizer().vectorize(data_train, data_test, data_unlabeled)
+        return self._vectorizer.vectorize(data_train, data_test, data_unlabeled)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -90,7 +97,7 @@ class SklearnBasedModel(AbstractLearner):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class TfidfBasedLinearModel(SklearnBasedModel):
+class LinearSVCBasedModel(SklearnBasedModel):
 
     def init_model(self):
         self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
@@ -136,53 +143,6 @@ class DecisionTreeBasedModel(SklearnProbaBasedModel):  # DecisionTreeClassifierM
 
 class KNeighborsBasedModel(SklearnProbaBasedModel):  # DecisionTreeClassifierModel
     # Unsupervised Outlier Detection.
+
     def init_model(self):
         self.model = KNeighborsClassifier(n_neighbors=2)
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Word2VecBasedLinearModel(AbstractLearner):
-
-    def train_model(self, data_train, data_test, data_unlabeled, encoding, categories, scores_generation=True):
-
-        cores = multiprocessing.cpu_count()
-
-        model_dbow = Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, min_count=2, sample=0, workers=cores)
-        model_dbow.build_vocab([x for x in tqdm(train_tagged.values)])
-
-
-        y_train, X_train = self.vec_for_learning(model_dbow, train_tagged)
-        y_test, X_test = self.vec_for_learning(model_dbow, test_tagged)
-
-        logreg = LogisticRegression(n_jobs=1, C=1e5)
-        logreg.fit(X_train, y_train)
-        y_pred = logreg.predict(X_test)
-
-        scores = self.get_prediction_scores(y_pred, y_test)
-
-    def vec_for_learning(model, tagged_docs):
-        sents = tagged_docs.values
-        targets, regressors = zip(*[(doc.tags[0], model.infer_vector(doc.words, steps=20)) for doc in sents])
-        return targets, regressors
-
-
-
-

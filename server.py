@@ -641,7 +641,7 @@ def train_model():
 
     sampling_strategy = "closer_to_hyperplane"
     if (sampling_strategy == "closer_to_hyperplane"):
-        al_classifier.initialize(learner=TfidfBasedLinearModel(), sampler=UncertaintySampler(index=index, session=session))
+        al_classifier.initialize(learner=LinearSVCBasedModel(), sampler=UncertaintySampler(index=index, session=session))
 
     # Building the model and getting the questions
     al_classifier.build_model(remove_stopwords=False)
@@ -743,7 +743,6 @@ def most_frequent_ngrams_in_quadrant():
                                                                     label=data['search_by_label'],
                                                                     matching_ngrams=matching_ngrams)
     })
-
     return jsonify(n_grams)
 
 @app.route('/n_grams_classification', methods=['POST'])

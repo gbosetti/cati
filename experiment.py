@@ -195,7 +195,7 @@ if download_files:
     classifier.clean_logs()
 
 
-learner = KNeighborsBasedModel()  # TfidfBasedLinearModel()  # DecisionTreeBasedModel()
+learner = LinearSVCBasedModel(vectorizer=Doc2VecBasedVectorizer())  # LinearSVCBasedModel | DecisionTreeBasedModel | KNeighborsBasedModel ||| TfidfBasedVectorizer(encoding="latin1") | Doc2VecBasedVectorizer | CountBasedVectorizer
 
 
 #  Running the algorythm multiple times
@@ -204,7 +204,6 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
     if 'UncertaintySampler' in sampling_methods:
 
-        print("\nRunning hyperplane strategy\n")
         logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
         sampler = UncertaintySampler(index=args.index, session=args.session)
         classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
