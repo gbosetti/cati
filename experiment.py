@@ -195,7 +195,8 @@ if download_files:
     classifier.clean_logs()
 
 
-learner = LinearSVCBasedModel(vectorizer=Doc2VecBasedVectorizer())  # LinearSVCBasedModel | DecisionTreeBasedModel | KNeighborsBasedModel ||| TfidfBasedVectorizer(encoding="latin1") | Doc2VecBasedVectorizer | CountBasedVectorizer
+learner = LinearSVCBasedModel(vectorizer=Doc2VecBasedVectorizer())  # LinearSVCBasedModel | DecisionTreeBasedModel | KNeighborsBasedModel |||
+# TfidfBasedVectorizer(encoding="latin1") | Doc2VecBasedVectorizer | CountBasedVectorizer | Doc2VecBasedVectorizer
 
 
 #  Running the algorythm multiple times
