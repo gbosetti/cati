@@ -6,6 +6,7 @@ from gensim.models import Doc2Vec
 import numpy
 from random import shuffle
 import os
+import shutil
 import numpy as np
 
 class AbstractVectorizer():
@@ -106,7 +107,7 @@ class CountBasedVectorizer(SklearnBasedVectorizer):
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
-class LabeledLineSentence(object):
+class LabeledLineSentence(object):   # HELPER; NOT A VECTORIZER
     def __init__(self, sources):
         self.sources = sources
 
@@ -142,56 +143,63 @@ class Doc2VecBasedVectorizer(SklearnBasedVectorizer):
 
     def __init__(self):
         AbstractVectorizer.__init__(self)  # super(MyFighters, self).__init__()
-        self.model = Doc2Vec(min_count=1, window=10, size=100, sample=1e-4, negative=5, workers=8)
+        self.vector_size = 100  # Dimensionality of the feature vectors
+        self.model = None
 
     def vectorize(self, data_train, data_test, data_unlabeled):
-        self._check_input_data(data_train, data_test, data_unlabeled)  # Check!
 
-        y_train = data_train.target
-        y_test = data_test.target
+        self._check_input_data(data_train, data_test, data_unlabeled)
         categories = data_train.target_names
+        sentences = self._load_docs_in_category_files(data_train.data, data_train.target, data_test.data, data_test.target, data_unlabeled.data, categories)
+        #if self.model.vocabulary.raw_vocab == None:  # Just when loading the first time
 
-        sentences = self._load_docs_in_category_files(data_train.data, y_train, data_test.data, y_test, data_unlabeled.data, categories)
-        target_sentences = sentences.to_array()
-        self.model.build_vocab(target_sentences)
+        self.model = self._get_trained_model(sentences, use_existing=False, epoch=1)  # Around 4 minutes to get a trained model with 2 epoch
 
-        self.model = self._get_trained_model(sentences)
+        train_arrays, train_labels = self.get_labeled_vectors(categories, sentences.sentences, 'TRAIN_POS_', 'TRAIN_NEG_')
+        test_arrays, test_labels = self.get_labeled_vectors(categories, sentences.sentences, 'TEST_POS_', 'TEST_NEG_')
+        unlabeled_arrays = self.get_unlabeled_vectors(sentences.sentences, 'TRAIN_UNS_')
 
-        train_arrays, train_labels = self.get_vectors()
+        return train_arrays, train_labels, test_arrays, test_labels, unlabeled_arrays  # data_unlabeled.data
 
+    def get_labeled_vectors(self, categories, sentences, pos_label, neg_label):
 
-        X_train, X_test, X_unlabeled = self._normalize_subsets_data(data_train.data, data_test.data, data_unlabeled.data)
-        return X_train, y_train, X_test, y_test, X_unlabeled
+        total_docs = test_size = len([stc for stc in sentences if
+                          stc.tags[0].startswith(pos_label) or stc.tags[0].startswith(
+                              neg_label)])  # len(data_train.data) returns 3000
 
-    def get_vectors(self):
-
-        total_docs_size = self.model.corpus_count
-        train_arrays = numpy.zeros((25000, 100))  # Its taking just the 100 top vectors
-        train_labels = numpy.zeros(25000)
-
-
-        #     prefix_train_neg = 'TRAIN_NEG_' + str(i)
-        #     train_arrays[i] = self.model[prefix_train_pos]
-        #     train_arrays[12500 + i] = self.model[prefix_train_neg]
-        #     train_labels[i] = 1
-        #     train_labels[12500 + i] = 0
-
+        # train_size = self.model.corpus_count
+        train_arrays = numpy.zeros((total_docs, self.vector_size))  # Its taking just the 100 top vectors
+        train_labels = numpy.zeros(total_docs)
 
         train_idx = 0
-        self.extract_vectors_to('TRAIN_POS_', train_idx, train_arrays)  #NOT UPDATING THE VALUES
-        self.extract_vectors_to('TRAIN_NEG_', train_idx, train_arrays)
-        print(train_arrays)
+        pos_index = [index for index, label in enumerate(categories) if label == "confirmed"][0]
+        train_idx = self.extract_vectors_to(pos_label, train_idx, train_arrays, train_labels, pos_index)
 
-
-
-        prefix_train_pos = 'TRAIN_POS_'
-
-        for doc_vec in self.model:
-            print("")
+        neg_index = [index for index, label in enumerate(categories) if label == "negative"][0]
+        train_idx = self.extract_vectors_to(neg_label, train_idx, train_arrays, train_labels, neg_index)
 
         return train_arrays, train_labels
 
-    def extract_vectors_to(self, prefix_label, train_index, train_arrays):
+    def get_unlabeled_vectors(self, sentences, prefix_label):
+
+        total_docs = test_size = len([stc for stc in sentences if
+                          stc.tags[0].startswith(prefix_label)])
+        vectors = numpy.zeros((total_docs, self.vector_size))  # Its taking just the 100 top vectors
+
+        prefix_idx = 0
+        keep_retrieving = True
+        while keep_retrieving == True:
+            prefix_train_pos = prefix_label + str(prefix_idx)
+            try:
+                vectors[prefix_idx] = self.model[prefix_train_pos]
+                prefix_idx += 1
+            except KeyError as ke:
+                print("Stop retrieving docs at ", prefix_idx)
+                keep_retrieving = False
+
+        return vectors
+
+    def extract_vectors_to(self, prefix_label, train_index, train_arrays, train_labels, label):
 
         prefix_idx=0
         keep_retrieving = True
@@ -199,16 +207,22 @@ class Doc2VecBasedVectorizer(SklearnBasedVectorizer):
             prefix_train_pos = prefix_label + str(prefix_idx)
             try:
                 vec_doc = self.model[prefix_train_pos]
-                train_arrays[train_index]
+                train_arrays[train_index] = vec_doc
+                train_labels[train_index] = label
                 prefix_idx += 1
                 train_index += 1
             except KeyError as ke:
-                print("break!")
+                #print("break!")
                 keep_retrieving = False
+            except IndexError as ke:
+                keep_retrieving = False
+                print("*** Be careful, this error might indicate that the model has loaded other data than the one you are trying to use")
+
+        return train_index
 
     def train_vectors(self, total_docs):
 
-        train_arrays = numpy.zeros((total_docs, 100))
+        train_arrays = numpy.zeros((total_docs, self.vector_size))
         train_labels = numpy.zeros(total_docs)
 
         # We simply put the positive ones at the first half of the array, and the negative ones at the second half.
@@ -226,49 +240,37 @@ class Doc2VecBasedVectorizer(SklearnBasedVectorizer):
         return train_arrays,
 
 
-    def _get_trained_model(self, sentences, use_existing=True):
+    def _get_trained_model(self, sentences, use_existing=True, epoch=None):
 
-        model_filename = os.path.join("classification", 'doc2vec_cati.d2v')
+        # model_filename = os.path.join("classification", 'doc2vec_cati.d2v')
+        # if use_existing and os.path.exists(model_filename):
+        #     model = Doc2Vec.load(model_filename)
+        #     if model:
+        #         return model
+        # if self.model == None:
 
-        if use_existing and os.path.exists(model_filename):
-            self.model = Doc2Vec.load(model_filename)
-            if self.model:
-                return self.model
+        self.model = Doc2Vec(min_count=1, window=10, vector_size=self.vector_size, sample=1e-4, negative=5,
+                             workers=8)
+        target_sentences = sentences.to_array()  # this must be executed, otherwise the sentences_perm() cannot be called
+        self.model.build_vocab(target_sentences)
+
+        if epoch == None:
+            epoch = self.model.epochs
 
         # This may take some mins. So indicate if you want to reuse an existing model (if any available)
         # for epoch in range(10):
         perm_sentences = sentences.sentences_perm()
-        self.model.train(perm_sentences, total_examples=self.model.corpus_count, epochs=self.model.epochs)
-        self.model.save(model_filename)
+        self.model.train(perm_sentences, total_examples=self.model.corpus_count, epochs=epoch)
+        # self.model.save(model_filename)
+        return self.model
 
     def _load_docs_in_category_files(self, X_train, y_train, X_test, y_test, X_unlabeled, categories):
-        sources = {
-            'test-neg.txt': 'TEST_NEG',
-            'test-pos.txt': 'TEST_POS',
-            'train-neg.txt': 'TRAIN_NEG',
-            'train-pos.txt': 'TRAIN_POS',
-            'train-unsup.txt': 'TRAIN_UNS'
-        }
 
         subfolder = os.path.join("classification", "tmp_doc2vec")
-        source_files_exists=True
-        for filename, label in sources.items():
-            if not os.path.exists(os.path.join(subfolder, filename)):
-                source_files_exists = False
-                break
+        if os.path.exists(subfolder):
+            shutil.rmtree(subfolder)
+        os.makedirs(subfolder)
 
-        if not os.path.exists(subfolder):
-             os.makedirs(subfolder)
-
-        #Write the files if they don't exist
-        if not source_files_exists:
-            self._download_files(categories, "confirmed", X_test, y_test, subfolder, 'test-pos.txt')
-            self._download_files(categories, "negative", X_test, y_test, subfolder, 'test-neg.txt')
-            self._download_files(categories, "confirmed", X_train, y_train, subfolder, 'train-pos.txt')
-            self._download_files(categories, "negative", X_train, y_train, subfolder, 'train-neg.txt')
-            self._download_files(categories, None, X_test, None, subfolder, 'train-unsup.txt')
-
-        #REad the files
         sources = {
             os.path.join(subfolder, 'test-neg.txt'): 'TEST_NEG',
             os.path.join(subfolder, 'test-pos.txt'): 'TEST_POS',
@@ -277,12 +279,26 @@ class Doc2VecBasedVectorizer(SklearnBasedVectorizer):
             os.path.join(subfolder, 'train-unsup.txt'): 'TRAIN_UNS'
         }
 
+        #source_files_exists = True
+        # for filename, label in sources.items():
+        #     if not os.path.exists(filename):
+        #         source_files_exists = False
+        #         break
+        #Write the files if they don't exist
+        #if not source_files_exists:
+
+        self._download_files(categories, "confirmed", X_test, y_test, subfolder, 'test-pos.txt')
+        self._download_files(categories, "negative", X_test, y_test, subfolder, 'test-neg.txt')
+        self._download_files(categories, "confirmed", X_train, y_train, subfolder, 'train-pos.txt')
+        self._download_files(categories, "negative", X_train, y_train, subfolder, 'train-neg.txt')
+        self._download_files(categories, None, X_unlabeled, None, subfolder, 'train-unsup.txt')
+
         return LabeledLineSentence(sources)
 
     def _download_files(self, categories, target_label_name, X_data, y_labels, subfolder, filename_to_write):
 
         if target_label_name != None:
-            pos_index = [index for index, label in enumerate(categories) if label == target_label_name]
+            pos_index = [index for index, label in enumerate(categories) if label == target_label_name][0]
             test_pos = [X_data[index] for index, label in enumerate(y_labels) if label == pos_index]
         else:
             test_pos = X_data

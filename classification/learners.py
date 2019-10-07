@@ -146,3 +146,18 @@ class KNeighborsBasedModel(SklearnProbaBasedModel):  # DecisionTreeClassifierMod
 
     def init_model(self):
         self.model = KNeighborsClassifier(n_neighbors=2)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+
+class LogisticRegressionModel(SklearnProbaBasedModel):  # DecisionTreeClassifierModel
+    # Unsupervised Outlier Detection.
+
+    def init_model(self):
+        self.model = LogisticRegression()
+        # classifier.fit(train_arrays, train_labels)
+        # classifier.score(test_arrays, test_labels)
