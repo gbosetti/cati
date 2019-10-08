@@ -1,0 +1,8 @@
+{
+  "index":"geo_lyon_2017",
+  "session": "session_lyon2017_test_02",
+  "fields": ["text", "2grams"],
+  "vectorizers": ["TfidfBasedVectorizer", "CountBasedVectorizer", "Doc2VecBasedVectorizer"],
+  "learners": ["LinearSVCBasedModel", "DecisionTreeBasedModel", "KNeighborsBasedModel"],
+  "samplers": []
+}
