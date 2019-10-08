@@ -81,10 +81,13 @@ class SklearnBasedVectorizer(AbstractVectorizer):
 
 class TfidfBasedVectorizer(SklearnBasedVectorizer):
 
-    def __init__(self, encoding):
+    def __init__(self, encoding=None):
         SklearnBasedVectorizer.__init__(self)
+        if encoding == None:
+            encoding = "latin1"
         self._instance = TfidfVectorizer(encoding=encoding, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
                                      min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------

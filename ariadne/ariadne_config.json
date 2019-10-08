@@ -1,8 +1,17 @@
 {
   "index":"geo_lyon_2017",
-  "session": "session_lyon2017_test_02",
+  "session": "lyon2017_test_02",
+  "gt_session": "lyon2017_test_gt",
   "fields": ["text", "2grams"],
   "vectorizers": ["TfidfBasedVectorizer", "CountBasedVectorizer", "Doc2VecBasedVectorizer"],
   "learners": ["LinearSVCBasedModel", "DecisionTreeBasedModel", "KNeighborsBasedModel"],
-  "samplers": []
+  "samplers": [{
+    "class":"UncertaintySampler",
+    "params": {
+      "index": "geo_passau_plus_en",
+      "session": "passau_cls_refugees_en"
+    }
+  }],
+  "num_sampling_questions": 10,
+  "max_sampling_loops": 1
 }
