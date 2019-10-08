@@ -153,7 +153,7 @@ class Doc2VecBasedVectorizer(SklearnBasedVectorizer):
         sentences = self._load_docs_in_category_files(data_train.data, data_train.target, data_test.data, data_test.target, data_unlabeled.data, categories)
         #if self.model.vocabulary.raw_vocab == None:  # Just when loading the first time
 
-        self.model = self._get_trained_model(sentences, use_existing=False, epoch=1)  # Around 4 minutes to get a trained model with 2 epoch
+        self.model = self._get_trained_model(sentences, use_existing=False, epoch=5)  # Around 4 minutes to get a trained model with 2 epoch
 
         train_arrays, train_labels = self.get_labeled_vectors(categories, sentences.sentences, 'TRAIN_POS_', 'TRAIN_NEG_')
         test_arrays, test_labels = self.get_labeled_vectors(categories, sentences.sentences, 'TEST_POS_', 'TEST_NEG_')
@@ -278,14 +278,6 @@ class Doc2VecBasedVectorizer(SklearnBasedVectorizer):
             os.path.join(subfolder, 'train-pos.txt'): 'TRAIN_POS',
             os.path.join(subfolder, 'train-unsup.txt'): 'TRAIN_UNS'
         }
-
-        #source_files_exists = True
-        # for filename, label in sources.items():
-        #     if not os.path.exists(filename):
-        #         source_files_exists = False
-        #         break
-        #Write the files if they don't exist
-        #if not source_files_exists:
 
         self._download_files(categories, "confirmed", X_test, y_test, subfolder, 'test-pos.txt')
         self._download_files(categories, "negative", X_test, y_test, subfolder, 'test-neg.txt')

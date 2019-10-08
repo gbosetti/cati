@@ -6,6 +6,8 @@ events/
 .DS_Store
 demo/
 venv
+classification/doc2vec_cati.d2v
+classification/tmp_doc2vec/*
 classification/test/
 classification/images/*
 classification/logs/*
