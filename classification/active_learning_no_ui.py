@@ -14,7 +14,6 @@ class ActiveLearningNoUi:
         if not os.path.exists(folder):
             os.makedirs(folder)
         self.backend_logger = BackendLogger(logs_path)
-
         self.classifier = ActiveLearning()
 
         if kwargs.get("sampler", None) != None:
@@ -39,7 +38,10 @@ class ActiveLearningNoUi:
 
     def get_answers(self, **kwargs):
 
-        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
+        if "config_relative_path" in kwargs:
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=kwargs["config_relative_path"])
+        else: my_connector = Es_connector(index=kwargs["index"])
+
         wrong_labels=0
 
         all_ids = self.join_ids(kwargs["questions"])
@@ -73,11 +75,13 @@ class ActiveLearningNoUi:
         if len(questions)>0:
 
             # Asking the user (gt_dataset) to answer the questions
-            answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=self.classifier)
+            answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions,
+                                                           gt_session=kwargs["gt_session"], classifier=self.classifier,
+                                                           config_relative_path=kwargs.get("config_relative_path", ""))
 
             # Injecting the answers in the training set, and re-training the model
             self.classifier.move_answers_to_training_set(answers)
-            self.classifier.post_sampling(answers=answers) #In case you want, e.g., to move duplicated content
+            self.classifier.post_sampling(answers=answers, config_relative_path=kwargs.get("config_relative_path", "")) #In case you want, e.g., to move duplicated content
 
             return self.classifier.scores, wrong_pred_answers
 
@@ -92,13 +96,16 @@ class ActiveLearningNoUi:
 
             self.classifier.download_training_data(index=kwargs["index"], session=kwargs["session"],
                                               field=kwargs["text_field"],
-                                              debug_limit=kwargs["debug_limit"])
+                                              debug_limit=kwargs["debug_limit"],
+                                              config_relative_path=kwargs["config_relative_path"])
             self.classifier.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
                                                   field=kwargs["text_field"],
-                                                  debug_limit=kwargs["debug_limit"])
+                                                  debug_limit=kwargs["debug_limit"],
+                                                  config_relative_path=kwargs["config_relative_path"])
             self.classifier.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
                                              field=kwargs["text_field"],
-                                             debug_limit=kwargs["debug_limit"])
+                                             debug_limit=kwargs["debug_limit"],
+                                             config_relative_path=kwargs["config_relative_path"])
             self.classifier.remove_docs_absent_in_training()
 
     def clear_temporary_labels(self, index, session):
@@ -180,6 +187,12 @@ class ActiveLearningNoUi:
     def run(self, **kwargs):
 
         self.backend_logger.clear_logs()  # Just in case there is a file with the same name
+
+        self.backend_logger.add_raw_log('{ "sampler": "' + self.classifier.get_sampler_class_name() + '"} \n')
+        self.backend_logger.add_raw_log('{ "learner": "' + self.classifier.get_learner_class_name() + '"} \n')
+        self.backend_logger.add_raw_log('{ "vectorizer": "' + self.classifier.get_vectorizer_class_name() + '"} \n')
+        self.backend_logger.add_raw_log('{ "field": "' + kwargs["text_field"] + '"} \n')
+
         # Copy downloaded files
         self.classifier.clone_original_files()
         self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')

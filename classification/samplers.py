@@ -13,26 +13,16 @@ class ActiveLearningSampler:
     def get_samples(self, num_questions):
         pass
 
-    def post_sampling(self, answers=None):
+    def post_sampling(self, answers=None, config_relative_path=None):
         pass
 
-    def update_docs_by_ids(self, docs_matches, pred_labed):
+    def update_docs_by_ids(self, docs_matches, pred_labed, config_relative_path=None):
 
         if len(docs_matches)>0:
 
-            # my_connector = Es_connector(index=self.index)  # , config_relative_path='../')
-            # query = {
-            #     "query": {
-            #         "bool": {
-            #             "should": docs_matches,
-            #             "minimum_should_match": 1
-            #         }
-            #     }
-            # }
-            # script = "ctx._source." + self.session + " = '" + pred_labed + "'"
-            # my_connector.update_by_query(query, script)
-
-            my_connector = Es_connector(index=self.index)  # , config_relative_path='../')
+            if config_relative_path != None:
+                my_connector = Es_connector(index=self.index, config_relative_path=config_relative_path)
+            else: my_connector = Es_connector(index=self.index)
             query = {
                 "query": {
                     "bool": {
@@ -45,7 +35,8 @@ class ActiveLearningSampler:
 
             if len(original_docs)>0:
                 for doc in original_docs:
-                    Es_connector(index=self.index).es.update(
+                    # my_connector = Es_connector(index=self.index, config_relative_path=config_relative_path)\
+                    my_connector.es.update(
                         index=self.index,
                         doc_type="tweet",
                         id=doc["_id"],
@@ -74,7 +65,7 @@ class UncertaintySampler(ActiveLearningSampler):
         # format the samples
         return self.classifier.fill_questions(sub_samples, self.classifier.last_predictions, self.classifier.last_confidences, self.classifier.categories)
 
-    def post_sampling(self, answers=None):
+    def post_sampling(self, answers=None, config_relative_path=None):
         print("Persisting answers so they have an infuelce on the ngrams")
 
         positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
@@ -82,8 +73,8 @@ class UncertaintySampler(ActiveLearningSampler):
         negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
                                      ans["pred_label"] == "negative"]
 
-        self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
-        self.update_docs_by_ids(positive_docs_ids_matches, "negative")
+        self.update_docs_by_ids(positive_docs_ids_matches, "confirmed", config_relative_path=config_relative_path)
+        self.update_docs_by_ids(positive_docs_ids_matches, "negative", config_relative_path=config_relative_path)
 
 
 class BigramsRetweetsSampler(ActiveLearningSampler):
@@ -121,7 +112,7 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         self.last_questions = selected_samples[0:num_questions]
         return self.last_questions
 
-    def post_sampling(self, answers=None):
+    def post_sampling(self, answers=None, config_relative_path=None):
         print("Persisting answers so they have an infuelce on the ngrams")
 
         positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if ans["pred_label"] == "confirmed"]
@@ -158,7 +149,7 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
 
         return selected_samples
 
-    def post_sampling(self, answers=None):
+    def post_sampling(self, answers=None, config_relative_path=None):
         print("Moving duplicated documents")
         duplicated_answers = self.get_similar_docs(questions=self.last_questions,
                                                                     index=self.index,
@@ -347,7 +338,7 @@ class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
         except Exception as e:  # This is the correct syntax
             return 1
 
-    def post_sampling(self, answers=None):
+    def post_sampling(self, answers=None, config_relative_path=None):
 
         positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
                                      ans["pred_label"] == "confirmed"]
@@ -450,7 +441,7 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
 
         return
 
-    def post_sampling(self, answers=None):
+    def post_sampling(self, answers=None, config_relative_path=None):
 
         # Getting similar docs
         docs = self.get_similar_docs(questions=self.last_questions, index=self.index, session=self.session,

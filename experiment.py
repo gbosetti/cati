@@ -191,7 +191,7 @@ if download_files:
     classifier = ActiveLearningNoUi(logs_filename="download.txt")
     classifier.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
-                    text_field=args.text_field)
+                    text_field=args.text_field, config_relative_path="")
     classifier.clean_logs()
 
 

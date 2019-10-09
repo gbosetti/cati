@@ -1,17 +1,20 @@
 {
   "index":"geo_lyon_2017",
-  "session": "lyon2017_test_02",
-  "gt_session": "lyon2017_test_gt",
+  "session": "session_lyon2017_test_02",
+  "gt_session": "session_lyon2017_test_gt",
+  "repo_name": "geo_lyon_2017",
+  "snapshot_name": "snapshot_02",
   "fields": ["text", "2grams"],
   "vectorizers": ["TfidfBasedVectorizer", "CountBasedVectorizer", "Doc2VecBasedVectorizer"],
   "learners": ["LinearSVCBasedModel", "DecisionTreeBasedModel", "KNeighborsBasedModel"],
   "samplers": [{
     "class":"UncertaintySampler",
     "params": {
-      "index": "geo_passau_plus_en",
-      "session": "passau_cls_refugees_en"
+      "index": "geo_lyon_2017",
+      "session": "session_lyon2017_test_02"
     }
   }],
   "num_sampling_questions": 10,
-  "max_sampling_loops": 1
+  "max_sampling_loops": 2,
+  "download_limit": false
 }

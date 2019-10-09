@@ -37,6 +37,9 @@ class AbstractLearner():
         # categories
         return  # last_confidences, last_predictions, X_unlabeled, scores
 
+    def get_vectorizer_class_name(self):
+        return self._vectorizer.__class__.__name__
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------

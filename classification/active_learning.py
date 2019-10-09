@@ -48,6 +48,7 @@ from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
 # from sklearn.preprocessing import scale
 from sklearn import preprocessing
+#from elasticsearch.client import SnapshotClient
 
 
 class ActiveLearning:
@@ -90,8 +91,8 @@ class ActiveLearning:
     def get_samples(self, num_questions):
         return self.sampler.get_samples(num_questions)
 
-    def post_sampling(self, answers=None):
-        return self.sampler.post_sampling(answers=answers)
+    def post_sampling(self, answers=None, config_relative_path=""):
+        return self.sampler.post_sampling(answers=answers, config_relative_path=config_relative_path)
 
     def initialize(self, sampler, learner):
         self.sampler = sampler
@@ -128,9 +129,12 @@ class ActiveLearning:
 
         debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
-        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
-        res = my_connector.init_paginatedSearch(kwargs["query"])
 
+        if "config_relative_path" in kwargs:
+            my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path=kwargs["config_relative_path"])
+        else: my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
+
+        res = my_connector.init_paginatedSearch(kwargs["query"])
         sid = res["sid"]
         scroll_size = res["scroll_size"]
         total = int(res["total"])
@@ -908,6 +912,17 @@ class ActiveLearning:
             }
         }, "ctx._source." + kwargs["field"] + " = '" + kwargs["as_category"] + "'")
 
+    def get_sampler_class_name(self):
+
+        return self.sampler.__class__.__name__
+
+    def get_learner_class_name(self):
+
+        return self.learner.__class__.__name__
+
+    def get_vectorizer_class_name(self):
+
+        return self.learner.get_vectorizer_class_name()
 
     def mark_tmp_predictions(self, **kwargs):
 
