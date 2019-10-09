@@ -6,7 +6,7 @@
   "snapshot_name": "snapshot_02",
   "fields": ["text", "2grams"],
   "vectorizers": ["TfidfBasedVectorizer", "CountBasedVectorizer", "Doc2VecBasedVectorizer"],
-  "learners": ["LinearSVCBasedModel", "DecisionTreeBasedModel", "KNeighborsBasedModel"],
+  "learners": ["LinearSVCBasedModel", "KNeighborsBasedModel"],
   "samplers": [{
     "class":"UncertaintySampler",
     "params": {
@@ -15,6 +15,6 @@
     }
   }],
   "num_sampling_questions": 10,
-  "max_sampling_loops": 2,
+  "max_sampling_loops": 5,
   "download_limit": false
 }

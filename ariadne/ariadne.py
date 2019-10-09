@@ -65,7 +65,6 @@ class Ariadne:
         classifier.download_data(index=index, session=session,
                                  gt_session=gt_session, download_files=True, debug_limit=download_limit,
                                  text_field=field, config_relative_path='../')
-        classifier.clean_logs()
 
     def delete_index(self, index, timeout="2m"):
 
