@@ -9,6 +9,10 @@ from nltk.tokenize import TweetTokenizer
 import re
 import json
 from elasticsearch_dsl import UpdateByQuery
+from nltk.stem.snowball import FrenchStemmer
+from nltk.stem.snowball import EnglishStemmer
+from nltk.stem.snowball import ArabicStemmer
+from nltk.stem.snowball import SpanishStemmer
 
 
 class NgramBasedClasifier:
@@ -28,14 +32,43 @@ class NgramBasedClasifier:
     def remove_stop_words(self, full_text, langs=["en", "fr", "es"]):
 
         punctuation = list(string.punctuation + "…" + "’" + "'" + '🔴' + '•' + '...' + '.')
-        multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "RT"] + punctuation
-        tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
-        filtered_words = list(filter(lambda word: word not in multilang_stopwords, tokenized_text))
+        multilang_stopwords = self.get_stopwords_for_langs(langs) + ["Ã", "rt", "im"] + punctuation
 
-        full_text = " ".join(filtered_words).lower()
+        full_text = full_text.lower().translate(str.maketrans('', '', string.punctuation))
+
+        tokenized_text = self.tknzr.tokenize(full_text)  # nltk.word_tokenize(full_text)
+        filtered_words = list(filter(lambda word: len(word)>1 and word not in multilang_stopwords, tokenized_text))
+
+        full_text = " ".join(filtered_words)
         full_text_no_emojis = self.remove_emojis(full_text)
         full_text_no_emojis = " ".join(full_text_no_emojis.split())
         return full_text_no_emojis
+
+    def remove_urls(self, text):
+
+        return re.sub(r'http\S+', '', text).strip()
+
+    def lemmatize(self, text, lang):
+
+        # spacy.prefer_gpu()
+        # nlp = spacy.load(lang) # en fr "en_core_web_sm"
+        if lang == "fr":
+            stemmer = FrenchStemmer()
+        elif lang == "es":
+            stemmer = SpanishStemmer()
+        else:
+            stemmer = EnglishStemmer()
+
+        stemmed = []
+        for word in text.split(" "):
+            stemmed.append(stemmer.stem(word))
+
+        # doc = nlp(u""+text)
+        # lem_terms = []
+        # for token in doc:
+        #     lem_terms.append(token.lemma_)
+
+        return " ".join(stemmed)
 
     def search_bigrams_related_tweets(self, **kwargs):
 
@@ -45,7 +78,7 @@ class NgramBasedClasifier:
                 "query": {
                    "bool": {
                        "must": [
-                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                            {"match": {kwargs["session"]: kwargs["label"]}}
                        ]
                    }
@@ -57,7 +90,7 @@ class NgramBasedClasifier:
                    "bool": {
                        "must": [
                            {"match": {"text": kwargs["word"]}},
-                           {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                           {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                            {"match": {kwargs["session"]: kwargs["label"]}}
                        ]
                    }
@@ -77,7 +110,7 @@ class NgramBasedClasifier:
                 "query": {
                     "bool": {
                         "must": [
-                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                             {"match": {kwargs["session"]: kwargs["query_label"]}}
                         ]
                     }
@@ -89,7 +122,7 @@ class NgramBasedClasifier:
                     "bool": {
                         "must": [
                             {"match": {"text": kwargs["word"]}},
-                            {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                            {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                             {"match": {kwargs["session"]: kwargs["query_label"]}}
                         ]
                     }
@@ -108,7 +141,7 @@ class NgramBasedClasifier:
                    "should": kwargs["target_terms"],
                    "minimum_should_match": 1,
                    "must": [
-                       {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                       {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                        {"match": {kwargs["session"]: kwargs["label"]}}
                    ]
                }
@@ -128,7 +161,7 @@ class NgramBasedClasifier:
                     "should": kwargs["target_terms"],
                     "minimum_should_match": 1,
                     "must": [
-                        {"match": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
+                        {"match_phrase": {kwargs["ngramsPropName"]: kwargs["ngram"]}},
                         {"match": {kwargs["session"]: kwargs["query_label"]}}
                     ]
                 }
@@ -159,23 +192,63 @@ class NgramBasedClasifier:
 
         return self.get_ngrams_by_query(query=query, **kwargs)
 
-    def get_ngrams_for_ids(self, **kwargs):
+    def chunks(self, target_list, target_size):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(target_list), target_size):
+            yield target_list[i:i + target_size]
 
-        ids = ""
-        for id in kwargs["ids"]:
-            ids += id + " or "
-        ids = ids[:-4]
+    def get_positive_unlabeled_ngrams(self, **kwargs):
 
-        query = {
+        res = self.get_ngrams_by_query(query={
             "match": {
-                "id_str": ids
+                kwargs["field"]: "confirmed"
             }
-        }
-
-        res = self.get_ngrams_by_query(query=query, **kwargs)
+        }, **kwargs)
 
         try:
             return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
+
+    def get_negative_unlabeled_ngrams(self, **kwargs):
+
+        res = self.get_ngrams_by_query(query={
+            "match": {
+                kwargs["field"]: "negative"
+            }
+        }, **kwargs)
+
+        try:
+            return res["aggregations"]["ngrams_count"]["buckets"]
+        except KeyError as e:
+            return []
+
+    def get_ngrams_for_ids(self, **kwargs):
+
+        ids_chunks = self.chunks(kwargs["ids"], 50)
+
+        total_buckets = []
+        for chunk in ids_chunks:
+
+            ids = ""
+            for id in chunk:
+                ids += id + " or "
+            ids = ids[:-4]
+
+            query = {
+                "match": {
+                    "id_str": ids
+                }
+            }
+
+            res = self.get_ngrams_by_query(query=query, **kwargs)
+            buckets = res["aggregations"]["ngrams_count"]["buckets"]
+
+            if len(buckets)>0:
+                total_buckets += buckets
+
+        try:
+            return total_buckets
         except KeyError as e:
             return []
 
@@ -319,21 +392,25 @@ class NgramBasedClasifier:
         length = int(kwargs.get('length', 2))
 
         tweets_to_update = []  # So the URL doesn't get too large
+        prop = kwargs['from_property']
         for tweet in tweets:
             try:
-                clean_text = self.remove_stop_words(tweet["_source"]["text"]).split()
-                ngrams = list(self.get_n_grams(clean_text, length))
+                if prop in tweet["_source"]:
+                    clean_text = self.remove_stop_words(tweet["_source"][prop]).split()
+                    ngrams = list(self.get_n_grams(clean_text, length))
 
-                tweets_to_update.append({
-                    "_ngrams": self.format_single_tweet_ngrams(ngrams),
-                    "_id": tweet["_id"]
-                })
+                    tweets_to_update.append({
+                        "_ngrams": self.format_single_tweet_ngrams(ngrams),
+                        "_id": tweet["_id"]
+                    })
 
-                # for prop in tweet["_source"]:
-                #     if tweet["_source"][prop] == None:
-                #         tweet["_source"][prop] = "None"
-                full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
-                self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
+                    # for prop in tweet["_source"]:
+                    #     if tweet["_source"][prop] == None:
+                    #         tweet["_source"][prop] = "None"
+                    full_tweet_ngrams = self.format_single_tweet_ngrams(ngrams)
+                    self.updatePropertyValue(tweet=tweet, property_name=kwargs["prop"], property_value=full_tweet_ngrams, index=kwargs["index"])
+                else:
+                    print("The tweet has no ", prop, " property.")
 
             except Exception as e:
                 print('Error: ' + str(e))
@@ -413,10 +490,10 @@ class NgramBasedClasifier:
             my_connector = Es_connector(index=kwargs["index"])
 
             query = kwargs.get('query', {
-                    "query": {
-                        "match_all": {}
-                    }
-                })
+                "query": {
+                    "match_all": {}
+                }
+            })
 
             res = my_connector.init_paginatedSearch(query)
             sid = res["sid"]
@@ -428,9 +505,11 @@ class NgramBasedClasifier:
             total_scrolls = int(total/scroll_size)
             processed_scrolls = 0
 
+            print("from_property:", kwargs['from_property'])
+
             while scroll_size > 0:
                 tweets = res["results"]
-                self.gerenate_ngrams_for_tweets(tweets, prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
+                self.gerenate_ngrams_for_tweets(tweets, from_property=kwargs['from_property'], prop=kwargs["prop"], index=kwargs["index"], length=kwargs["length"])
 
                 i += 1
                 res = my_connector.loop_paginatedSearch(sid, scroll_size)

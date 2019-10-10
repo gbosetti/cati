@@ -1,5 +1,7 @@
 from classification.active_learning_no_ui import ActiveLearningNoUi
-from classification.samplers import UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler, ConsecutiveDeferredMovDuplicatedDocsSampler
+from classification.samplers import *
+from classification.learners import *
+from classification.vectorizers import *
 import argparse
 import itertools
 import os
@@ -27,7 +29,7 @@ parser.add_argument("-s",
 parser.add_argument("-gts",
                     "--gt_session",
                     dest="gt_session",
-                    help="The grountruth session to simulate the user's answer and to measure accuracy")
+                    help="The grountruth session to simulate the user's answer and to measure accuracy. E.g. session_lyon_2017")
 
 
 # Optional arguments
@@ -42,6 +44,12 @@ parser.add_argument("-df",
                     dest="download_files",
                     help="Boolean indicating whether new documents should be downloaded to build new training, test and target sets.",
                     default=True)
+
+parser.add_argument("-ml",
+                    "--max_loops",
+                    dest="max_loops",
+                    help="The max amount of loops to perform",
+                    default=100)
 
 parser.add_argument("-dl",
                     "--debug_limit",
@@ -59,7 +67,7 @@ parser.add_argument("-tf",
                     "--text_field",
                     dest="text_field",
                     help="The document field that will be processed (used as the content of the tweet when downloading). It's a textal field defined in _source.",
-                    default="2grams")
+                    default="text")
 
 parser.add_argument("-smss",
                     "--selected_max_samples_to_sort",
@@ -83,13 +91,25 @@ parser.add_argument("-sm",
                     "--sampling_methods",
                     dest="sampling_methods",
                     help="The list of the sampling method classes to test. E.g. UncertaintySampler, BigramsRetweetsSampler, MoveDuplicatedDocsSampler",
-                    default=False)
+                    default="UncertaintySampler")
+
+parser.add_argument("-jp",
+                    "--jackard_percentages",
+                    dest="jackard_percentages",
+                    help="The list of the percentage of similarity to search for similar documents",
+                    default="0.7")  #0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9")
+
+parser.add_argument("-jmdtr",
+                    "--jackard_max_doct_to_resort",
+                    dest="jackard_max_doct_to_resort",
+                    help="The list of the percentage of similarity to search for similar documents",
+                    default="500")
 
 parser.add_argument("-sp",
                     "--similarity_percentages",
                     dest="similarity_percentages",
                     help="A number followed by the % symbol. XX%. If you specify different percentages separate them with comma (not spaces)",
-                    default="75%")
+                    default="75")
 
 parser.add_argument("-cl",
                     "--confident_loops",
@@ -124,6 +144,8 @@ sampling_methods = args.sampling_methods.split(',')
 similarity_percentages = args.similarity_percentages.split(',')
 confident_loops = args.confident_loops.split(',')
 target_min_confidence = float(args.target_min_confidence)
+max_loops = int(args.max_loops)
+num_questions = int(args.num_questions)
 
 # Different configurations to run the algorythm.
 # The weight of the position of the tweet according to it's distance to the hyperplane, or the position of the top-bigram/top-retweet it contains (if any).
@@ -166,11 +188,16 @@ if clear_results:
 
 if download_files:
     print("Downloading files from session ", args.session, " and ", args.gt_session)
-    learner = ActiveLearningNoUi(logs_filename="download.txt")
-    learner.download_data(index=args.index, session=args.session,
+    classifier = ActiveLearningNoUi(logs_filename="download.txt")
+    classifier.download_data(index=args.index, session=args.session,
                     gt_session=args.gt_session, download_files=download_files, debug_limit=debug_limit,
-                    text_field=args.text_field)
-    learner.clean_logs()
+                    text_field=args.text_field, config_relative_path="")
+    classifier.clean_logs()
+
+
+learner = LinearSVCBasedModel(vectorizer=Doc2VecBasedVectorizer())  # LinearSVCBasedModel | DecisionTreeBasedModel | KNeighborsBasedModel |||
+# TfidfBasedVectorizer(encoding="latin1") | Doc2VecBasedVectorizer | CountBasedVectorizer | Doc2VecBasedVectorizer
+
 
 #  Running the algorythm multiple times
 for max_samples_to_sort in args.selected_max_samples_to_sort:
@@ -178,13 +205,37 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
     # First, closer_to_hyperplane (the sampling sorting by distance to the hyperplane)
     if 'UncertaintySampler' in sampling_methods:
 
-        print("\nRunning hyperplane strategy\n")
         logs_filename = args.session + "_HYP" + "_smss" + str(max_samples_to_sort) + ".txt"
-        sampler = UncertaintySampler()
-        learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-        learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                    min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                    text_field=args.text_field)
+        sampler = UncertaintySampler(index=args.index, session=args.session)
+        classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+        classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                    min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
+                    text_field=args.text_field, max_loops=max_loops)
+
+    if 'JackardBasedUncertaintySampler' in sampling_methods:
+
+        # jackard_percentages = all_percentages.copy()
+        # jackard_percentages.remove(0)
+        # jackard_percentages.remove(1)
+        jackard_percentages = args.jackard_percentages.split(',')
+        similarity_percentage= int(args.similarity_percentages)
+
+        jackard_max_doct_to_resort = int(args.jackard_max_doct_to_resort)
+
+        for confidence_limit in jackard_percentages:
+
+            try:
+                logs_filename = args.session + "_jackard" + "_cnf" + str(confidence_limit) + ".txt"
+                sampler = JackardBasedUncertaintySampler(low_confidence_limit=confidence_limit, index=args.index, session=args.session,
+                    text_field=args.text_field, similarity_percentage=similarity_percentage, max_doct_to_resort=jackard_max_doct_to_resort)
+
+                classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+                classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
+                            text_field=args.text_field, max_loops=max_loops)
+            except Exception as e:
+                print(e)
+                classifier.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
 
     # Then, closer_to_hyperplane_bigrams_rt with all the possibilities of weights (summing 1)
     if 'BigramsRetweetsSampler' in sampling_methods:
@@ -196,11 +247,11 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                             "_smss" + str(max_samples_to_sort) + ".txt"
             sampler = BigramsRetweetsSampler(max_samples_to_sort=max_samples_to_sort, index=args.index, session=args.session,
                 text_field=args.text_field, cnf_weight=weights[0], ret_weight=weights[1], bgr_weight=weights[2])
-            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
+            classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
 
-            learner.run(index=args.index, session=args.session, num_questions=args.num_questions,
+            classifier.run(index=args.index, session=args.session, num_questions=num_questions,
                         gt_session=args.gt_session, min_diff_accuracy=args.min_diff_accuracy,
-                        text_field=args.text_field)
+                        text_field=args.text_field, max_loops=max_loops)
 
     if 'MoveDuplicatedDocsSampler' in sampling_methods:
 
@@ -212,10 +263,10 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
             logs_filename = args.session + "_DDS" + "_smss" + str(max_samples_to_sort) + ".txt"
             sampler = MoveDuplicatedDocsSampler(index=args.index, session=args.session,
                     text_field=args.text_field, similarity_percentage=similarity_percentage)
-            learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-            learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                        min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                        text_field=args.text_field)
+            classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+            classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                        min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
+                        text_field=args.text_field, max_loops=max_loops)
 
     if 'ConsecutiveDeferredMovDuplicatedDocsSampler' in sampling_methods:
 
@@ -231,7 +282,7 @@ for max_samples_to_sort in args.selected_max_samples_to_sort:
                 sampler = ConsecutiveDeferredMovDuplicatedDocsSampler(index=args.index, session=args.session,
                         text_field=args.text_field, similarity_percentage=similarity_percentage,
                         confident_loop=confident_loop, target_min_confidence=target_min_confidence)
-                learner = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler)
-                learner.run(index=args.index, session=args.session, gt_session=args.gt_session,
-                            min_diff_accuracy=args.min_diff_accuracy, num_questions=args.num_questions,
-                            text_field=args.text_field)
+                classifier = ActiveLearningNoUi(logs_filename=logs_filename, sampler=sampler, learner=learner)
+                classifier.run(index=args.index, session=args.session, gt_session=args.gt_session,
+                            min_diff_accuracy=args.min_diff_accuracy, num_questions=num_questions,
+                            text_field=args.text_field, max_loops=max_loops)

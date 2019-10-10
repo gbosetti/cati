@@ -2,6 +2,7 @@ app.views.mabed = Backbone.View.extend({
     template: _.template($("#tpl-page-mabed").html()),
     events: {
         'submit #run_mabed': 'run_mabed',
+        'submit #run_tobas': 'run_tobas'
     },
     initialize: function() {
         var handler = _.bind(this.render, this);
@@ -17,7 +18,7 @@ app.views.mabed = Backbone.View.extend({
     },
     getClassificationStats: function () {
 
-        setTimeout(function(){
+        setTimeout(()=>{
 
             if (!app.session) {
                 return this.notifyNoSession();
@@ -179,11 +180,13 @@ app.views.mabed = Backbone.View.extend({
             document.querySelector('#total_images').textContent = response.total_images;
             document.querySelector('#total_mentions').textContent = response.total_mentions;
             //map key and doc_count to language
-            for (let i=0; i<10;i++){
-                document.querySelector('#lang_'+i).textContent = response.lang_stats[i].key;
-                document.querySelector('#lang_count_'+i).textContent = response.lang_stats[i].doc_count;
-            }
 
+            if(response.lang_stats.length > 0){
+                for (let i=0; i<10;i++){
+                    document.querySelector('#lang_'+i).textContent = response.lang_stats[i].key;
+                    document.querySelector('#lang_count_'+i).textContent = response.lang_stats[i].doc_count;
+                }
+            }
 
         }).fail(function(err) {
             console.log(err)
@@ -293,6 +296,57 @@ app.views.mabed = Backbone.View.extend({
           }
 
       }, 'json').fail(function() {
+            $.confirm({
+                title: 'Error',
+                boxWidth: '600px',
+                theme: 'pix-danger-modal',
+                backgroundDismiss: true,
+                content: "An error was encountered while connecting to the server, please try again.",
+                buttons: {
+                    cancel: {
+                        text: 'CANCEL',
+                        btnClass: 'btn-cancel',
+                    }
+                }
+            });
+        });
+
+      return false;
+    },
+    run_tobas: function(e){
+        e.preventDefault();
+        if(!app.session){
+          return this.notifyNoSession()
+        }
+      console.log("Running TOBAS from mabed.js...");
+
+      var jc = $.confirm({
+        title:"Running TOBAS",
+        columnClass: 'extra-large',
+        content: "Processing...",
+        buttons: {
+            cancel: {
+                text: 'OK'
+            }
+        }
+      });
+
+      var self = this;
+      var   data = []
+            data.push({name: "index", value: app.session.s_index});
+            data.push({name: "doc_field", value: "clean-text"});  // The target field from which to consider as the tweets content
+            data.push({name: "max_perc_words_by_topic", value: $("#max_perc_words_by_topic").val()});
+            data.push({name: "time_slice_length", value: $("#tobas_time_slice_length").val()});
+            data.push({name: "session", value: app.session.s_name});
+
+      //var progressPopup = this.showProcessingEventsPopup();
+      $.post(app.appURL+'detect_events_with_tobas', data, function(response){
+
+         console.log("RESPONSE FROM TOBAS", response);
+         jc.close();
+
+      }, 'json').fail(function() {
+            jc.close();
             $.confirm({
                 title: 'Error',
                 boxWidth: '600px',

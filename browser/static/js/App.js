@@ -51,7 +51,7 @@ var app = (function () {
         },
         title: function (str) {
             $("#title").text(str);
-            $("title").text(str + " | MABED");
+            $("title").text(str + " | CATI");
             return this;
         }
     };
@@ -117,13 +117,13 @@ var app = (function () {
             }
             return this.clientView;
         },
-        events: function () {
-            if (!this.eventsView) {
-                this.eventsView = new api.views.events({
+        review: function () {
+            if (!this.reviewView) {
+                this.reviewView = new api.views.review({
                     model: api.clientCollection
                 });
             }
-            return this.eventsView;
+            return this.reviewView;
         }
     };
 
@@ -134,7 +134,7 @@ var app = (function () {
             "tweets": "tweets",
             "classification": "classification",
             "mabed": "mabed",
-            "events": "events",
+            "review": "review",
             "beta": "beta",
             "beta2": "beta2",
             "": "home"
@@ -208,12 +208,12 @@ var app = (function () {
             $('html,body').animate({scrollTop: 0}, 300);
 
         },
-        events: function (archive) {
-            var view = ViewsFactory.events();
+        review: function (archive) {
+            var view = ViewsFactory.review();
             $('#mabed-nav .nav-item').removeClass('active');
             $('#nav-events').addClass('active');
             api
-                .title("Events")
+                .title("Review")
                 .changeContent(view.$el);
             view.render();
             $('html,body').animate({scrollTop: 0}, 300);

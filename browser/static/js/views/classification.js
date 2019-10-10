@@ -116,7 +116,7 @@ app.views.classification = Backbone.View.extend({
             {name: "gt_session", value: "session_lyon2017_test_gt"}, //TODO
             {name: "num_questions", value: this.numSampleQueries },  // do the TODOs like in this way
             {name: "max_samples_to_sort", value:500}, //TODO
-            {name: "text_field", value:"2grams"}, //TODO
+            {name: "text_field", value:"text"}, //TODO
             {name: "debug_limit", value:false}, //TODO
             {name: "download_data", value:true},
             {name: "sampling_strategy", value:sampling_strategy}
@@ -126,16 +126,20 @@ app.views.classification = Backbone.View.extend({
         $.get(app.appURL+'available_indexes', function (response) {
 
             //clear index list
-            document.querySelector(selectSelector).innerHTML = "";
+            var select = document.querySelector(selectSelector);
 
-            //add fields
-            for(let i = 0; i< response.length; i++){
-                let index_name = response[i];
-                let option = document.createElement('option');
-                option.setAttribute('value',index_name);
-                option.appendChild(document.createTextNode(index_name));
-                document.querySelector(selectSelector).appendChild(option);
-           }
+            if(select != undefined){
+                select.innerHTML = "";
+
+                //add fields
+                for(let i = 0; i< response.length; i++){
+                    let index_name = response[i];
+                    let option = document.createElement('option');
+                    option.setAttribute('value',index_name);
+                    option.appendChild(document.createTextNode(index_name));
+                    select.appendChild(option);
+               }
+            }
         },'json');
     },
     loadSamplingStage: function(){
@@ -178,7 +182,12 @@ app.views.classification = Backbone.View.extend({
 
         return new Promise((resolve, reject)=>{
 
-            var data = [{name: "answers", value: JSON.stringify(this.lastLoadedQuestions)}];
+            data = [
+                {name: "index", value: app.session.s_index},
+                {name: "session", value: "session_" + app.session.s_name},
+                {name: "answers", value: JSON.stringify(this.lastLoadedQuestions)}
+            ];
+
             $.post(app.appURL+'save_user_answers', data, response => { resolve() }, 'json');
         });
     },
@@ -411,7 +420,11 @@ app.views.classification = Backbone.View.extend({
     suggestClassification: function(){
 
         return new Promise((resolve, reject)=>{
+
             this.renderALClassificationArea();
+            this.enableLoading("#cloud_q1", "pos_predicted_bigrams");
+            this.enableLoading("#cloud_q2", "neg_predicted_bigrams");
+
             data = [
                 {name: "index", value: app.session.s_index},
                 {name: "session", value: "session_" + app.session.s_name},
@@ -425,13 +438,31 @@ app.views.classification = Backbone.View.extend({
                 this.drawNgrams("#cloud_q2", response.neg, "negative");
                 this.drawQuadrantsSlider('.pips-range-vertical');
                 this.drawPiechart(response.total_pos, response.total_neg);
-                this.requestResultsEvolutionBarcharts(data).then(res =>{
+                /*this.requestResultsEvolutionBarcharts(data).then(res =>{
                     console.log(res);
                     this.drawResultsEvolutionScatterplots("classif-graph-area", res);
-                });
+                });*/
                 resolve();
             }, 'json');
         });
+    },
+    enableLoading: function(containerSelector, spinnerClassName){
+
+        //console.log("Enabling loading at: ",this.containerSelector);
+        var target = document.querySelector(containerSelector);
+            target.style["min-height"] = "500px";
+
+        new Spinner({
+            lines: 13, // The number of lines to draw
+            length: 50, // The length of each line
+            width: 15, // The line thickness
+            radius: 45, // The radius of the inner circle
+            corners: 1, // Corner roundness (0..1)
+            speed: 1, // Rounds per second
+            rotate: 0,
+            color: '#677079',
+            className: spinnerClassName
+        }).spin(target);
     },
     updateQuadrantsBigrams: function(){
 
@@ -503,9 +534,11 @@ app.views.classification = Backbone.View.extend({
         var widget = new BubbleWidget(containerSelector, app.session.s_index, 'session_'+app.session.s_name, 500, "proposed"); //Proposed since the data being classified is the unlabeled, and it doesn't change in Elasticsearch until the end of the process
         var formatted_ngrams;
 
+        console.log("ngrams:", ngrams);
+
         if(category == "confirmed"){
 
-            formatted_ngrams = ngrams.map(ngram => {  //// [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
+            formatted_ngrams = ngrams.map(ngram => {  //// - [ bigram[0], [bigram_confirmed, bigram_negative, bigram_unlabeled] ]
 
                 return [
                     ngram.key.split(/-+/).join(" "), [

@@ -1,463 +1,3 @@
-// searchForTweets
-
-class SearchModule{
-
-    constructor(containerSelector, spinnerClassName) {
-
-        this.containerSelector = containerSelector;
-        this.spinnerClassName = spinnerClassName || 'spinner-default';
-    }
-
-    enableLoading(){
-
-        //console.log("Enabling loading at: ",this.containerSelector);
-        var target = document.querySelector(this.containerSelector);
-            target.style["min-height"] = "500px";
-
-        var spinnerColor = '#677079'; //this.hasLightBackground($(target).css("background-color"))? '#677079': '#ffffff';
-        new Spinner({
-            lines: 13, // The number of lines to draw
-            length: 50, // The length of each line
-            width: 15, // The line thickness
-            radius: 45, // The radius of the inner circle
-            corners: 1, // Corner roundness (0..1)
-            speed: 1, // Rounds per second
-            rotate: 0,
-            color: spinnerColor,
-            className: this.spinnerClassName
-        }).spin(target);
-    }
-
-    disableLoading(){
-
-        document.querySelector(this.containerSelector).style["min-height"] = "0px";
-        $(this.containerSelector + " ." + this.spinnerClassName).remove();
-    }
-
-    loadTweets(data){
-        // subclass responsibility
-    }
-}
-
-class GeoSpatialModule extends SearchModule{
-
-    constructor(containerSelector) {
-
-        super(containerSelector);
-        this.accessToken='pk.eyJ1IjoibG9rdW11cmEiLCJhIjoiY2p3OHh3cnV0MGo4bzN5cXJtOHJ4YXZ4diJ9.lJrYN-zRUdOSP-aeKq4_Mg';
-        this.tweets = null;
-        $( "#collapseGeopositioned" ).on( "click", ".onTweetStatusClicked", this.onTweetStatusClicked);
-        this.lastZoomAt = null;
-    }
-    search_geospatial(collection, data){
-
-        let date_range = this.slider.noUiSlider.get();
-        var geo_data = {
-            "index": app.session.s_index,
-            "session": 'session_'+app.session.s_name,
-            "collection": collection.toGeoJSON(),
-            "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value,
-            "word": data.filter(item => {return item.name == "word"})[0].value,
-            "date_min": date_range[0],
-            "date_max": date_range[1]
-        };
-        return new Promise(function (resolve,reject) {
-
-            fetch(app.appURL+"get_geo_polygon", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify(geo_data)
-            }).then(response => resolve(response.json()));
-        });
-    }
-    searchSpaceTime(data){
-
-        let collection = this.drawnItems;
-        let date_range = this.slider.noUiSlider.get();
-        var data = {
-            index: app.session.s_index,
-            session: 'session_'+app.session.s_name,
-            search_by_label: data.filter(item => {return item.name == "search_by_label"})[0].value,
-            word: data.filter(item => {return item.name == "word"})[0].value,
-            collection: collection.toGeoJSON(),
-            date_min: date_range[0],
-            date_max: date_range[1]
-        };
-        return new Promise(function (resolve,reject) {
-            let spaceTimeEndpoint= "get_geo_polygon_date";
-            fetch(app.appURL+spaceTimeEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify(data)
-            }).then(response => resolve(response.json()) );
-        });
-    }
-    popup(){
-        return  (layer) => (
-            layer.feature.properties.tweet.text +
-            '</br></br><b>Created on:</b> ' + this.formatDateFromString(layer.feature.properties.tweet.created_at) +
-            '</br></br><div style="display: flex; justify-content: flex-end;">'+
-                '<button data-status="confirmed" class="onTweetStatusClicked" style="background: rgba( 40, 167, 69, 0.5);">Confirm</button>'+
-                '<button data-status="negative" class="onTweetStatusClicked" style="background: rgba(220, 53, 69, 0.63);">Reject</button>' +
-                '<button data-status="unlabeled" class="onTweetStatusClicked">Clear</button>'+
-            '</div>' //+ this.createButton('Confirm')
-        );
-    }
-    onTweetStatusClicked(evt){
-        var annotation = $(evt.target).data("status");
-        //TODO: POST TO THE SERVER
-        $(".leaflet-popup-close-button")[0].click();
-    }
-    createButton(label) {
-        var btn = L.DomUtil.create('button');
-        btn.setAttribute('type', 'button');
-        btn.innerHTML = label;
-        return btn;
-    }
-    update_from_search(response){
-        this.mymap.removeLayer(this.tweets);
-        this.addGeoToMap(response.geo);
-    }
-    addGeoToMap(geo){
-        let mapgeo = L.geoJSON(geo, {
-            pointToLayer: (g,latlng) => L.marker(latlng,{
-                icon: L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"})
-            })
-        }) .bindPopup( this.popup());
-        mapgeo.on('popupopen', this.selectTweet(mapgeo));
-        mapgeo.addTo(this.mymap);
-        this.tweets= mapgeo;
-    }
-    selectTweet(lgeoJSON){
-        return (e) => (this.colorUser(e.layer.feature.properties.tweet, lgeoJSON));
-    }
-    colorUser(tweet,collection){
-        collection.eachLayer(l => {
-            if (l.feature.properties.tweet.user.id_str === tweet.user.id_str) {
-                //l._icon.src = "static/images/pin-m+b00.png"
-                //l._icon = L.MakiMarkers.icon({icon:null, color: "#b00"});
-                //l._icon= L.Icon.Default;
-                l.setIcon(L.MakiMarkers.icon({icon:null, color: "#0b0"}));
-            }else{
-                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#00b", size:"s"}));
-            }
-        });
-    }
-    viewSession(){
-        let session = "session_"+app.session.s_name;
-        this.tweets.eachLayer( l => {
-            if (l.feature.properties.tweet[session] === 'confirmed') {
-                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#0b0"}));
-            } else if (l.feature.properties.tweet[session] === 'proposed') {
-                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#bb0"}));
-            } else if (l.feature.properties.tweet[session] === 'negative') {
-                l.setIcon(L.MakiMarkers.icon({icon: null, color: "#b00"}));
-            }
-        });
-    }
-    dateFromTimestamp(timestamp){
-        var fecha = new Date(parseFloat(timestamp));
-        return fecha.toLocaleDateString() + " " + fecha.toLocaleTimeString()
-    }
-    formatDateFromString(aStringDate){
-
-        var aDate = new Date(aStringDate);
-        return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString()
-    }
-    sliderUpdate(extremeDates, data){
-        //this.enableLoading("#mapid");
-        this.displayDate(extremeDates[0],extremeDates[1]);
-        this.searchSpaceTime(data)
-        .then(r => {
-            this.update_from_search(r);
-            this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
-            //this.disableLoading("#mapid");
-        });
-    }
-    displayDate(lowerDate,upperDate){
-        let lower = document.getElementById("maps-date-lower");
-        let upper = document.getElementById("maps-date-upper");
-        lower.innerText= this.dateFromTimestamp(lowerDate);
-        upper.innerText= this.dateFromTimestamp(upperDate);
-    }
-    sliderBounds(min, max, skipUpdate = false){
-        this.slider.noUiSlider.updateOptions({
-            range: {
-                'min':min ,
-                'max': max
-            },
-            start:[min,max]
-        });
-        this.displayDate(min,max);
-        if (skipUpdate == false){
-            this.slider.noUiSlider.set([min,max]);
-        }
-    }
-    loadSlider(){
-
-        this.slider = $('#maps-slider-range-vertical')[0];
-        noUiSlider.create(this.slider, {
-            start: [0, 1],
-            connect: true,
-            direction: 'ltr',  // ltr or rtl
-            orientation: 'horizontal',
-            tooltips: false,
-            range: { 'min': 0, 'max': 1 }
-        });
-        this.slider.noUiSlider.on('set', values => {
-            //console.log("slider on-set");
-            if(this.slider_data)
-                this.sliderUpdate(values, this.slider_data);
-        });
-    }
-    loadTweets(data){
-
-
-        return new Promise((resolve, reject)=>{
-
-            L.MakiMarkers.accessToken = this.accessToken;
-            this.loadSlider();
-            this.mymap = L.map('mapid');
-
-            var mapLayer = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-                            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-                            maxZoom: 18,
-                            id: 'mapbox.streets',
-                            accessToken: this.accessToken
-                        }).addTo(this.mymap);
-
-            this.drawnItems = new L.geoJSON();
-            this.mymap.addLayer(this.drawnItems);
-            let options = {
-                position: 'topright',
-                draw: {
-                    polyline: false,
-                    marker: false,
-                    layer: false,
-                    circlemarker: false,
-                    polygon: {
-                        allowIntersection: false,
-                        drawError: {
-                            color: '#e1e100',
-                            message: '<strong> Wrong shape </strong>'
-                        },
-                        shapeOptions: {
-                            color:'#3be'
-                        }
-                    },
-                    circle: false,
-                    rectangle: {
-                        shapeOptions: {
-                            color:'#3be'
-                        }
-                    },
-                },
-                edit: {
-                    edit: false,
-                    featureGroup: this.drawnItems,
-                    remove: true
-                }
-            };
-            let drawControl = new L.Control.Draw( options);
-            this.mymap.addControl(drawControl);
-
-            this.mymap.on(L.Draw.Event.CREATED, (e) => {
-                //TODO: support multiple polygons and trigger the search using a button
-                this.enableLoading();
-                this.drawnItems.clearLayers();
-                this.drawnItems.addLayer(e.layer);
-                this.search_geospatial(this.drawnItems, data)
-                    .then(r => {
-                        this.update_from_search(r);
-                        this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
-                        this.disableLoading("#mapid");
-                    });
-            });
-            this.mymap.on(L.Draw.Event.DELETED, (e) => {
-                this.drawnItems.clearLayers();
-                this.search_geospatial(this.drawnItems, data)
-                    .then(r => {
-                        this.updateMatchingTweetsLabel(r.total_hits, r.geo.length);
-                        this.update_from_search(r);
-                    });
-            });
-
-            // call endpoint that provides geoJson, we build this using the geo index(exists only in the workstantion)
-            var spec_data = {
-                "index": app.session.s_index,
-                "session": 'session_'+app.session.s_name,
-                "search_by_label": data.filter(item => {return item.name == "search_by_label"})[0].value,
-                "word": data.filter(item => {return item.name == "word"})[0].value
-            };
-
-            this.searchGeoLocalizedTweets(spec_data, data).then(()=>{
-
-                this.mymap.on('zoomstart', ()=>{
-                    clearTimeout(this.timeoutID);
-                    //this.lastZoomAt = Date.now();
-                });
-                this.mymap.on('zoomend', (evt)=>{
-
-                    //console.log(Date.now()-this.lastZoomAt);
-                    this.timeoutID = setTimeout(()=>{
-                        clearTimeout(this.timeoutID);
-                        this.searchGeoLocalizedTweets(spec_data, data, false);
-                    },2000);
-                });
-                //this.mymap.on('zoom', ()=>{ console.log("zoom") });
-
-                /*this.mymap.on('zoomend', ()=>{
-                    this.enableLoading();
-
-                        console.log("ZOOMING + LOADING!");
-                        this.searchGeoLocalizedTweets(spec_data, data).then(()=>{
-                            this.disableLoading();
-                        });
-                });*/
-            });
-        });
-    }
-    setLastZoomAt(val){
-        this.lastZoomAt = val;
-    }
-    getLastZoomAt(){
-        return this.lastZoomAt;
-    }
-    searchGeoLocalizedTweets(spec_data, slider_data, fitBounds = true){
-
-        console.log("searchGeoLocalizedTweets");
-        return new Promise((resolve, reject)=>{
-
-            this.enableLoading();
-            //console.log("SPEC DATA: ", spec_data);
-            $.post(app.appURL+"get_geo_coordinates", spec_data ,(response, status) => {
-
-                if (response.geo.length > 0){
-
-                    // Update map
-                    this.addGeoToMap(response.geo);
-                    var markerArray = response.geo.map(pdi => L.marker(pdi.geometry.coordinates));
-                    var group = L.featureGroup(markerArray); //.addTo(map);
-
-                    if(fitBounds){
-                        this.mymap.setView(this.tweets.getBounds().getCenter(),1).fitBounds(this.tweets.getBounds());
-                        console.log("Fitting bounds");
-                    }
-                    else{
-                        console.log("BOUNDS:", this.mymap.getBounds());
-                    }
-
-                    // Update slider
-                    this.slider_data = slider_data;
-
-                    if(response.min_date == response.max_date){
-                        $(".maps-slider-area").html("");
-                    }
-                    else this.sliderBounds(response.min_date, response.max_date, true);
-
-                    // Updating query info section
-                    this.updateMatchingTweetsLabel(response.total_hits, response.geo.length);
-                    this.disableLoading();
-                }
-                else this.showNoTweetsFound()
-                resolve();
-            });
-        });
-    }
-    updateMatchingTweetsLabel(numOfFoundTweets, numOfRetrievedTweets){
-        $(".geo_tweets_results").html(numOfFoundTweets + ' results matching the query (showing ' + numOfRetrievedTweets + ')');
-    }
-    showNoTweetsFound(){
-        $(this.containerSelector).parent().html("Sorry, no geo-localized tweets were found under this criteria.");
-    }
-}
-
-class TopRetweetsModule extends SearchModule{
-
-    constructor(containerSelector, client) {
-
-        super(containerSelector);
-        this.client = client;
-    }
-
-    loadTweets(data){
-
-        this.enableLoading();
-
-        var query = data.filter(item => {return item.name == "word"})[0].value;
-        if(query && query.trim() != ""){ //If the user has entered at least a keyword
-
-            this.requestReTweets(data).then(
-                res => {
-                    this.presentRetweets(res.aggregations.top_text.buckets, this.containerSelector);
-                    this.disableLoading();
-                },
-                err => { //In case of failing
-                    this.clearContainer(this.containerSelector);
-                    this.showNoRetweetsFound(this.containerSelector);
-                    this.disableLoading();
-                }
-            );
-        }
-        else{
-            this.requestReTweets(data).then(
-                res => {
-                    this.presentRetweets(res.aggregations.top_text.buckets, this.containerSelector);
-                    this.disableLoading();
-                },
-                err => { //In case of failing
-                    this.clearContainer(this.containerSelector);
-                    this.showNoRetweetsFound(this.containerSelector);
-                    this.disableLoading();
-            });
-        }
-    }
-
-    presentRetweets(res, selector){
-
-        var repeated_tweets = res.filter(elem => elem.doc_count > 1); //Sometimes the bockets are conformed by just 1 tweet
-
-        if(repeated_tweets.length>0){
-
-            try{
-                $(".top-retweets-header").text("Top " + repeated_tweets.length + " retweets");
-
-                var html = this.client.get_retweets_html(repeated_tweets);
-
-                $(selector).html(html);
-            }catch(err){console.log(err)}
-        }
-        else{
-            $(this.containerSelector).html("");
-            this.showNoRetweetsFound(this.containerSelector);
-            this.disableLoading();
-        }
-    }
-
-    showNoRetweetsFound(containerSelector){
-        $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
-    }
-
-    requestReTweets(data){
-
-        return new Promise((resolve, reject) => {
-            $.post(app.appURL+'top_retweets', data, (response) => {
-                resolve(response);
-            }, 'json').fail((err)=>{
-                console.log("ERROR", err);
-                this.client.cnxError(err);
-                reject(err)
-            });
-        });
-    }
-}
-
 app.views.tweets = Backbone.View.extend({
     template: _.template($("#tpl-page-tweets").html()),
     events: {
@@ -468,7 +8,6 @@ app.views.tweets = Backbone.View.extend({
         'click .cluster_state': 'cluster_state',
         'click .btn_filter': 'filter_tweets',
         'click .massive_tagging_to_state': 'massive_tagging_to_state',
-        'click .geo_selection_to_state': 'geo_selection_to_state',
         'click #search_not_labeled': 'search_not_labeled'
     },
     initialize: function() {
@@ -481,12 +20,10 @@ app.views.tweets = Backbone.View.extend({
         };
 
         //this.render();
-
         //this.updatingSearchDatesRange();
-        var handler = _.bind(this.render, this);
-        var self = this;
-        $(document).on("click","body .tweet_state",function(e){
-			self.tweet_state(e);
+        //var handler = _.bind(this.render, this);
+        $(document).on("click","body .tweet_state",(e) => {
+			this.tweet_state(e);
 		});
 		$(document).on("click",".search-accordion .card-header",function(e){
 			if(e.target.tagName.toLocaleLowerCase() == "div")
@@ -555,9 +92,8 @@ app.views.tweets = Backbone.View.extend({
       return false;
     },
     loadGeopositionedTweets: function(data){
-        console.log("loadGeopositionedTweets");
         try{
-            new GeoSpatialModule("#mapid").loadTweets(data);
+            new GeoSpatialModule("#mapid", this).loadTweets(data);
         }catch(err){console.log(err)}
     },
     searchForTweets: function(){
@@ -570,15 +106,19 @@ app.views.tweets = Backbone.View.extend({
         var retweetsContainer=".top_retweets_results";
 
         var data = this.getIndexAndSession().concat(this.getTabSearchData()).concat(this.bigrams.formData)
-            .concat([{name: "retweets_number", value: 20}, {name: "image_clusters_limit", value:20}]);
+            .concat([
+                {name: "retweets_number", value: 20},
+                {name: "image_clusters_limit", value:20},
+                {name: "individual_tweets_limit", value:10}
+            ]);
         var startingReqTime = performance.now();
 
         var query = data.filter(item => {return item.name == "word"})[0].value;
 
-
         if(query && query.trim() != ""){ //If the user has entered at least a keyword
 
-            this.requestTweets(data, startingReqTime);
+            this.requestTweetsAndImageCLusters(data, startingReqTime);
+            this.loadTweetsTimeline(data);
             this.loadGeopositionedTweets(data);
             this.loadRetweets(data, retweetsContainer);
             this.requestNgrams(data);
@@ -586,6 +126,7 @@ app.views.tweets = Backbone.View.extend({
         } else { //If the user has entered no keyword
 
             this.hideNotFullSearchSearch();
+            this.loadTweetsTimeline(data);
             this.loadGeopositionedTweets(data);
             this.loadRetweets(data, retweetsContainer);
             this.requestNgrams(data).then(
@@ -596,6 +137,7 @@ app.views.tweets = Backbone.View.extend({
                 (err) => { //In case of failing
                     this.showNoBigramsFound(".ngrams-search-classif:visible:last");
             });
+            //this.requestTweetsAndImageCLusters(data, startingReqTime).then(()=>{});
             this.requestFullImageClusters(data).then(
                 res => {
                     this.showImageClusters(res.clusters, undefined, '.imagesClusters:visible:last', undefined, undefined, res.total_clusters);
@@ -604,8 +146,30 @@ app.views.tweets = Backbone.View.extend({
                     this.clearContainer(".imagesClusters");
                     this.showNoTweetsFound(".imagesClusters");
             });
+            this.loadIndividualTweets(data, startingReqTime);
         }
         app.views.mabed.prototype.getClassificationStats();
+    },
+    loadIndividualTweets: function(data, t0){
+
+        //First clean the previous results
+        new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
+
+        var individualTweetsSelector = '.individual_tweets_result';
+        $(individualTweetsSelector).html("");
+        this.showLoadingMessage(individualTweetsSelector, 400);
+
+        var self = this;
+        $.post(app.appURL+'search_for_tweets', data, (response)=>{
+            var html = this.get_tweets_html(response, '', 'scroll_tweets');
+            this.showIndividualTweets(html, t0);
+            this.showResultsStats(response.tweets.total, t0, response.keywords);
+            new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+        }, 'json').fail(this.cnxError);
+    },
+    loadTweetsTimeline: function (data) {
+
+        new DailyFrequencyModule().loadTweets(data);
     },
     loadRetweets(data, retweetsContainer){
         console.log("loadRetweets");
@@ -617,6 +181,7 @@ app.views.tweets = Backbone.View.extend({
             if( !cardElem.querySelector(".collapse").classList.contains("collapseNgrams") &&
                 !cardElem.querySelector(".collapse").classList.contains("collapseRetweets") &&
                 !cardElem.querySelector(".collapse").classList.contains("collapseImages")&&
+                !cardElem.querySelector(".collapse").classList.contains("collapseIndividual")&&
                 !cardElem.querySelector(".collapse").classList.contains("collapseGeopositioned"))
                 cardElem.hidden = true;
         });
@@ -662,6 +227,7 @@ app.views.tweets = Backbone.View.extend({
                         Mark all the results as:
                         <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative massive_tagging_to_state">Negative</a>
                         <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid massive_tagging_to_state">Confirmed</a>
+                        <a href="#" data-state="proposed" class="timeline_btn options_btn_clear massive_tagging_to_state">Unlabeled</a>
                     </div>
 
                     <div class="container">
@@ -669,7 +235,18 @@ app.views.tweets = Backbone.View.extend({
                       <div class="search-accordion">
 
                                 <div class="card">
-                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Geopositioned tweets</a></div>
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Documents frequency</a></div>
+                                  <div id="collapseGeopositioned" class="collapse show collapseGeopositioned">
+
+                                    <div class="card-body">
+                                        <!-- TWEETS TIMELINE SECTION -->
+                                        <div class="col-12" id="tweets_timeline_results"></div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="card">
+                                  <div class="card-header"><a class="card-link" data-toggle="collapse" href="#collapseGeopositioned">Geopositioned documents</a></div>
                                   <div id="collapseGeopositioned" class="collapse show collapseGeopositioned">
                                     <div class="card-body">
 
@@ -693,7 +270,7 @@ app.views.tweets = Backbone.View.extend({
 
                                             <div class="row pt-3">
                                                 <div class="col-12 pix-margin-top-20 pix-margin-bottom-20 state_btns" style="text-align: right;">
-                                                    Mark the tweets matching the selection as:
+                                                    Mark the documents matching the selection as:
                                                     <a href="#" data-cid="" data-state="negative" class="timeline_btn options_btn_negative geo_selection_to_state">Negative</a>
                                                     <a href="#" data-state="confirmed" class="timeline_btn options_btn_valid geo_selection_to_state">Confirmed</a>
                                                     <a href="#" data-state="unlabeled" class="timeline_btn options_btn_clear geo_selection_to_state">Unlabeled</a>
@@ -788,27 +365,31 @@ app.views.tweets = Backbone.View.extend({
             target: document.querySelector(tab.target)
         };
     },
-    requestTweets: function(data, startingReqTime){
+    requestTweetsAndImageCLusters: function(data, startingReqTime, showClusters=true){
 
-        //First clean the previous results
-        var imageClustersSelector = '.imagesClusters';
-        $(imageClustersSelector).html("");
+        return new Promise((resolve, reject)=>{
 
-        new SearchModule(".image-clusters-container","spinner-images").enableLoading();
-        new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
+            //First clean the previous results
+            var imageClustersSelector = '.imagesClusters';
+            $(imageClustersSelector).html("");
 
-        var individualTweetsSelector = '.individual_tweets_result';
-        $(individualTweetsSelector).html("");
-        this.showLoadingMessage(individualTweetsSelector, 400);
+            new SearchModule(".image-clusters-container","spinner-images").enableLoading();
+            new SearchModule(".individual_tweets_result","spinner-individual").enableLoading();
 
-        var self = this;
-        $.post(app.appURL+'search_for_tweets', data, function(response){
-            self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
+            var individualTweetsSelector = '.individual_tweets_result';
+            $(individualTweetsSelector).html("");
+            this.showLoadingMessage(individualTweetsSelector, 400);
 
-            new SearchModule(".image-clusters-container","spinner-images").disableLoading();
-            new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+            var self = this;
+            $.post(app.appURL+'search_for_tweets', data, function(response){
+                self.displayPaginatedResults(response, startingReqTime, data[0].value, data.find(row => row.name == "search_by_label").value);
 
-        }, 'json').fail(this.cnxError);
+                new SearchModule(".image-clusters-container","spinner-images").disableLoading();
+                new SearchModule(".individual_tweets_result", "spinner-individual").disableLoading();
+                resolve()
+
+            }, 'json').fail(this.cnxError);
+        });
     },
     requestFullImageClusters: function(data){
         return new Promise((resolve, reject) => {
@@ -823,14 +404,12 @@ app.views.tweets = Backbone.View.extend({
     requestNgrams: function(data){
 
         var self = this;
-        console.log("requestNgrams");
         return new Promise((resolve, reject) => {
 
             this.bigrams.lastQueryParams = data;
             this.updateBigramsFormData(data);
 
             var containerSelector = ".ngrams-search-classif";
-            //self.showLoadingMessage(containerSelector, 677); ...
             new SearchModule(containerSelector,"spinner-ngrams").enableLoading();
 
             $.post(app.appURL+'ngrams_with_higher_ocurrence', data, (response) => {
@@ -858,13 +437,13 @@ app.views.tweets = Backbone.View.extend({
         this.clearContainer(".bigrams-graph-area:visible");
     },
     showNoTweetsFound: function(containerSelector){
-        $(containerSelector).html("Sorry, no re-tweets were found under this criteria.");
+        $(containerSelector).html("Sorry, no documents were found under this criteria.");
     },
     showNoBigramsFound: function(containerSelector){
         $(containerSelector).html("Sorry, no bigrams were found under this criteria.");
     },
     showNoTweetsFound: function(containerSelector){
-        $(containerSelector).html("Sorry, no tweets were found under this criteria.");
+        $(containerSelector).html("Sorry, no documents were found under this criteria.");
     },
     showNoImageClustersFound: function(containerSelector){
         $(containerSelector).html("Sorry, no image clusters were found under this criteria.");
@@ -909,7 +488,7 @@ app.views.tweets = Backbone.View.extend({
               });
             }
             //var state = retweet._source['session_'+app.session.s_name];
-			matchingTweets = '<h6><span class="badge badge-secondary"> Matching tweets: '+aggregation.doc_count+'</span></h6>';
+			matchingTweets = '<h6><span class="badge badge-secondary"> Matching documents: '+aggregation.doc_count+'</span></h6>';
 
 		    try{
             html += template({
@@ -1160,7 +739,7 @@ app.views.tweets = Backbone.View.extend({
 
             var props = response[Object.keys(response)[0]].mappings[docName].properties;
             var sel = $(".n-grams-to-generate:visible")[0];
-                sel.disabled = false;
+            if(sel) { sel.disabled = false; }
 
             for (var propName in props) {
                 if(propName.endsWith("grams")){
@@ -1435,9 +1014,7 @@ app.views.tweets = Backbone.View.extend({
 		// TODO: check if this text is in the aggregations (to avoid an error if users manipulate the dom)
 		$.post(app.appURL+'mark_retweets', {index: app.session.s_index, session: 'session_'+app.session.s_name, tag: tag, text: text }, function(response){
 		    jc.close();
-		    console.log("Updated: ", response)
             app.views.mabed.prototype.getClassificationStats();
-            console.log("Updated classification")
 		}, 'json').fail(this.cnxError);
 		return false;
 	},
@@ -1607,15 +1184,6 @@ app.views.tweets = Backbone.View.extend({
 
         return false;
     },
-    geo_selection_to_state: function(e){
-
-        e.preventDefault();
-        var jc = this.createChangingStatePopup();
-
-        setTimeout(() => { jc.close(); }, 1000);
-
-        return False;
-    },
     massive_tagging_to_state: function(e){
         e.preventDefault();
 
@@ -1626,13 +1194,13 @@ app.views.tweets = Backbone.View.extend({
         //Loading message
         var jc = this.createChangingStatePopup();
 
-        var callback = (response)=>{
-            jc.close();
-            this.searchForTweets();
-        };
+        $.post(app.appURL+'mark_all_matching_tweets', data, (response)=>{
 
-        $.post(app.appURL+'mark_all_matching_tweets', data, callback, 'json');
-        app.views.mabed.prototype.getClassificationStats();
+            this.searchForTweets();
+            app.views.mabed.prototype.getClassificationStats();
+            jc.close();
+
+        }, 'json');
 
         return false;
     }

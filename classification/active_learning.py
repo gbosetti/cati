@@ -16,16 +16,15 @@ import string
 from time import time
 import numpy as np
 import pylab as pl
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.linear_model import RidgeClassifier
-from sklearn.svm import LinearSVC
-from sklearn.linear_model import SGDClassifier
-from sklearn.linear_model import Perceptron
-from sklearn.linear_model import PassiveAggressiveClassifier
-from sklearn.naive_bayes import BernoulliNB, MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neighbors import NearestCentroid
-from sklearn.ensemble import RandomForestClassifier
+# from sklearn.feature_selection import SelectKBest, chi2
+# from sklearn.linear_model import RidgeClassifier
+# from sklearn.linear_model import SGDClassifier
+# from sklearn.linear_model import Perceptron
+# from sklearn.linear_model import PassiveAggressiveClassifier
+# from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+# from sklearn.neighbors import KNeighborsClassifier
+# from sklearn.neighbors import NearestCentroid
+# from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.extmath import density
 from sklearn import metrics
 from sklearn.model_selection import cross_validate  #by Gabi
@@ -40,20 +39,34 @@ from mabed.functions import Functions
 nltk.download('stopwords')
 
 from sklearn.datasets import load_files
-from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import Counter
 from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 from mabed.es_connector import Es_connector
 import elasticsearch.helpers
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.connections import connections
 # from sklearn.preprocessing import scale
 from sklearn import preprocessing
+#from elasticsearch.client import SnapshotClient
 
 
 class ActiveLearning:
 
-    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data"):
+    # def __new__(cls):
+    #     try:
+    #         it = cls.__it__
+    #     except AttributeError:
+    #         it = cls.__it__ = object.__new__(cls)
+    #     return it
+    #
+    # def __repr__(self):
+    #     return '<{}>'.format(self.__class__.__name__.upper())
+    #
+    # def __eq__(self, other):
+    #     return other is self
+
+    def __init__(self, train_folder="train", test_folder="test", unlabeled_folder="unlabeled", session_folder_name="tmp_data", download_folder_name="original_tmp_data", sampler="", learner=""):
         # If session_folder and download_folder are different, donot forget to use clone_original_files to move the ones in the download folder to the session folder (the target one)
 
         self.DATA_FOLDER = os.path.join(os.getcwd(), "classification", session_folder_name)
@@ -73,15 +86,17 @@ class ActiveLearning:
         self.NO_CLASS_FOLDER = "proposed"
         self.ENCODING = 'latin1'  # latin1
         self.loop_index = 0
+        self.learner = learner
 
     def get_samples(self, num_questions):
         return self.sampler.get_samples(num_questions)
 
-    def post_sampling(self):
-        return self.sampler.post_sampling()
+    def post_sampling(self, answers=None, config_relative_path=""):
+        return self.sampler.post_sampling(answers=answers, config_relative_path=config_relative_path)
 
-    def set_sampling_strategy(self, sampler):
+    def initialize(self, sampler, learner):
         self.sampler = sampler
+        self.learner = learner
         sampler.set_classifier(self)
 
     def clone_original_files(self):
@@ -114,9 +129,12 @@ class ActiveLearning:
 
         debug_limit = kwargs.get("debug_limit", False)
         log_enabled = kwargs.get("log_enabled", True)
-        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
-        res = my_connector.init_paginatedSearch(kwargs["query"])
 
+        if "config_relative_path" in kwargs:
+            my_connector = Es_connector(index=kwargs["index"], doc_type="tweet", config_relative_path=kwargs["config_relative_path"])
+        else: my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  #  config_relative_path='../')
+
+        res = my_connector.init_paginatedSearch(kwargs["query"])
         sid = res["sid"]
         scroll_size = res["scroll_size"]
         total = int(res["total"])
@@ -242,7 +260,7 @@ class ActiveLearning:
 
         functions = Functions()  # config_relative_path='../')
         retweets = functions.top_retweets(index=kwargs['index'], session=kwargs['session'], full_search=True,
-                                          label='unlabeled', retweets_number=kwargs['results_size'])
+                                          label='proposed', retweets_number=kwargs['results_size'])
 
         try:
             buckets = []
@@ -258,7 +276,7 @@ class ActiveLearning:
 
         ngram_classifier = NgramBasedClasifier() #  config_relative_path='../')
         matching_ngrams = ngram_classifier.get_ngrams(index=kwargs['index'], session=kwargs['session'],
-                                                      label='unlabeled', results_size=kwargs['results_size'],
+                                                      label='proposed', results_size=kwargs['results_size'],
                                                       n_size="2", full_search=True)
 
         try:
@@ -331,8 +349,6 @@ class ActiveLearning:
 
     def write_data_in_folders(self, field, path, dataset):
 
-        #print("WRITTING FIELD: ", field)
-
         if not os.path.exists(path):
              os.makedirs(path)
 
@@ -340,18 +356,22 @@ class ActiveLearning:
             try:
                 self.writeFile(os.path.join(path, tweet['_source']['id_str'] + ".txt"), self.stringuify(tweet['_source'][field]))
             except KeyError as ke:
-               print("Key value missing , maybe this tweet doesn't have the"+ field+"field.")
+               print("Key value missing, maybe this document doesn't have the 'id_str' or the '" + field + "' fields.")
 
     def size_mb(self, docs):
         return sum(len(s.encode('utf-8')) for s in docs) / 1e6
 
-    def loading_tweets_from_files(self):
+    def loading_tweets_from_files(self, download_test=True):
 
         # Loading the datasets
         print("Loading training data from ", self.TRAIN_FOLDER)
         data_train = load_files(self.TRAIN_FOLDER, encoding=self.ENCODING)  # data_train
-        print("Loading testing data from ", self.TEST_FOLDER)
-        data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+
+        if download_test:
+            print("Loading testing data from ", self.TEST_FOLDER)
+            data_test = load_files(self.TEST_FOLDER, encoding=self.ENCODING)
+        else: data_test = None
+
         print("Loading target data from ", self.UNLABELED_FOLDER)
         unlabeled = load_files(self.UNLABELED_FOLDER, encoding=self.ENCODING)
 
@@ -499,6 +519,38 @@ class ActiveLearning:
         self.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
                                               field=kwargs["text_field"],
                                               debug_limit=kwargs["debug_limit"])
+        self.remove_docs_absent_in_training()
+
+    def remove_docs_absent_in_training(self):
+
+        dirs_to_check = [
+            os.path.join(self.ORIGINAL_UNLABELED_FOLDER, self.NO_CLASS_FOLDER),
+            os.path.join(self.ORIGINAL_TEST_FOLDER, self.NEG_CLASS_FOLDER),
+            os.path.join(self.ORIGINAL_TEST_FOLDER, self.POS_CLASS_FOLDER)
+        ]
+        train_pos_folder = os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.POS_CLASS_FOLDER)
+        train_neg_folder = os.path.join(self.ORIGINAL_TRAIN_FOLDER, self.NEG_CLASS_FOLDER)
+
+        filenames = [file for file in os.listdir(train_pos_folder)] + [file for file in os.listdir(train_neg_folder)]
+        files_ignored = set()
+
+        for training_file in filenames:
+            file_exists = False
+
+            for dir_to_check in dirs_to_check:
+                file_exists = os.path.exists(os.path.join(dir_to_check, training_file))
+                if not file_exists:
+                    files_ignored.add(training_file)
+                    self.delete_file(filename=training_file, dir=dir_to_check)
+
+        print("\n\nIgnoring unclassified tweets from groundtruth. Total ignored: ", len(files_ignored))
+        #print("\nFiles: ", files_ignored, "\n\n")
+
+    def delete_file(self, filename, dir):
+
+        path = os.path.join(dir, filename)
+        if os.path.exists(path):
+            os.remove(path)
 
     def download_testing_data(self, **kwargs):
 
@@ -615,7 +667,7 @@ class ActiveLearning:
         if total_proposed_data == 0:
             raise Exception('You need to have some data to classify in your dataset')
 
-    def build_model(self, **kwargs):
+    def build_model(self, **kwargs): # to use from the experiment
 
         # Keep track of the last used params
         self.remove_stopwords = kwargs["remove_stopwords"]
@@ -623,99 +675,9 @@ class ActiveLearning:
         # Starting the process
         data_train, data_test, self.data_unlabeled, self.categories = self.loading_tweets_from_files()
 
-        # Get the sparse matrix of each dataset
-        y_train = data_train.target
-        y_test = data_test.target
+        # Train the model: vectorize, make predictions, get scores, confidences, etc
+        self.last_confidences, self.last_predictions, self.X_unlabeled, self.scores = self.learner.train_model(data_train, data_test, self.data_unlabeled, self.ENCODING, self.categories)
 
-        vectorizer = TfidfVectorizer(encoding=self.ENCODING, use_idf=True, norm='l2', binary=False, sublinear_tf=True,
-                                     min_df=0.001, max_df=1.0, ngram_range=(1, 2), analyzer='word')
-
-        # Vectorizing the TRaining subset Lears the vocabulary Gets a sparse csc matrix with fit_transform(data_train.data).
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        X_train = vectorizer.fit_transform(data_train.data)
-
-        if(len(data_test.data)==0):
-            raise Exception('The test set is empty.')
-            return
-
-        if(len(self.data_unlabeled)==0):
-            raise Exception('The target (unlabeled) set is empty.')
-            return
-
-        if (len(self.data_unlabeled.data) == 0):
-            raise Exception('The unlabeled set is empty.')
-            return
-
-        # Vectorizing the TEsting subset by using the vocabulary and document frequencies already learned by fit_transform with the TRainig subset.
-        print("Vectorizing the test set")
-        X_test = vectorizer.transform(data_test.data)
-
-        print("X_test n_samples: %d, n_features: %d" % X_test.shape)
-
-        # Extracting features from the unlabled dataset using the same vectorizer
-        print("Vectorizing the target set")
-        X_unlabeled = vectorizer.transform(self.data_unlabeled.data)
-        print("X_unlabeled n_samples: %d, n_features: %d" % X_unlabeled.shape)  # X_unlabeled.shape = (samples, features) = ej.(4999, 4004)
-
-        t0 = time()
-
-        self.model = LinearSVC(loss='squared_hinge', penalty='l2', dual=False, tol=1e-3)
-        # fits the model according to the training set (passing its data and the vectorized feature)
-        # 'scale' normalizes before fitting. It is required since the LinearSVC is very sensitive to extreme values
-        # normalized_X_train = scale(X_train, with_mean=False)
-        scaler = preprocessing.StandardScaler(with_mean=False)
-        scaler = scaler.fit(X_train)
-
-        X_train = scaler.transform(X_train)
-        self.model.fit(X_train, y_train)
-
-        X_test = scaler.transform(X_test)
-        pred = self.model.predict(X_test)
-
-        #print("DIMENTIONS test (sparse matrix): ", y_test.ndim)
-        #print("DIMENTIONS pred (sparse matrix): ", pred.ndim)
-
-        score = metrics.f1_score(y_test, pred)
-        accscore = metrics.accuracy_score(y_test, pred)
-        recall_score = metrics.recall_score(y_test, pred)
-        precision_score = metrics.precision_score(y_test, pred)
-
-        pos_category = [ idx for [idx, cat] in enumerate(self.categories) if cat == "confirmed"][0]  # Returns 0 or 1. categories[int(pos_pred[index])]
-
-        # Number of correct predictions on positives
-        true_positives = 0
-        for index, x in np.ndenumerate(pred):
-            if(x == pos_category and y_test[index[0]] == pred[index[0]]):
-                true_positives +=1
-
-        # Total expected positives from the ground truth
-        total_expected_positives = 0
-        for index, x in np.ndenumerate(y_test):
-            if(x == pos_category):
-                total_expected_positives += 1
-
-        pos_precision_score = true_positives/total_expected_positives
-
-        # pos_y_test = np.array(y_test[pos_indexes])
-        # pos_pred = np.array(pred[pos_indexes])
-
-        # test_condition = np.where(idx in pos_indexes)
-        # pos_y_test = np.extract(condition, pos_indexes)
-        #
-        # pred_condition = np.where(idx in pos_indexes)
-        # pos_pred = np.extract(condition, pred)
-
-        # pos_precision_score = metrics.precision_score(np.array(pos_y_test), np.array(pos_pred))
-
-
-        self.scores = {
-            "f1": score,
-            "accuracy": accscore,
-            "recall": recall_score,
-            "precision": precision_score,
-            "positive_precision": pos_precision_score
-        }
-        self.X_unlabeled = scaler.transform(X_unlabeled)
 
     def fill_questions(self, conf_sorted_question_samples, predictions, confidences, categories, top_retweets=[], top_bigrams=[], max_samples_to_sort=500, text_field=""):
 
@@ -723,7 +685,16 @@ class ActiveLearning:
         # print("max_samples_to_sort: ", max_samples_to_sort)
         complete_question_samples = []
         i=0
+
+        get_confidences = False
+        if isinstance(confidences,np.ndarray):
+            get_confidences = True
+
         for index in conf_sorted_question_samples: # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+
+            conf = None
+            if get_confidences:
+                conf = confidences[index]
 
             question ={
                 "filename": self.data_unlabeled.filenames[index],
@@ -731,7 +702,7 @@ class ActiveLearning:
                 "str_id": self.extract_filename_no_ext(self.data_unlabeled.filenames[index]),
                 "pred_label": categories[int(predictions[index])],
                 "data_unlabeled_index": index,
-                "confidence": confidences[index],
+                "confidence": conf,
                 "cnf_pos": i,
                 "ret_pos": max_samples_to_sort,
                 "bgr_pos": max_samples_to_sort,
@@ -769,35 +740,35 @@ class ActiveLearning:
         return complete_question_samples
 
 
-    def update_answers_labels_in_index(self, labeled_questions, index, session):
-
-        print("Marking answers in elastic")
-        for question in labeled_questions:
-            #print("Moving", question["filename"], " to ", dstDir)
-            try:
-                Es_connector(index=index).update_by_query({
-                    "query": {
-                        "match": {
-                            "id_str": question["filename"]
-                        }
-                    }
-                }, "ctx._source." + session + " = '" + question["label"] + "'")
-            except:
-                print("...")
-
-                {
-                    "script": {
-                        "source": "ctx._source.session_lyon2017_test_03 = params.label",
-                        "params": {
-                            "label": "proposed"
-                        }
-                    },
-                    "query": {
-                        "match": {
-                            "id_str": "..."
-                        }
-                    }
-                }
+    # def update_answers_labels_in_index(self, labeled_questions, index, session):
+    #
+    #     print("Marking answers in elastic")
+    #     for question in labeled_questions:
+    #         #print("Moving", question["filename"], " to ", dstDir)
+    #         try:
+    #             Es_connector(index=index).update_by_query({
+    #                 "query": {
+    #                     "match": {
+    #                         "id_str": question["filename"]
+    #                     }
+    #                 }
+    #             }, "ctx._source." + session + " = '" + question["label"] + "'")
+    #         except:
+    #             print("...")
+    #
+    #             {
+    #                 "script": {
+    #                     "source": "ctx._source.session_lyon2017_test_03 = params.label",
+    #                     "params": {
+    #                         "label": "proposed"
+    #                     }
+    #                 },
+    #                 "query": {
+    #                     "match": {
+    #                         "id_str": "..."
+    #                     }
+    #                 }
+    #             }
 
     def move_answers_to_training_set(self, labeled_questions):
 
@@ -868,7 +839,6 @@ class ActiveLearning:
             line = line.replace('", "f1"', ', "f1"')
             line = line.replace('", "recall"', ', "recall"')
             line = line.replace('", "precision"', ', "precision"')
-            line = line.replace('", "positive_precision"', ', "positive_precision"')
             line = line.replace('", "wrong_pred_answers"', ', "wrong_pred_answers"')
 
             logs = logs + line
@@ -885,6 +855,93 @@ class ActiveLearning:
 
         return loops_values, accuracies, precision
 
+    def update_tmp_predictions(self, **kwargs):
+
+        # self.clear_tmp_predictions(**kwargs)
+        # mark all as negative
+        # self.mark_full_unlabeled_set_as(as_category="negative", field=kwargs["session"] + "_tmp", **kwargs)
+        self.mark_tmp_predictions(as_category="negative", field=kwargs["session"] + "_tmp", subset=kwargs["negatives"], **kwargs)
+        # then mark positives
+        self.mark_tmp_predictions(as_category="confirmed", field=kwargs["session"] + "_tmp", subset=kwargs["positives"], **kwargs)
+
+    def clear_tmp_predictions(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+        res = my_connector.update_by_query({
+            "query": {
+                "exists" : { "field" : kwargs["session"] + "_tmp" }  # e.g. session_lyon2015_test_01_tmp
+            }
+        }, "ctx._source." + kwargs["session"] + "_tmp = 'proposed'")  #"ctx._source.remove('" + kwargs["session"] + "_tmp')")
+
+    def remove_tmp_predictions_field(self, **kwargs):
+
+        my_connector = Es_connector(index=kwargs["index"], doc_type="tweet")  # config_relative_path='../')
+
+        for answer in kwargs["answers"]:
+            res = my_connector.update_by_query({
+                "query": {
+                    "match": {
+                        "_id": answer["id"]
+                    }
+                }
+            }, "ctx._source.remove('" + kwargs["session"] + "_tmp')")
+
+    def remove_all_tmp_predictions_field(self, **kwargs):
+
+        print("Removing all the predictions")
+        Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
+            "query": {
+                "exists": { "field" : kwargs["field"]}
+            }
+        }, "ctx._source.remove('" + kwargs["field"] + "')")
+
+
+    def mark_full_unlabeled_set_as(self, **kwargs):
+
+        Es_connector(index=kwargs["index"], doc_type="tweet").update_by_query({
+            "query": {
+                "bool": {
+                  "must_not": [
+                    {
+                      "match": {
+                        kwargs["field"]: kwargs["as_category"]
+                      }
+                    }
+                  ]
+                }
+            }
+        }, "ctx._source." + kwargs["field"] + " = '" + kwargs["as_category"] + "'")
+
+    def get_sampler_class_name(self):
+
+        return self.sampler.__class__.__name__
+
+    def get_learner_class_name(self):
+
+        return self.learner.__class__.__name__
+
+    def get_vectorizer_class_name(self):
+
+        return self.learner.get_vectorizer_class_name()
+
+    def mark_tmp_predictions(self, **kwargs):
+
+        print("Bulk: marking " + kwargs["as_category"] + " predictions")
+        # Bulk
+        query_list = []
+        for id in kwargs["subset"]:
+            query_dict = {
+                '_op_type': 'update',
+                '_index': kwargs["index"],
+                '_type': "tweet",
+                '_id': id,
+                'doc': {kwargs["field"]: kwargs["as_category"]}
+            }
+            query_list.append(query_dict)
+
+        helpers.bulk(client= Es_connector(index=kwargs["index"], doc_type="tweet").es, actions=query_list)
+
+
     def get_classified_queries_ids(self, **kwargs):
 
         # middle_conf = np.average(self.last_confidences) # TODO: ask it from frontend
@@ -892,17 +949,17 @@ class ActiveLearning:
         neg_ids = []
 
         confidences = []
-        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for index in self.sampler.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
             confidences.append(self.last_confidences[index])
         min_conf = min(confidences)
         max_conf = max(confidences)
 
-        for index in self.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
+        for smple in self.sampler.last_samples:  # Sorted from lower to higher confidence (lower = closer to the hyperplane)
 
-            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[index])
-            pred_label = self.categories[int(self.last_predictions[index])]
-            scaled_confidence = (self.last_confidences[index] - min_conf) / (max_conf - min_conf)
-            # print("Scaled: ", scaled_confidence, " [", kwargs["target_min_score"], ",", kwargs["target_max_score"], "]")
+            id_str = self.extract_filename_no_ext(self.data_unlabeled.filenames[smple])
+            print(id_str, "from", self.data_unlabeled.filenames[smple])
+            pred_label = self.categories[int(self.last_predictions[smple])]
+            scaled_confidence = (self.last_confidences[smple] - min_conf) / (max_conf - min_conf)
 
             if(scaled_confidence > kwargs["target_min_score"]) and (scaled_confidence < kwargs["target_max_score"]):
                 if (pred_label == "confirmed"):

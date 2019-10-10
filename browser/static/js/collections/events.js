@@ -14,7 +14,7 @@ app.collections.events = Backbone.Collection.extend({
         $.post(app.appURL+'event_image', {obj: JSON.stringify(s_ev), index: app.session.s_index, s_name: app.session.s_name}, function(response){
             if(response.result){
                 var ext = "jpg";
-                if(response.image.extended_entities.media[0].media_url.endsWith("png")){
+                if(response.image.extended_entities && response.image.extended_entities.media[0].media_url.endsWith("png")){
                     ext = "png";
                 }
                 res.set({image: app.imagesURL+app.imagesPath+'/'+response.image.id_str+"_0"+'.'+ext});
@@ -38,7 +38,7 @@ app.collections.events = Backbone.Collection.extend({
         $.post(app.appURL+'event_image', {obj: JSON.stringify(s_ev), index: app.session.s_index, s_name: app.session.s_name}, function(response){
             if(response.result){
                 var ext = "jpg";
-                if(response.image.extended_entities.media[0].media_url.endsWith("png")){
+                if(response.image.extended_entities && response.image.extended_entities.media[0].media_url.endsWith("png")){
                     ext = "png";
                 }
                 res.set({image: app.imagesURL+app.imagesPath+'/'+response.image.id_str+"_0"+'.'+ext});
@@ -59,7 +59,7 @@ app.collections.events = Backbone.Collection.extend({
 
         return new Promise(function(resolve, reject) {
 
-            $.post(app.appURL+'all_events_images', {"events": JSON.stringify(event_desc), index: app.session.s_index, s_name: app.session.s_name}, function(response){
+            $.post(app.appURL+'all_events_images', {"events": JSON.stringify(event_desc), index: app.session.s_index, s_name: app.session.s_name, imagesPath: app.imagesPath }, function(response){
 
                 response.forEach(event => {
 
@@ -67,7 +67,7 @@ app.collections.events = Backbone.Collection.extend({
                     if(event.image_src.endsWith("png")){
                         ext = "png";
                     }
-                    event.image = app.imagesURL+app.imagesPath+'/'+event.image_id+"_0"+'.'+ext;
+                    event.image = app.imagesURL + event.image_subfolder + event.image_id+'.'+ext;
                 });
                 resolve(response);
             }, 'json');

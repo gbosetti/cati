@@ -2,7 +2,8 @@ import numpy as np
 from mabed.es_connector import Es_connector
 import os
 
-# Sampling methods: UncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
+
+# Sampling methods: UncertaintySampler, JackardBasedUncertaintySampler, BigramsRetweetsSampler, DuplicatedDocsSampler
 
 class ActiveLearningSampler:
 
@@ -12,38 +13,68 @@ class ActiveLearningSampler:
     def get_samples(self, num_questions):
         pass
 
-    def post_sampling(self):
+    def post_sampling(self, answers=None, config_relative_path=None):
         pass
+
+    def update_docs_by_ids(self, docs_matches, pred_labed, config_relative_path=None):
+
+        if len(docs_matches)>0:
+
+            if config_relative_path != None:
+                my_connector = Es_connector(index=self.index, config_relative_path=config_relative_path)
+            else: my_connector = Es_connector(index=self.index)
+            query = {
+                "query": {
+                    "bool": {
+                        "should": docs_matches,
+                        "minimum_should_match": 1
+                    }
+                }
+            }
+            original_docs = my_connector.search(query)["hits"]["hits"]
+
+            if len(original_docs)>0:
+                for doc in original_docs:
+                    # my_connector = Es_connector(index=self.index, config_relative_path=config_relative_path)\
+                    my_connector.es.update(
+                        index=self.index,
+                        doc_type="tweet",
+                        id=doc["_id"],
+                        body={"doc": {
+                            self.session: pred_labed
+                        }},
+                        retry_on_conflict=5
+                    )
+
 
 class UncertaintySampler(ActiveLearningSampler):
 
     def __init__(self, **kwargs):
+        self.index = kwargs["index"]
+        self.session = kwargs["session"]
         return
 
     def get_samples(self, num_questions):
 
-        # compute absolute confidence for each unlabeled sample in each class
-        # decision_function gets "the confidence score for a sample is the signed distance of that sample to the hyperplane" https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
-        decision = self.classifier.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.classifier.model.predict(self.classifier.X_unlabeled)
+        # keep all the sorted samples
+        self.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
 
-        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
-        if (len(self.classifier.categories) > 2):
-            confidences = np.average(confidences, axix=1)
-            print("when categories are more than 2")
+        # get the N required samples for user validation
+        sub_samples = self.last_samples[0:num_questions].tolist()
 
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
-        question_samples = sorted_samples[0:num_questions].tolist()
+        # format the samples
+        return self.classifier.fill_questions(sub_samples, self.classifier.last_predictions, self.classifier.last_confidences, self.classifier.categories)
 
-        selected_samples = self.classifier.fill_questions(question_samples, predictions, confidences, self.classifier.categories)
+    def post_sampling(self, answers=None, config_relative_path=None):
+        print("Persisting answers so they have an infuelce on the ngrams")
 
-        self.classifier.last_samples = sorted_samples
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
+        positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "confirmed"]
+        negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "negative"]
 
-        return selected_samples
-
+        self.update_docs_by_ids(positive_docs_ids_matches, "confirmed", config_relative_path=config_relative_path)
+        self.update_docs_by_ids(positive_docs_ids_matches, "negative", config_relative_path=config_relative_path)
 
 
 class BigramsRetweetsSampler(ActiveLearningSampler):
@@ -56,35 +87,22 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
         self.cnf_weight = kwargs["cnf_weight"]
         self.ret_weight = kwargs["ret_weight"]
         self.bgr_weight = kwargs["bgr_weight"]
+
         return
 
     def get_samples(self, num_questions):
-        # retrieve from the classifier:
-        # model, X_train, X_test, y_train, y_test, X_unlabeled, categories
 
         # Getting
         top_bigrams = self.classifier.get_top_bigrams(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
         top_retweets = self.classifier.get_top_retweets(index=self.index, session=self.session, results_size=self.max_samples_to_sort)  # session=kwargs["session"] + "_tmp"
 
-        # compute absolute confidence for each unlabeled sample in each class
-        decision = self.classifier.model.decision_function(
-            self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.classifier.model.predict(self.classifier.X_unlabeled)
-        # average abs(confidence) over all classes for each unlabeled sample (if there is more than 2 classes)
-        if (len(self.classifier.categories) > 2):
-            confidences = np.average(confidences, axix=1)
-            print("when categories are more than 2")
+        self.last_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
 
-        sorted_samples_by_conf = np.argsort(confidences)  # argsort returns the indices that would sort the array
-
-        self.classifier.last_samples = sorted_samples_by_conf
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
-
-        question_samples = self.classifier.get_unique_sorted_samples_by_conf(sorted_samples_by_conf, self.classifier.data_unlabeled,
+        question_samples = self.classifier.get_unique_sorted_samples_by_conf(self.last_samples,
+                                                                             self.classifier.data_unlabeled,
                                                                   self.max_samples_to_sort)  # returns just unique (removes duplicated files)
-        formatted_samples = self.classifier.fill_questions(question_samples, predictions, confidences,
+
+        formatted_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences,
                                                 self.classifier.categories, top_retweets,
                                                 top_bigrams, self.max_samples_to_sort, self.text_field)
 
@@ -93,6 +111,16 @@ class BigramsRetweetsSampler(ActiveLearningSampler):
                                                                      self.bgr_weight * k["bgr_pos"]), reverse=False)
         self.last_questions = selected_samples[0:num_questions]
         return self.last_questions
+
+    def post_sampling(self, answers=None, config_relative_path=None):
+        print("Persisting answers so they have an infuelce on the ngrams")
+
+        positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if ans["pred_label"] == "confirmed"]
+        negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if ans["pred_label"] == "negative"]
+
+        self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
+        self.update_docs_by_ids(positive_docs_ids_matches, "negative")
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
@@ -106,34 +134,29 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
         self.session = kwargs["session"]
         self.text_field = kwargs["text_field"]
         self.similarity_percentage = kwargs["similarity_percentage"]
+
         return
 
     def get_samples(self, num_questions):
 
-        decision = self.classifier.model.decision_function(self.classifier.X_unlabeled)  # Predicts confidence scores for samples. X_Unlabeled is a csr_matrix. Scipy offers variety of sparse matrices functions that store only non-zero elements.
-        confidences = np.abs(decision)  # Calculates the absolute value element-wise
-        predictions = self.classifier.model.predict(self.classifier.X_unlabeled)
-
-        sorted_samples = np.argsort(confidences)  # argsort returns the indices that would sort the array
+        sorted_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
         question_samples = sorted_samples[0:num_questions].tolist()
-        selected_samples = self.classifier.fill_questions(question_samples, predictions, confidences,
+        selected_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences,
                                                           self.classifier.categories)
 
-        self.classifier.last_samples = sorted_samples
-        self.classifier.last_confidences = confidences
-        self.classifier.last_predictions = predictions
-
+        self.last_samples = sorted_samples
         self.last_questions = selected_samples
 
         return selected_samples
 
-    def post_sampling(self):
+    def post_sampling(self, answers=None, config_relative_path=None):
         print("Moving duplicated documents")
         duplicated_answers = self.get_similar_docs(questions=self.last_questions,
                                                                     index=self.index,
                                                                     session=self.session,
                                                                     text_field=self.text_field,
                                                                     similarity_percentage=self.similarity_percentage)
+
         self.classifier.move_answers_to_training_set(duplicated_answers)
 
 
@@ -249,6 +272,163 @@ class MoveDuplicatedDocsSampler(ActiveLearningSampler):
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
+
+class JackardBasedUncertaintySampler(MoveDuplicatedDocsSampler):
+
+    def __init__(self, **kwargs):
+
+        #super(UncertaintySampler, self).__init__()
+        MoveDuplicatedDocsSampler.__init__(self, **kwargs)
+        self.low_confidence_limit = float(kwargs["low_confidence_limit"])
+        self.max_doct_to_resort = kwargs["max_doct_to_resort"]
+        return
+
+    def get_samples(self, num_questions):
+
+        sorted_samples = np.argsort(self.classifier.last_confidences)  # argsort returns the indices that would sort the array
+        question_samples = sorted_samples.tolist()
+        selected_samples = self.classifier.fill_questions(question_samples, self.classifier.last_predictions, self.classifier.last_confidences, self.classifier.categories)
+
+        # Filter and get all the tweets with a low confidence
+        full_low_level_confidency=[]
+        for sample in selected_samples:
+            if sample["confidence"]<self.low_confidence_limit:
+                full_low_level_confidency.append(sample)
+
+        if(len(full_low_level_confidency)<num_questions):
+            #full_low_level_confidency = selected_samples.clone()
+            raise Exception('ERROR: the number of low-level-confidence predictions is not enough to retrieve ' + str(num_questions) + ' samples.')
+
+        if(len(full_low_level_confidency)>self.max_doct_to_resort):
+            full_low_level_confidency = full_low_level_confidency[0:self.max_doct_to_resort]
+
+        # Get the accumulated jackard score of each document respect to the remaining ones
+        for sample in full_low_level_confidency:
+            for anotherSample in full_low_level_confidency:
+                if sample != anotherSample:
+                    if "jackard_score" not in sample:
+                        sample["jackard_score"] = self.get_jaccard_sim(sample["analyzed_content"], anotherSample["analyzed_content"])
+                    else:
+                        sample["jackard_score"] += self.get_jaccard_sim(sample["analyzed_content"], anotherSample["analyzed_content"])
+
+        # Sort the documents according to the highest jackard score
+        re_sorted_samples = sorted(full_low_level_confidency, key=lambda k: (k["jackard_score"]), reverse=True)
+
+        # Get 20 non repeated documents
+        selected_samples = []
+        top_samples_text = []
+        for sample in re_sorted_samples:
+                if sample["analyzed_content"] not in top_samples_text:  # text
+                    selected_samples.append(sample)
+                    top_samples_text.append(sample["analyzed_content"])
+                if len(selected_samples) >= num_questions:
+                    break
+
+        self.last_samples = sorted_samples
+        self.last_questions = selected_samples  # to be used in the post sampling
+
+        return selected_samples
+
+    def get_jaccard_sim(self, str1, str2):
+        try:
+            a = set(str1.split())
+            b = set(str2.split())
+            c = a.intersection(b)
+            return float(len(c)) / (len(a) + len(b) - len(c))
+        except Exception as e:  # This is the correct syntax
+            return 1
+
+    def post_sampling(self, answers=None, config_relative_path=None):
+
+        positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "confirmed"]
+        negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in answers if
+                                     ans["pred_label"] == "negative"]
+
+        self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
+        self.update_docs_by_ids(positive_docs_ids_matches, "negative")
+
+        # #Movingnalso theduplicate
+        #
+        # duplicated_answers = self.get_similar_docs(questions=self.last_questions,
+        #                                                             index=self.index,
+        #                                                             session=self.session,
+        #                                                             text_field=self.text_field,
+        #                                                             similarity_percentage=self.similarity_percentage)
+        # if len(duplicated_answers):
+        #     print("Moving duplicated documents")
+        #     self.classifier.move_answers_to_training_set(duplicated_answers)
+        #
+        #     positive_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in duplicated_answers if
+        #                                  ans["pred_label"] == "confirmed"]
+        #     negative_docs_ids_matches = [{"match": {"id_str": ans["str_id"]}} for ans in duplicated_answers if
+        #                                  ans["pred_label"] == "negative"]
+        #
+        #     self.update_docs_by_ids(positive_docs_ids_matches, "confirmed")
+        #     self.update_docs_by_ids(positive_docs_ids_matches, "negative")
+
+
+
+    def get_similar_docs(self, **kwargs):
+
+        if len(kwargs["questions"]) == 0:
+            return []
+
+        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
+        duplicated_docs = []
+
+        docs_ids_matches = [{"match": {"id_str": {"query": question["str_id"] }}} for question in kwargs["questions"]]
+
+        docs_original_textual_content = my_connector.search({
+            "query": {
+                "bool": {
+                    "should": docs_ids_matches,
+                    "minimum_should_match": 1,
+                    "must": [
+                        {
+                            "match": {
+                                kwargs["session"]: "proposed"
+                            }
+                        }
+                    ]
+                }
+            }
+        })
+
+        for doc in docs_original_textual_content["hits"]["hits"]:
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "term": {
+                                    "text.keyword": {
+                                        "value": doc["_source"][kwargs["text_field"]]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+
+            matching_docs = my_connector.search(query)
+            if matching_docs["hits"]["total"]>1:
+
+                label = [question for question in kwargs["questions"] if question["str_id"] == doc["_source"]["id_str"]][0]["label"]
+
+                for dup_doc in matching_docs["hits"]["hits"]:
+                    duplicated_docs.append({
+                        "filename": dup_doc["_source"]["id_str"],
+                        "label": label,
+                        kwargs["text_field"]: dup_doc["_source"][kwargs["text_field"]]
+                    })
+
+        return duplicated_docs
+
+
+
+
 class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
 
     def __init__(self, **kwargs):
@@ -258,9 +438,10 @@ class ConsecutiveDeferredMovDuplicatedDocsSampler(MoveDuplicatedDocsSampler):
         self.target_min_confidence = kwargs["target_min_confidence"]
         self.similar_docs = {}
         self.confident_loop = kwargs["confident_loop"]
+
         return
 
-    def post_sampling(self):
+    def post_sampling(self, answers=None, config_relative_path=None):
 
         # Getting similar docs
         docs = self.get_similar_docs(questions=self.last_questions, index=self.index, session=self.session,

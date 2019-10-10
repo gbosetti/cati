@@ -7,7 +7,7 @@
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>MABED</title>
+		<title>CATI</title>
 		<link rel="icon" href="static/images/favicon.ico">
 		<link rel="stylesheet" type="text/css" href="static/css/mabed.css" />
 		<link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css"/>
@@ -33,13 +33,13 @@
 		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 			<div class="container" id="mabed-nav">
 				<a class="navbar-brand" href="#">Home</a>
-				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainMABEDnavbar" aria-controls="mainMABEDnavbar" aria-expanded="false" aria-label="Toggle navigation">
+				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainCATInavbar" aria-controls="mainCATInavbar" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
 				</button>
-				<div class="collapse navbar-collapse" id="mainMABEDnavbar">
+				<div class="collapse navbar-collapse" id="mainCATInavbar">
 					<ul class="navbar-nav mr-auto">
 						<li class="nav-item" id="nav-mabed">
-							<a class="nav-link" href="#mabed">Detect Events Using MABED</a>
+							<a class="nav-link" href="#mabed">Detect Events</a>
 						</li>
 						<li class="nav-item" id="nav-results">
 							<a class="nav-link" href="#results">Event-detection results</a>
@@ -56,7 +56,7 @@
 					</ul>
 					<ul class="nav navbar-nav navbar-right">
 						<li class="nav-item" id="nav-events">
-							<a class="nav-link" href="#events"><i class="pixicon-map-pin-1-place-2" style="margin-right:5px;position:relative;top:2px;"></i> Review & Export</a>
+							<a class="nav-link" href="#review"><i class="pixicon-map-pin-1-place-2" style="margin-right:5px;position:relative;top:2px;"></i> Review & Export</a>
 						</li>
 						<li class="nav-item" id="nav-settings">
 								<form id="topbar_session_form">
@@ -133,7 +133,7 @@
 			<div id="timeline_div">
 
 			</div>
-			<div class="gray-bg bg-lighten-4 pix-padding-v-65">
+			<div class="gray-bg bg-lighten-4 pix-padding-v-65 event_results_area">
 			  <div class="container">
 			    <div class="row">
 
@@ -243,6 +243,11 @@
 								  <select class="custom-select" id="session_index_for_ngrams">
 								</select>
 							</div>
+						    <div class="form-group">
+								<label for="session_name">Generate from field</label>
+								  <input type="text" class="form-control" id="from_field" placeholder="E.g. clean-text" value="text">
+								</select>
+							</div>
 							<div class="">
 								<button id="regenerate-ngrams" class="btn btn-primary btn-lg btn-flat"><b>(Re)generate ngrams</b></button>
 							</div>
@@ -318,31 +323,6 @@
 			                                                            <label for="num-tweet-questions" class="col-form-label font-weight-bold">How many tweets are you willing to classify by default for each stage?</label>
 			                                                            <input class="form-control" type="number" value="20" id="num-tweet-questions">
 			                                                        </div>
-
-																	<!-- TEST DOCUMENTS -->
-																	<div class="form-group">
-
-																		<label for="num-tweet-questions" class="col-form-label font-weight-bold">Test documents:</label>
-
-																	  	<!-- USE THE ALREADY CLASSIFIED DATA % -->
-																		<div class="form-check">
-																			<input class="form-check-input" type="radio" name="testSubset" id="testSubsetPercentage" value="option1" disabled>
-																			<span class="form-check-label" for="testSubsetPercentage">
-																			  Use the a percentage of the current session:
-																			  <input class="form-control" type="number" value="20" id="test-subset-percentage" min="1" max="99">
-																			</span>
-																		</div>
-
-																		<!-- USE ANOTHER SESSION -->
-																		<div class="form-check">
-																			<input class="form-check-input" type="radio" name="testSubset" id="testSubsetExternalSession" value="option1" checked>
-																			<span class="form-check-label" for="testSubsetExternalSession">
-																			Use the following session:
-																			<select class="form-control" id="test-subset-external-session"></select>
-																			</span>
-																		</div>
-
-																	</div>
 
 			                                                    </div>
 			                                                </div>
@@ -809,7 +789,7 @@
 			           <h3 class="pix-gray darken-4 font-black">Run MABED</h3>
 			      </div>
 
-			      <div class="col-12 col-sm-12">
+			      <div class="col-12 col-sm-12 pix-margin-bottom-30">
 
 			        <!-- MABED SECTION -->
 			        <form class="static_box pix-padding-20 white-bg" id="run_mabed">
@@ -870,6 +850,40 @@
 			            <button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
 			        </form>
 			      </div>
+
+				  <div class="col-12 pix-margin-bottom-30">
+			           <h3 class="pix-gray darken-4 font-black">Run TOBAS</h3>
+			      </div>
+
+			      <div class="col-12 col-sm-12">
+
+			        <!-- TOPIC-BASED SECTION -->
+			        <form class="static_box pix-padding-20 white-bg" id="run_tobas">
+						<div class="form-row">
+
+							<div class="col-md-3 col-sm-12 h_field">
+							  <label for="tobas_time_slice_length">Time-slice length</label>
+							  <div class="input-group mb-3">
+								<input id="tobas_time_slice_length" aria-describedby="basic-addon1" name="tobas_time_slice_length" type="text" class="form-control" placeholder="Default to 30" value="30">
+								<div class="input-group-append">
+								  <span class="input-group-text">minutes</span>
+								</div>
+							  </div>
+							</div>
+
+							<div class="col-md-3 col-sm-12 h_field">
+							  <label for="p_value">Percentage of average words describing topics</label>
+							  <div class="input-group mb-3">
+								<input id="max_perc_words_by_topic" name="max_perc_words_by_topic" type="number" class="form-control" placeholder="Default to 0.5" value="0.5" min="0" max="1" step="0.1" >
+							  </div>
+							</div>
+						</div>
+						</br>
+						<button class="btn btn-lg btn-flat btn-success" style="width:100%" type="submit"><strong>RUN</strong></button>
+
+					</form>
+				  </div>
+
 			    </div>
 			  </div>
 			</div>
@@ -889,38 +903,51 @@
 		</script>
 		<script type="text/template" id="tpl-page-events">
 			<div class="pix-padding-v-65">
-			<div class="container">
-			  <div class="row">
-			      <div class="col-12 pix-margin-bottom-30">
-			      <h2 class="pix-gray darken-4 font-black">Export</h2>
-			    </div>
-			      <div class="col-12 pix-padding-bottom-60">
-			          <a href="#" class="btn btn-lg btn-flat btn-success export_tweets" ><strong>Export confirmed tweets .json File</strong></a>
-			    </div>
 
-			      </div>
-			    </div>
-			      <div class="gray-bg bg-lighten-4 pix-padding-v-65">
-			          <div class="container">
-			  <div class="row">
-			          <div class="col-12 pix-margin-bottom-30">
-			          <h2 class="pix-gray darken-4 font-black">Review</h2>
-			        </div>
-			          <div class="col-12 pix-padding-bottom-30">
-			              <a class="btn btn-lg btn-success pix-white fly shadow scale btn_review" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>
-			              <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_review" data-state="negative" href="#" role="button"><strong>Negative</strong></a>
-			              <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_review" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>
-			        </div>
-			      <div class="col-12 tweets_results">
-			      	<span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)
-				  </div>
-			          <div class="col-12 individual_tweets_result">
-			        </div>
-			          </div>
+				<div class="container">
+					<div class="row">
+						<div class="col-12 pix-margin-bottom-30">
+							<h2 class="pix-gray darken-4 font-black">Export</h2>
+						</div>
+						<div class="col-12 pix-padding-bottom-60">
+							<a href="#" class="btn btn-lg btn-flat btn-success export_tweets" ><strong>Export confirmed tweets .json File</strong></a>
+						</div>
+					</div>
 
-			      </div>
+				</div>
+				<div class="gray-bg bg-lighten-4 pix-padding-v-50">
+					<div class="container">
+						<div class="row">
+							<div class="col-12 pix-margin-bottom-30 mt-5">
+								<h2 class="pix-gray darken-4 font-black">Reset</h2>
+							</div>
+							<div class="col-12 pix-padding-bottom-60">
+								<a href="#" class="btn btn-lg btn-flat btn-success clear_session_annotations" ><strong>Clear all the session's annotations</strong></a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="pix-padding-v-65">
+					<div class="container">
+						  <div class="row">
+								  <div class="col-12 pix-margin-bottom-30">
+								  <h2 class="pix-gray darken-4 font-black">Review</h2>
+								</div>
+								  <div class="col-12 pix-padding-bottom-30">
+									  <a class="btn btn-lg btn-success pix-white fly shadow scale btn_review" data-state="confirmed" href="#" role="button"><strong>Confirmed</strong></a>
+									  <a class="btn btn-lg btn-danger pix-white fly shadow scale btn_review" data-state="negative" href="#" role="button"><strong>Negative</strong></a>
+									  <a class="btn btn-lg btn-primary pix-white fly shadow scale btn_review" data-state="proposed" href="#" role="button"><strong>Proposed</strong></a>
+								</div>
+							  <div class="col-12 tweets_results">
+								<span class="res_num">0</span> results (<span class="res_time">0.1</span> seconds)
+							  </div>
+								  <div class="col-12 individual_tweets_result">
+								</div>
+								  </div>
+
+					  </div>
 			    </div>
-			    </div>
+			</div>
 		</script>
 		<script type="text/template" id="tpl-page-beta">
 			<div class="pix-padding-v-65 gray-bg bg-lighten-4">
@@ -1232,8 +1259,14 @@
 		<script src="static/js/views/visualizations/MultiPieChart.js"></script>
 		<script src="static/js/views/visualizations/MultiPieWidget.js"></script>
 		<script src="static/js/views/classification.js"></script>
+
+		<script src="static/js/views/search_modules/SearchModule.js"></script>
+		<script src="static/js/views/search_modules/TopRetweetsModule.js"></script>
+		<script src="static/js/views/search_modules/GeoSpatialModule.js"></script>
+		<script src="static/js/views/search_modules/DailyFrequencyModule.js"></script>
 		<script src="static/js/views/tweets.js"></script>
-		<script src="static/js/views/events.js"></script>
+
+		<script src="static/js/views/review.js"></script>
 		<script src="static/js/views/beta.js"></script>
 		<script src="static/js/views/beta2.js"></script>
 		<script src="static/js/models/event.js"></script>

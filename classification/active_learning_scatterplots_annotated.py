@@ -4,6 +4,8 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.io as pio
 import os
+import plotly
+plotly.io.orca.config.executable = '/home/gabi/dev/miniconda3/bin/orca'  #May be useful in Ubuntu
 
 #PARAMS
 logs_path = "C:\\Users\\gbosetti\\Desktop\\experiments"
@@ -136,6 +138,6 @@ print("hyp_results:\n", json.dumps(hyp_results, indent=4, sort_keys=True))
 draw_evolution("accuracies", "accuracy", hyp_results)
 # draw_evolution("diff_accuracies", "diff. accuracy", hyp_results)
 draw_evolution("wrong_answers", "wrong answers", hyp_results)
-draw_evolution("recall", "recall", hyp_results)
+#draw_evolution("recall", "recall", hyp_results)
 draw_evolution("precision", "precision", hyp_results)
-draw_evolution("positive_precision", "positive precision", hyp_results)
+#draw_evolution("positive_precision", "positive precision", hyp_results)

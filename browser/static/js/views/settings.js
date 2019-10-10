@@ -137,7 +137,8 @@ app.views.settings = Backbone.View.extend({
             var data = [
                 {name: "index", value: index },
                 {name: "ngrams_length", value: ngrams_length},
-                {name: "to_property", value: ngrams_length + "grams"}
+                {name: "to_property", value: ngrams_length + "grams"},
+                {name: "from_property", value: $("#from_field").val()},
             ];
 
             var keepAskingForLogs = true;

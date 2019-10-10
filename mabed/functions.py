@@ -19,6 +19,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import UpdateByQuery
+from datetime import datetime, timedelta
 
 from elasticsearch.client import Elasticsearch as es
 
@@ -423,18 +424,30 @@ class Functions:
     # Tweets
     # ==================================================================
 
-    def get_tweets(self, index="test3", word="", session="", label="confirmed OR proposed OR negative"):
+    def get_tweets(self, index="test3", word=None, session="", label="confirmed OR proposed OR negative", size=None):
         my_connector = Es_connector(index=index)
-        res = my_connector.init_paginatedSearch({
-            "query": {
-                "bool": {
-                    "must": [
-                        {"match": {"text": word}},
-                        {"match": {session: label}}
-                    ]
+
+        if word == None or word == '':
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {session: label}}
+                        ]
+                    }
                 }
-            }
-        })
+            }, size)
+        else:
+            res = my_connector.init_paginatedSearch({
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"match": {"text": word}},
+                            {"match": {session: label}}
+                        ]
+                    }
+                }
+            }, size)
 
         return res
 
@@ -516,6 +529,69 @@ class Functions:
                 }
             })
         return res
+
+    def get_tweets_frequency(self, index, word, session, label, full_search):
+
+        my_connector = Es_connector(index=index) #Replace this by a paginated retrieval, so there is no size limit
+
+        if full_search:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {session: label}}
+                    ]
+                }
+            }
+        else:
+            query = {
+                "bool": {
+                    "must": [
+                        {"match": {"text": word}},
+                        {"match": { session: label }}
+                    ]
+                }
+            }
+        res = my_connector.search({
+                "size": 500000,
+                "_source": "timestamp_ms",
+                "query": query
+            })
+        tweets_by_frequency = {}
+
+        #Getting the dates
+        dates = []
+        for doc in res["hits"]["hits"]:
+            timestamp = int(doc["_source"]["timestamp_ms"])
+            if len(doc["_source"]["timestamp_ms"]) > 10:
+                timestamp = timestamp / 1000
+            date = datetime.fromtimestamp(timestamp)
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+            dates.append(date)
+        min_date = min(dates)
+        max_date = max(dates)
+        numdays = (max_date-min_date).days + 1
+
+        date_list = [max_date - timedelta(days=x) for x in range(numdays)]
+        tweets_by_frequency = {date: 0 for date in date_list}
+
+        #Getting the ocurrences for each date
+        for doc in res["hits"]["hits"]:
+
+            timestamp = int(doc["_source"]["timestamp_ms"])
+            if len(doc["_source"]["timestamp_ms"]) > 10:
+                timestamp = timestamp / 1000
+            date = datetime.fromtimestamp(timestamp)
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            if date in date_list:
+                tweets_by_frequency[date] += 1
+            else: print("Not found: ", date)
+
+        #Sorting by dates and transforming the dates in the required timestamps (so the client doesn't need to process big amounts of tweets)
+        tweets_by_frequency_list = [(datetime.timestamp(k)*1000, v) for k, v in tweets_by_frequency.items()]
+        #tweets_by_frequency_list.sort(key=lambda r: r[0])
+
+        return tweets_by_frequency_list
 
     def get_event_tweets(self, index="test3", main_term="", related_terms=""):
         my_connector = Es_connector(index=index)
@@ -1144,7 +1220,8 @@ class Functions:
                     "type": "Feature",
                     "geometry": tweet['_source']['coordinates'],
                     "properties": {
-                        "tweet": tweet['_source']
+                        "tweet": tweet['_source'],
+                        "doc_id": tweet['_id']
                     }
                 })
 
@@ -1213,7 +1290,8 @@ class Functions:
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
                 "properties": {
-                    "tweet": tweet['_source']
+                    "tweet": tweet['_source'],
+                    "doc_id": tweet['_id']
                 }
             })
 
@@ -1287,7 +1365,8 @@ class Functions:
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
                 "properties": {
-                    "tweet": tweet['_source']
+                    "tweet": tweet['_source'],
+                    "doc_id": tweet['_id']
                 }
             })
 
@@ -1360,7 +1439,8 @@ class Functions:
                 "type": "Feature",
                 "geometry": tweet['_source']['coordinates'],
                 "properties": {
-                    "tweet": tweet['_source']
+                    "tweet": tweet['_source'],
+                    "doc_id": tweet['_id']
                 }
             })
 
@@ -1712,6 +1792,9 @@ class Functions:
 
     # Update session events results
     def update_session_results(self, id, events, impact_data):
+
+        print("update_session_results", self.sessions_index, self.sessions_doc_type)
+        print(id, "-")
         my_connector = Es_connector(index=self.sessions_index, doc_type=self.sessions_doc_type)
         res = my_connector.update(id, {
             "doc": {
@@ -1720,6 +1803,49 @@ class Functions:
             }
         })
         return res
+
+    def geo_selection_to_state(self, index, session, state, docs_ids):
+        tweets_connector = Es_connector(index=index, doc_type="tweet")
+
+        for id_str in docs_ids:
+            try:
+                query = {
+                    "query":{
+                        "match":{
+                            "_id": id_str
+                        }
+                    }
+                }
+                Es_connector(index=index).es.update(
+                    index=index,
+                    doc_type="tweet",
+                    id=id_str,
+                    body={"doc": {
+                        session: state
+                    }},
+                    retry_on_conflict=5
+                )
+
+            except Exception as e:
+                print('Error: ' + str(e))
+
+
+    def clear_session_annotations(self, index, session):
+
+        my_connector = Es_connector(index=index, doc_type="tweet")
+        query = {
+            "query": {
+                "bool": {
+                  "must_not": [
+                    {"match": {
+                      session: "proposed"
+                    }}
+                  ]
+                }
+              }
+        }
+        script = "ctx._source." + session + " = 'proposed'"
+        return my_connector.update_by_query(query, script)
 
     # Get session events results
     def get_session_results(self, id):
@@ -1837,22 +1963,36 @@ class Functions:
         res = tweets_connector.update_query(query, session, state)
         return res
 
-    def mark_all_matching_tweets(self, index, session, state, word):
+    def mark_all_matching_tweets(self, index, session, state, word=None):
         tweets_connector = Es_connector(index=index, doc_type="tweet")
-        query = {
-            "query": {
-                "bool": {
-                    "must": {
-                        "simple_query_string": {
-                            "fields": [
-                                "text"
-                            ],
-                            "query": word
+
+        if word==None or word.strip() == "":
+            query = {
+                "query": {
+                    "bool":{
+                        "must_not":{
+                            "match": {
+                                session: state
+                            }
                         }
                     }
                 }
             }
-        }
+        else:
+            query = {
+                "query": {
+                    "bool": {
+                        "must": {
+                            "simple_query_string": {
+                                "fields": [
+                                    "text"
+                                ],
+                                "query": word
+                            }
+                        }
+                    }
+                }
+            }
         return tweets_connector.update_query(query, session, state)
 
     def set_cluster_state(self, index, session, cid, state):

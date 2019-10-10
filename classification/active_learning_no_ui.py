@@ -14,11 +14,10 @@ class ActiveLearningNoUi:
         if not os.path.exists(folder):
             os.makedirs(folder)
         self.backend_logger = BackendLogger(logs_path)
-
         self.classifier = ActiveLearning()
 
         if kwargs.get("sampler", None) != None:
-            self.classifier.set_sampling_strategy(kwargs["sampler"])
+            self.classifier.initialize(sampler=kwargs["sampler"], learner=kwargs["learner"])
 
     def clean_logs(self, **kwargs):
 
@@ -39,7 +38,10 @@ class ActiveLearningNoUi:
 
     def get_answers(self, **kwargs):
 
-        my_connector = Es_connector(index=kwargs["index"])  # , config_relative_path='../')
+        if "config_relative_path" in kwargs:
+            my_connector = Es_connector(index=kwargs["index"], config_relative_path=kwargs["config_relative_path"])
+        else: my_connector = Es_connector(index=kwargs["index"])
+
         wrong_labels=0
 
         all_ids = self.join_ids(kwargs["questions"])
@@ -67,25 +69,23 @@ class ActiveLearningNoUi:
     def loop(self, **kwargs):
 
         # Building the model and getting the questions
-        self.classifier.build_model(remove_stopwords=False)
-
+        self.classifier.build_model(remove_stopwords=False)  # From the UI it is required to use the build_model_no_test instead
         questions = self.classifier.get_samples(kwargs["num_questions"])
 
-        # Asking the user (gt_dataset) to answer the questions
-        answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions, gt_session=kwargs["gt_session"], classifier=self.classifier)
+        if len(questions)>0:
 
-        # Injecting the answers in the training set, and re-training the model
-        self.classifier.move_answers_to_training_set(answers)
-        #self.classifier.move
-        #self.delete_temporary_labels(kwargs["index"], kwargs["session"], answers)
-        # self.classifier.remove_matching_answers_from_test_set(answers)
+            # Asking the user (gt_dataset) to answer the questions
+            answers, wrong_pred_answers = self.get_answers(index=kwargs["index"], questions=questions,
+                                                           gt_session=kwargs["gt_session"], classifier=self.classifier,
+                                                           config_relative_path=kwargs.get("config_relative_path", ""))
 
-        self.classifier.post_sampling() #In case you want, e.g., to move duplicated content
+            # Injecting the answers in the training set, and re-training the model
+            self.classifier.move_answers_to_training_set(answers)
+            self.classifier.post_sampling(answers=answers, config_relative_path=kwargs.get("config_relative_path", "")) #In case you want, e.g., to move duplicated content
 
-        # Present visualization to the user, so he can explore the proposed classification
-        # ...
+            return self.classifier.scores, wrong_pred_answers
 
-        return self.classifier.scores, wrong_pred_answers
+        else: raise Exception('ERROR: the number of low-level-confidence predictions is not enough to retrieve any sample question.')
 
     def download_data(self, **kwargs):
 
@@ -96,13 +96,17 @@ class ActiveLearningNoUi:
 
             self.classifier.download_training_data(index=kwargs["index"], session=kwargs["session"],
                                               field=kwargs["text_field"],
-                                              debug_limit=kwargs["debug_limit"])
+                                              debug_limit=kwargs["debug_limit"],
+                                              config_relative_path=kwargs["config_relative_path"])
             self.classifier.download_unclassified_data(index=kwargs["index"], session=kwargs["session"],
                                                   field=kwargs["text_field"],
-                                                  debug_limit=kwargs["debug_limit"])
+                                                  debug_limit=kwargs["debug_limit"],
+                                                  config_relative_path=kwargs["config_relative_path"])
             self.classifier.download_testing_data(index=kwargs["index"], session=kwargs["gt_session"],
                                              field=kwargs["text_field"],
-                                             debug_limit=kwargs["debug_limit"])
+                                             debug_limit=kwargs["debug_limit"],
+                                             config_relative_path=kwargs["config_relative_path"])
+            self.classifier.remove_docs_absent_in_training()
 
     def clear_temporary_labels(self, index, session):
 
@@ -182,29 +186,20 @@ class ActiveLearningNoUi:
 
     def run(self, **kwargs):
 
-        #try:
-        diff_accuracy = None
-        start_time = datetime.now()
-        accuracy = 0
-        prev_accuracy = 0
-        # stage_scores = []
-
-        looping_clicks = 0
         self.backend_logger.clear_logs()  # Just in case there is a file with the same name
+
+        self.backend_logger.add_raw_log('{ "sampler": "' + self.classifier.get_sampler_class_name() + '"} \n')
+        self.backend_logger.add_raw_log('{ "learner": "' + self.classifier.get_learner_class_name() + '"} \n')
+        self.backend_logger.add_raw_log('{ "vectorizer": "' + self.classifier.get_vectorizer_class_name() + '"} \n')
+        self.backend_logger.add_raw_log('{ "field": "' + kwargs["text_field"] + '"} \n')
 
         # Copy downloaded files
         self.classifier.clone_original_files()
         self.backend_logger.add_raw_log('{ "start_looping": "' + str(datetime.now()) + '"} \n')
 
-        #Temporarily label them
-        #self.clear_temporary_labels(kwargs["index"], kwargs["session"])
-        self.backend_logger.add_raw_log('{ "restarting labels": "' + str(datetime.now()) + '"} \n')
-        #time.sleep(10)  # >TODO: this is avoiding ConflictError with Elastic... We need to make it sync
-        #self.add_temporary_labels(kwargs["index"], kwargs["session"], self.classifier.get_unlabeled_ids())
-
-        #while diff_accuracy is None or diff_accuracy > kwargs["min_diff_accuracy"]:
         loop_index = 0
-        while loop_index in range(100):  # and accuracy<1:
+        looping_clicks = 0
+        while loop_index in range(kwargs["max_loops"]):  # and accuracy<1:  /// max_loops default is 100
 
             print("\n---------------------------------")
             loop_index+=1
@@ -212,26 +207,13 @@ class ActiveLearningNoUi:
             scores, wrong_pred_answers = self.loop(**kwargs)
             looping_clicks += wrong_pred_answers
 
-            # if len(stage_scores) > 0:
-            #     accuracy = scores["accuracy"]
-            #     prev_accuracy = stage_scores[-1]["accuracy"]
-            #     diff_accuracy = abs(accuracy - prev_accuracy)
-
             self.backend_logger.add_raw_log('{ "loop": ' + str(loop_index) +
                                             ', "datetime": "' + str(datetime.now()) +
                                             '", "accuracy": ' + str(scores["accuracy"]) +
                                             ', "f1": ' + str(scores["f1"]) +
                                             ', "recall": ' + str(scores["recall"]) +
                                             ', "precision": ' + str(scores["precision"]) +
-                                            ', "positive_precision": ' + str(scores["positive_precision"]) +
                                             ', "wrong_pred_answers": ' + str(wrong_pred_answers) + ' } \n')
-            # stage_scores.append(scores)
 
         self.backend_logger.add_raw_log('{ "looping_clicks": ' + str(looping_clicks) + '} \n')
         self.backend_logger.add_raw_log('{ "end_looping": "' + str(datetime.now()) + '"} \n')
-
-
-            #except Exception as e:
-            #    print(e)
-        #     self.backend_logger.add_raw_log('{ "error": "' + str(e) + '"} \n')
-        #     return [],[]
