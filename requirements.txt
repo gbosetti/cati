@@ -53,7 +53,7 @@ mkl-random==1.0.2
 modAL==0.3.4
 networkx==2.1
 newspaper3k==0.2.8
-nltk==3.3
+nltk==3.4.5
 numpy==1.15.4
 oauthlib==2.1.0
 opencv-python==4.0.0.21
