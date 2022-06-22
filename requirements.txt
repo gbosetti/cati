@@ -54,7 +54,7 @@ modAL==0.3.4
 networkx==2.1
 newspaper3k==0.2.8
 nltk==3.3
-numpy==1.15.4
+numpy==1.22.0
 oauthlib==2.1.0
 opencv-python==4.0.0.21
 pandas==0.24.0
